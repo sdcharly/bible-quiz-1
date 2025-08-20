@@ -1,150 +1,220 @@
-"use client";
-
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { SetupChecklist } from "@/components/setup-checklist";
-import { useDiagnostics } from "@/hooks/use-diagnostics";
-import { StarterPromptModal } from "@/components/starter-prompt-modal";
+import { BookOpen, Users, Clock, BarChart3, FileText, CheckCircle } from "lucide-react";
 
-export default function Home() {
-  const { isAuthReady, isAiReady, loading } = useDiagnostics();
+export default function HomePage() {
   return (
-    <main className="flex-1 container mx-auto px-4 py-12">
-      <div className="max-w-4xl mx-auto text-center space-y-8">
-        <div className="space-y-4">
-          <h2 className="text-4xl font-bold tracking-tight">
-            Welcome to Your Agentic Coding Boilerplate
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+      {/* Hero Section */}
+      <section className="px-6 py-24 sm:px-12 lg:px-24">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center">
+            <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+              Biblical Study Quiz Platform
+            </h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
+              Empower your biblical education with AI-powered quizzes. Create, manage, and take comprehensive assessments based on scripture and study materials.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/auth/signup">
+                <Button size="lg" className="w-full sm:w-auto">
+                  Get Started as Student
+                </Button>
+              </Link>
+              <Link href="/auth/educator-signup">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                  Join as Educator
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="px-6 py-16 sm:px-12 lg:px-24 bg-white dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900 dark:text-white">
+            Platform Features
           </h2>
-          <p className="text-xl text-muted-foreground">
-            A complete agentic coding boilerplate with authentication, database, AI
-            integration, and modern tooling for building AI-powered applications
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Feature 1 */}
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <FileText className="h-12 w-12 text-blue-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+                Document Processing
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Upload biblical study materials in PDF, DOCX, or TXT formats for automatic quiz generation.
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <BookOpen className="h-12 w-12 text-blue-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+                Smart Quiz Generation
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                AI-powered quiz creation with customizable difficulty levels and Bloom&apos;s Taxonomy support.
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <Clock className="h-12 w-12 text-blue-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+                Timed Assessments
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Server-synchronized timers with scheduled start times and automatic submission.
+              </p>
+            </div>
+
+            {/* Feature 4 */}
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <Users className="h-12 w-12 text-blue-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+                Role-Based Access
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Dedicated dashboards for educators and students with tailored functionality.
+              </p>
+            </div>
+
+            {/* Feature 5 */}
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <BarChart3 className="h-12 w-12 text-blue-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+                Analytics & Insights
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Comprehensive performance tracking with individual and class-wide statistics.
+              </p>
+            </div>
+
+            {/* Feature 6 */}
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <CheckCircle className="h-12 w-12 text-blue-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+                Instant Results
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Immediate scoring with detailed explanations and performance metrics by topic.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="px-6 py-16 sm:px-12 lg:px-24">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900 dark:text-white">
+            How It Works
+          </h2>
+          <div className="grid md:grid-cols-2 gap-12">
+            {/* For Educators */}
+            <div>
+              <h3 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">
+                For Educators
+              </h3>
+              <ol className="space-y-4">
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                    1
+                  </span>
+                  <span className="ml-4 text-gray-600 dark:text-gray-300">
+                    Upload your biblical study documents and materials
+                  </span>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                    2
+                  </span>
+                  <span className="ml-4 text-gray-600 dark:text-gray-300">
+                    Configure quiz parameters (topics, difficulty, duration)
+                  </span>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                    3
+                  </span>
+                  <span className="ml-4 text-gray-600 dark:text-gray-300">
+                    Review and publish quizzes for your students
+                  </span>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                    4
+                  </span>
+                  <span className="ml-4 text-gray-600 dark:text-gray-300">
+                    Monitor progress and analyze performance metrics
+                  </span>
+                </li>
+              </ol>
+            </div>
+
+            {/* For Students */}
+            <div>
+              <h3 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">
+                For Students
+              </h3>
+              <ol className="space-y-4">
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                    1
+                  </span>
+                  <span className="ml-4 text-gray-600 dark:text-gray-300">
+                    Sign up and enroll in available quizzes
+                  </span>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                    2
+                  </span>
+                  <span className="ml-4 text-gray-600 dark:text-gray-300">
+                    Take quizzes at scheduled times with timer support
+                  </span>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                    3
+                  </span>
+                  <span className="ml-4 text-gray-600 dark:text-gray-300">
+                    Navigate questions with skip and review options
+                  </span>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                    4
+                  </span>
+                  <span className="ml-4 text-gray-600 dark:text-gray-300">
+                    Review detailed results and track your progress
+                  </span>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="px-6 py-16 sm:px-12 lg:px-24 bg-blue-600 dark:bg-blue-700">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to Transform Your Biblical Education?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8">
+            Join educators and students in creating a more engaging learning experience.
           </p>
+          <Link href="/auth/signup">
+            <Button size="lg" variant="secondary" className="font-semibold">
+              Start Your Free Trial
+            </Button>
+          </Link>
         </div>
-
-        {/* YouTube Tutorial Video */}
-        <div className="space-y-4">
-          <h3 className="text-2xl font-semibold">📺 Video Tutorial</h3>
-          <p className="text-muted-foreground">
-            Watch the complete walkthrough of this agentic coding boilerplate:
-          </p>
-          <div className="relative w-full max-w-3xl mx-auto">
-            <div className="relative pb-[56.25%] h-0 overflow-hidden rounded-lg border">
-              <iframe
-                className="absolute top-0 left-0 w-full h-full"
-                src="https://www.youtube.com/embed/T0zFZsr_d0Q"
-                title="Agentic Coding Boilerplate Tutorial"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
-          <div className="p-6 border rounded-lg">
-            <h3 className="font-semibold mb-2">🔐 Authentication</h3>
-            <p className="text-sm text-muted-foreground">
-              Better Auth with Google OAuth integration
-            </p>
-          </div>
-          <div className="p-6 border rounded-lg">
-            <h3 className="font-semibold mb-2">🗄️ Database</h3>
-            <p className="text-sm text-muted-foreground">
-              Drizzle ORM with PostgreSQL setup
-            </p>
-          </div>
-          <div className="p-6 border rounded-lg">
-            <h3 className="font-semibold mb-2">🤖 AI Ready</h3>
-            <p className="text-sm text-muted-foreground">
-              Vercel AI SDK with OpenAI integration
-            </p>
-          </div>
-          <div className="p-6 border rounded-lg">
-            <h3 className="font-semibold mb-2">🎨 UI Components</h3>
-            <p className="text-sm text-muted-foreground">
-              shadcn/ui with Tailwind CSS
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-6 mt-12">
-          <SetupChecklist />
-
-          <h3 className="text-2xl font-semibold">Next Steps</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">
-                1. Set up environment variables
-              </h4>
-              <p className="text-sm text-muted-foreground mb-2">
-                Copy <code>.env.example</code> to <code>.env.local</code> and
-                configure:
-              </p>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                <li>POSTGRES_URL (PostgreSQL connection string)</li>
-                <li>GOOGLE_CLIENT_ID (OAuth credentials)</li>
-                <li>GOOGLE_CLIENT_SECRET (OAuth credentials)</li>
-                <li>OPENAI_API_KEY (for AI functionality)</li>
-              </ul>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">2. Set up your database</h4>
-              <p className="text-sm text-muted-foreground mb-2">
-                Run database migrations:
-              </p>
-              <div className="space-y-2">
-                <code className="text-sm bg-muted p-2 rounded block">
-                  npm run db:generate
-                </code>
-                <code className="text-sm bg-muted p-2 rounded block">
-                  npm run db:migrate
-                </code>
-              </div>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">3. Try the features</h4>
-              <div className="space-y-2">
-                {loading || !isAuthReady ? (
-                  <Button size="sm" className="w-full glow" disabled={true}>
-                    View Dashboard
-                  </Button>
-                ) : (
-                  <Button asChild size="sm" className="w-full glow">
-                    <Link href="/dashboard">View Dashboard</Link>
-                  </Button>
-                )}
-                {loading || !isAiReady ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    disabled={true}
-                  >
-                    Try AI Chat
-                  </Button>
-                ) : (
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                  >
-                    <Link href="/chat">Try AI Chat</Link>
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">4. Start building</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Customize the components, add your own pages, and build your
-                application on top of this solid foundation.
-              </p>
-              <StarterPromptModal />
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
+      </section>
+    </div>
   );
 }

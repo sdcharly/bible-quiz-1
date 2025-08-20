@@ -12,4 +12,24 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        defaultValue: "student",
+        required: false,
+      },
+    },
+  },
+  callbacks: {
+    user: {
+      create: async ({ user }: { user: { role?: string } }) => {
+        // Default role is student
+        return {
+          ...user,
+          role: user.role || "student",
+        }
+      },
+    },
+  },
 })
