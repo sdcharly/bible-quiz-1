@@ -1,32 +1,59 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const response = NextResponse.next();
   
-  // Skip middleware for auth API routes to let better-auth handle them
-  if (pathname.startsWith('/api/auth/')) {
-    return NextResponse.next()
+  // Security headers
+  response.headers.set('X-DNS-Prefetch-Control', 'on');
+  response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  
+  // Content Security Policy for production
+  if (process.env.NODE_ENV === 'production') {
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.vercel.app",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' blob: data: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' https:",
+      "frame-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+      "upgrade-insecure-requests"
+    ].join('; ');
+    
+    response.headers.set('Content-Security-Policy', csp);
   }
   
-  // Protect educator routes
-  if (pathname.startsWith('/educator/') && !pathname.startsWith('/auth/')) {
-    // This will be handled by client-side auth check
-    return NextResponse.next()
+  // Handle www redirect (if you have a custom domain)
+  const host = request.headers.get('host');
+  if (host?.startsWith('www.')) {
+    const newUrl = new URL(request.url);
+    newUrl.host = host.replace('www.', '');
+    return NextResponse.redirect(newUrl, 301);
   }
   
-  // Protect student routes  
-  if (pathname.startsWith('/student/') && !pathname.startsWith('/auth/')) {
-    // This will be handled by client-side auth check
-    return NextResponse.next()
-  }
-  
-  return NextResponse.next()
+  return response;
 }
 
 export const config = {
   matcher: [
-    '/educator/:path*',
-    '/student/:path*',
-  ]
-}
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*|_vercel).*)',
+  ],
+};

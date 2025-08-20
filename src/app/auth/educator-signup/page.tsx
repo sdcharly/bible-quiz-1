@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { BookOpenIcon as BookOpenSolid, AcademicCapIcon } from "@heroicons/react/24/solid";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
+import { getBrowserTimezone } from "@/lib/timezone";
 
 export default function EducatorSignUpPage() {
   const router = useRouter();
@@ -45,15 +46,17 @@ export default function EducatorSignUpPage() {
       });
 
       if (signupResult.data?.user) {
-        // Update the user role to educator
-        await fetch("/api/auth/update-role", {
+        // Update the user role to educator and timezone
+        const userTimezone = getBrowserTimezone();
+        await fetch("/api/auth/update-profile", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            userId: signupResult.data.user.id,
+            email: formData.email,
             role: "educator",
+            timezone: userTimezone,
           }),
         });
 

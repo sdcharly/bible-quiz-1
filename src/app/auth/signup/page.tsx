@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { BookOpenIcon as BookOpenSolid } from "@heroicons/react/24/solid";
 import { ArrowPathIcon, UserPlusIcon } from "@heroicons/react/24/outline";
+import { getBrowserTimezone } from "@/lib/timezone";
 
 function StudentSignUpForm() {
   const router = useRouter();
@@ -78,8 +79,9 @@ function StudentSignUpForm() {
         name: formData.name,
       });
       
-      // Update user profile with phone number and role
+      // Update user profile with phone number, role, and timezone
       if (signUpResult) {
+        const userTimezone = getBrowserTimezone();
         await fetch('/api/auth/update-profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -87,6 +89,7 @@ function StudentSignUpForm() {
             email: formData.email,
             phoneNumber: formData.phoneNumber,
             role: "student",
+            timezone: userTimezone,
           }),
         });
       }

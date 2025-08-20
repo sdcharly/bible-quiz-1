@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, phoneNumber, role } = body;
+    const { email, phoneNumber, role, timezone } = body;
 
     if (!email) {
       return NextResponse.json(
@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update user profile with phone number and role
-    const updates: { updatedAt: Date; phoneNumber?: string; role?: "educator" | "student" } = {
+    // Update user profile with phone number, role, and timezone
+    const updates: { updatedAt: Date; phoneNumber?: string; role?: "educator" | "student"; timezone?: string } = {
       updatedAt: new Date(),
     };
     
@@ -40,6 +40,10 @@ export async function POST(req: NextRequest) {
     
     if (role !== undefined) {
       updates.role = role;
+    }
+    
+    if (timezone !== undefined) {
+      updates.timezone = timezone;
     }
 
     await db

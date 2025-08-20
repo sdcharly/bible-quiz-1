@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { isEducator } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDateInTimezone, getTimezoneInfo } from "@/lib/timezone";
 import {
   DocumentTextIcon,
   PlusCircleIcon,
@@ -39,6 +40,8 @@ interface Quiz {
   duration: number;
   enrolledStudents: number;
   createdAt: string;
+  startTime: string;
+  timezone: string;
 }
 
 interface PerformanceData {
@@ -521,7 +524,11 @@ export default function EducatorDashboard() {
                         )}
                         <span className="flex items-center gap-1">
                           <CalendarDaysIcon className="h-3 w-3" />
-                          {new Date(quiz.createdAt).toLocaleDateString()}
+                          {formatDateInTimezone(quiz.startTime || quiz.createdAt, quiz.timezone || 'Asia/Kolkata', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
                         </span>
                       </div>
                     </div>

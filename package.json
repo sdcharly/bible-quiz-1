@@ -7,13 +7,16 @@
     "build": "npm run db:migrate && next build",
     "start": "next start",
     "lint": "next lint",
+    "type-check": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:dev": "drizzle-kit push",
     "db:reset": "drizzle-kit drop && drizzle-kit push",
-    "cleanup:quizzes": "tsx scripts/cleanup-quizzes.ts"
+    "cleanup:quizzes": "tsx scripts/cleanup-quizzes.ts",
+    "postinstall": "npm run db:generate",
+    "vercel-build": "npm run db:migrate && next build"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.9",

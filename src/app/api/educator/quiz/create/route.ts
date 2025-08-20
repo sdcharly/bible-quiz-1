@@ -298,6 +298,27 @@ export async function POST(req: NextRequest) {
           mappedBloomsLevel = q.bloomsLevel;
         }
         
+        // Parse biblical reference more accurately
+        let parsedBook = q.book || books[0];
+        let parsedChapter = q.chapter || chapters[0];
+        
+        if (q.biblical_reference) {
+          // Handle formats like "Proverbs 6:6-8 (NIV)" or "1 Corinthians 13:4-7"
+          const refParts = q.biblical_reference.trim().split(/\s+/);
+          
+          // Check if it's a book with a number prefix (e.g., "1 Corinthians", "2 Kings")
+          if (refParts[0] && /^\d+$/.test(refParts[0]) && refParts[1]) {
+            parsedBook = `${refParts[0]} ${refParts[1]}`;
+            // The chapter and verse is the next part
+            parsedChapter = refParts[2]?.replace(/\(.*\)/, '').trim() || '';
+          } else {
+            parsedBook = refParts[0];
+            // Everything after the book name until any parenthesis
+            const remainingParts = refParts.slice(1).join(' ');
+            parsedChapter = remainingParts.replace(/\(.*\)/, '').trim();
+          }
+        }
+        
         await db.insert(questions).values({
           id: crypto.randomUUID(),
           quizId,
@@ -308,8 +329,8 @@ export async function POST(req: NextRequest) {
           difficulty: q.difficulty || difficulty,
           bloomsLevel: mappedBloomsLevel, // Use the mapped blooms level
           topic: q.topic || q.question_type, // question_type can be used for topic
-          book: q.biblical_reference?.split(' ')[0] || q.book || books[0],
-          chapter: q.biblical_reference?.split(' ')[1]?.split(':')[0] || q.chapter || chapters[0],
+          book: parsedBook,
+          chapter: parsedChapter, // Now stores full chapter:verse reference like "6:6-8"
           orderIndex: q.id || i,
           createdAt: new Date(),
         });

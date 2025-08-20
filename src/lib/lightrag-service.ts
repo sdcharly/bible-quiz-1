@@ -486,6 +486,58 @@ export class LightRAGService {
     }
   }
 
+  static async listAllDocuments(): Promise<Array<{ id: string; title: string; content?: string; timestamp?: string; trackId?: string; status?: string }>> {
+    try {
+      // Get documents list from LightRAG
+      const response = await fetch(`${LIGHTRAG_BASE_URL}/documents`, {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'X-API-Key': LIGHTRAG_API_KEY
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // If endpoint doesn't exist, return empty array
+          console.warn('LightRAG documents list endpoint not available');
+          return [];
+        }
+        throw new Error(`LightRAG list documents error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Handle the actual LightRAG response format: { "statuses": { "processed": [...] } }
+      if (data.statuses && data.statuses.processed && Array.isArray(data.statuses.processed)) {
+        return data.statuses.processed.map((doc: Record<string, unknown>) => ({
+          id: doc.id,
+          title: doc.file_path || doc.id,
+          content: doc.content_summary,
+          timestamp: doc.created_at,
+          trackId: doc.track_id,
+          status: doc.status
+        }));
+      }
+      
+      // Handle other possible formats
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data.documents && Array.isArray(data.documents)) {
+        return data.documents;
+      } else if (data.docs && Array.isArray(data.docs)) {
+        return data.docs;
+      } else {
+        console.warn('Unexpected response format from LightRAG documents list:', data);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error listing LightRAG documents:', error);
+      // Return empty array instead of throwing to allow graceful handling
+      return [];
+    }
+  }
+
   static async clearAllDocuments(): Promise<ClearDocumentsResponse> {
     try {
       console.warn("Clearing ALL documents from LightRAG - this is irreversible!");

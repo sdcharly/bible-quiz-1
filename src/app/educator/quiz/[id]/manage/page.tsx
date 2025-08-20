@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDateInTimezone } from "@/lib/timezone";
 import {
   ArrowLeft,
   Users,
@@ -28,6 +29,7 @@ interface QuizDetails {
   duration: number;
   status: string;
   startTime: string;
+  timezone: string;
   createdAt: string;
 }
 
@@ -207,7 +209,11 @@ export default function QuizManagePage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    Published {new Date(quiz.createdAt).toLocaleDateString()}
+                    Published {formatDateInTimezone(quiz.createdAt, quiz.timezone || 'Asia/Kolkata', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
                   </div>
                 </div>
               </div>
@@ -306,11 +312,19 @@ export default function QuizManagePage() {
                         <div className="flex items-center gap-3">
                           <div className="text-right text-sm">
                             <p className="text-gray-500">
-                              Enrolled {new Date(student.enrolledAt).toLocaleDateString()}
+                              Enrolled {formatDateInTimezone(student.enrolledAt, quiz?.timezone || 'Asia/Kolkata', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
                             </p>
                             {student.completedAt && (
                               <p className="text-gray-500">
-                                Completed {new Date(student.completedAt).toLocaleDateString()}
+                                Completed {formatDateInTimezone(student.completedAt, quiz?.timezone || 'Asia/Kolkata', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
                               </p>
                             )}
                           </div>

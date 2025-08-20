@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { 
@@ -14,8 +16,30 @@ import {
 import { 
   BookOpenIcon as BookOpenSolid
 } from "@heroicons/react/24/solid";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
 
 export default function HomePage() {
+  const router = useRouter();
+  const { data: session, isPending } = useSession();
+
+  useEffect(() => {
+    // If user is signed in, redirect to dashboard
+    if (!isPending && session?.user) {
+      router.push("/dashboard");
+    }
+  }, [session, isPending, router]);
+
+  // Show loading while checking session
+  if (isPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Hero Section */}

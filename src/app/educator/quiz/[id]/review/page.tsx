@@ -488,11 +488,18 @@ export default function QuizReviewPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm line-clamp-3 mb-3">{question.questionText}</p>
+                  {/* Biblical Reference Badge */}
+                  {question.book && (
+                    <div className="mb-2">
+                      <div className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs font-medium">
+                        <BookOpen className="h-3 w-3" />
+                        <span>{question.book} {question.chapter || ''}</span>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <BookOpen className="h-3 w-3" />
-                    <span>{question.book}</span>
-                    <span>•</span>
-                    <span>Ch. {question.chapter}</span>
+                    <Target className="h-3 w-3" />
+                    <span>{question.topic || 'General'}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -619,6 +626,15 @@ export default function QuizReviewPage() {
                     <Hash className="h-4 w-4 text-gray-500" />
                     <span className="font-medium">Question {currentQuestionIndex + 1}</span>
                   </div>
+                  {/* Biblical Reference - Prominently displayed */}
+                  {displayQuestion.book && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-amber-100 text-amber-800 rounded-full">
+                      <BookOpen className="h-4 w-4" />
+                      <span className="text-sm font-semibold">
+                        {displayQuestion.book} {displayQuestion.chapter || ''}
+                      </span>
+                    </div>
+                  )}
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     displayQuestion.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
                     displayQuestion.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' :
@@ -794,33 +810,98 @@ export default function QuizReviewPage() {
 
               {/* Metadata */}
               <div className="mt-6 pt-6 border-t">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="text-gray-500">Book</p>
-                      <p className="font-medium">{displayQuestion.book}</p>
+                {/* Biblical Reference Section - More prominent */}
+                {(displayQuestion.book || displayQuestion.chapter) && (
+                  <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <BookOpen className="h-5 w-5 text-amber-600" />
+                      <h3 className="font-semibold text-amber-900">Biblical Reference</h3>
                     </div>
+                    {isEditing ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm text-amber-700">Book</Label>
+                          <Input
+                            value={displayQuestion.book || ''}
+                            onChange={(e) => updateEditedQuestion(currentQuestion.id, "book", e.target.value)}
+                            placeholder="e.g., Genesis, Matthew"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm text-amber-700">Chapter & Verse</Label>
+                          <Input
+                            value={displayQuestion.chapter || ''}
+                            onChange={(e) => updateEditedQuestion(currentQuestion.id, "chapter", e.target.value)}
+                            placeholder="e.g., 3:16, 6:6-8, 1:1-5"
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-lg font-medium text-amber-800">
+                        {displayQuestion.book} {displayQuestion.chapter || ''}
+                      </p>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="text-gray-500">Chapter</p>
-                      <p className="font-medium">{displayQuestion.chapter}</p>
-                    </div>
-                  </div>
+                )}
+                
+                {/* Other Metadata */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Target className="h-4 w-4 text-gray-400" />
                     <div>
                       <p className="text-gray-500">Topic</p>
-                      <p className="font-medium">{displayQuestion.topic}</p>
+                      {isEditing ? (
+                        <Input
+                          value={displayQuestion.topic || ''}
+                          onChange={(e) => updateEditedQuestion(currentQuestion.id, "topic", e.target.value)}
+                          className="mt-1 h-8 text-sm"
+                        />
+                      ) : (
+                        <p className="font-medium">{displayQuestion.topic || 'N/A'}</p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Brain className="h-4 w-4 text-gray-400" />
                     <div>
                       <p className="text-gray-500">Bloom&apos;s Level</p>
-                      <p className="font-medium capitalize">{displayQuestion.bloomsLevel}</p>
+                      {isEditing ? (
+                        <select
+                          value={displayQuestion.bloomsLevel || ''}
+                          onChange={(e) => updateEditedQuestion(currentQuestion.id, "bloomsLevel", e.target.value)}
+                          className="mt-1 w-full px-2 py-1 text-sm border rounded"
+                        >
+                          <option value="knowledge">Knowledge</option>
+                          <option value="comprehension">Comprehension</option>
+                          <option value="application">Application</option>
+                          <option value="analysis">Analysis</option>
+                          <option value="synthesis">Synthesis</option>
+                          <option value="evaluation">Evaluation</option>
+                        </select>
+                      ) : (
+                        <p className="font-medium capitalize">{displayQuestion.bloomsLevel || 'N/A'}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <p className="text-gray-500">Difficulty</p>
+                      {isEditing ? (
+                        <select
+                          value={displayQuestion.difficulty || ''}
+                          onChange={(e) => updateEditedQuestion(currentQuestion.id, "difficulty", e.target.value)}
+                          className="mt-1 w-full px-2 py-1 text-sm border rounded"
+                        >
+                          <option value="easy">Easy</option>
+                          <option value="medium">Medium</option>
+                          <option value="hard">Hard</option>
+                        </select>
+                      ) : (
+                        <p className="font-medium capitalize">{displayQuestion.difficulty || 'N/A'}</p>
+                      )}
                     </div>
                   </div>
                 </div>

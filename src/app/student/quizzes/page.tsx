@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { formatDateInTimezone, getTimezoneInfo } from "@/lib/timezone";
 import { 
   BookOpen, 
   Clock, 
@@ -24,6 +25,7 @@ interface Quiz {
   totalQuestions: number;
   duration: number;
   startTime: string;
+  timezone: string;
   status: "draft" | "published" | "completed" | "archived";
   enrolled: boolean;
   attempted: boolean;
@@ -79,8 +81,15 @@ export default function StudentQuizzesPage() {
     return new Date(startTime) <= new Date();
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+  const formatDate = (dateString: string, timezone?: string) => {
+    return formatDateInTimezone(dateString, timezone || 'Asia/Kolkata', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
   };
 
   const filteredQuizzes = quizzes.filter(quiz => {
@@ -208,7 +217,7 @@ export default function StudentQuizzesPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      <span>Starts: {formatDate(quiz.startTime)}</span>
+                      <span>Starts: {formatDate(quiz.startTime, quiz.timezone)}</span>
                     </div>
                   </div>
 

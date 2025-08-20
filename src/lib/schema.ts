@@ -144,6 +144,7 @@ export const quizAttempts = pgTable("quiz_attempts", {
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time"),
   timeSpent: integer("time_spent"), // in seconds
+  timezone: text("timezone").notNull().default("Asia/Kolkata"), // User's timezone when they took the quiz
   status: text("status").notNull().default("in_progress"), // in_progress, completed, abandoned
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

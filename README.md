@@ -1,234 +1,203 @@
-# Agentic Coding Boilerplate
+# Scrolls of Wisdom - Biblical Knowledge Quest Platform
 
-A complete agentic coding boilerplate with authentication, PostgreSQL database, AI chat functionality, and modern UI components - perfect for building AI-powered applications and autonomous agents.
+A comprehensive biblical quiz platform with AI-powered question generation, document processing, and real-time assessments.
 
-## 🚀 Features
+## 🚀 Quick Deploy to Vercel
 
-- **🔐 Authentication**: Better Auth with Google OAuth integration
-- **🗃️ Database**: Drizzle ORM with PostgreSQL
-- **🤖 AI Integration**: Vercel AI SDK with OpenAI support
-- **🎨 UI Components**: shadcn/ui with Tailwind CSS
-- **⚡ Modern Stack**: Next.js 15, React 19, TypeScript
-- **📱 Responsive**: Mobile-first design approach
-
-## 🎥 Video Tutorial
-
-Watch the complete walkthrough of this agentic coding template:
-
-[![Agentic Coding Boilerplate Tutorial](https://img.youtube.com/vi/T0zFZsr_d0Q/maxresdefault.jpg)](https://youtu.be/T0zFZsr_d0Q)
-
-<a href="https://youtu.be/T0zFZsr_d0Q" target="_blank" rel="noopener noreferrer">🔗 Watch on YouTube</a>
-
-## ☕ Support This Project
-
-If this boilerplate helped you build something awesome, consider buying me a coffee!
-
-[![Buy me a coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/leonvanzyl)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/simplequiz)
 
 ## 📋 Prerequisites
 
-Before you begin, ensure you have the following installed on your machine:
+Before deploying, you'll need:
 
-- **Node.js**: Version 18.0 or higher (<a href="https://nodejs.org/" target="_blank">Download here</a>)
-- **Git**: For cloning the repository (<a href="https://git-scm.com/" target="_blank">Download here</a>)
-- **PostgreSQL**: Either locally installed or access to a hosted service like Vercel Postgres
+1. **PostgreSQL Database** (Recommended: [Neon](https://neon.tech) or [Supabase](https://supabase.com))
+2. **OpenAI API Key** from [OpenAI Platform](https://platform.openai.com)
+3. **Google OAuth Credentials** from [Google Cloud Console](https://console.cloud.google.com)
+4. **LightRAG API** access
+5. **SMTP Email Service** (Gmail, SendGrid, etc.)
 
-## 🛠️ Quick Setup
+## 🛠️ Local Development
 
-### 1. Clone or Download the Repository
-
-**Option A: Clone with Git**
-
-```bash
-git clone https://github.com/leonvanzyl/agentic-coding-starter-kit.git
-cd agentic-coding-starter-kit
-```
-
-**Option B: Download ZIP**
-Download the repository as a ZIP file and extract it to your desired location.
-
-### 2. Install Dependencies
-
-```bash
-npm install
-```
-
-### 3. Environment Setup
-
-Copy the example environment file:
-
-```bash
-cp env.example .env
-```
-
-Fill in your environment variables in the `.env` file:
-
-```env
-# Database
-POSTGRES_URL="postgresql://username:password@localhost:5432/your_database_name"
-
-# Authentication - Better Auth
-BETTER_AUTH_SECRET="your-random-32-character-secret-key-here"
-
-# Google OAuth (Get from Google Cloud Console)
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-
-# AI Integration (Optional - for chat functionality)
-OPENAI_API_KEY="sk-your-openai-api-key-here"
-OPENAI_MODEL="gpt-5-mini"
-
-# App URL (for production deployments)
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-```
-
-### 4. Database Setup
-
-Generate and run database migrations:
-
-```bash
-npm run db:generate
-npm run db:migrate
-```
-
-### 5. Start the Development Server
-
-```bash
-npm run dev
-```
-
-Your application will be available at [http://localhost:3000](http://localhost:3000)
-
-## ⚙️ Service Configuration
-
-### PostgreSQL Database on Vercel
-
-1. Go to <a href="https://vercel.com/dashboard" target="_blank">Vercel Dashboard</a>
-2. Navigate to the **Storage** tab
-3. Click **Create** → **Postgres**
-4. Choose your database name and region
-5. Copy the `POSTGRES_URL` from the `.env.local` tab
-6. Add it to your `.env` file
-
-### Google OAuth Credentials
-
-1. Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a>
-2. Create a new project or select an existing one
-3. Navigate to **Credentials** → **Create Credentials** → **OAuth 2.0 Client ID**
-4. Set application type to **Web application**
-5. Add authorized redirect URIs:
-   - `http://localhost:3000/api/auth/callback/google` (development)
-   - `https://yourdomain.com/api/auth/callback/google` (production)
-6. Copy the **Client ID** and **Client Secret** to your `.env` file
-
-### OpenAI API Key
-
-1. Go to <a href="https://platform.openai.com/dashboard" target="_blank">OpenAI Platform</a>
-2. Navigate to **API Keys** in the sidebar
-3. Click **Create new secret key**
-4. Give it a name and copy the key
-5. Add it to your `.env` file as `OPENAI_API_KEY`
-
-## 🗂️ Project Structure
-
-```
-src/
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   │   ├── auth/          # Authentication endpoints
-│   │   └── chat/          # AI chat endpoint
-│   ├── chat/              # AI chat page
-│   ├── dashboard/         # User dashboard
-│   └── page.tsx           # Home page
-├── components/            # React components
-│   ├── auth/             # Authentication components
-│   └── ui/               # shadcn/ui components
-└── lib/                  # Utilities and configurations
-    ├── auth.ts           # Better Auth configuration
-    ├── auth-client.ts    # Client-side auth utilities
-    ├── db.ts             # Database connection
-    ├── schema.ts         # Database schema
-    └── utils.ts          # General utilities
-```
-
-## 🔧 Available Scripts
-
-```bash
-npm run dev          # Start development server with Turbopack
-npm run build        # Build for production
-npm run start        # Start production server
-npm run lint         # Run ESLint
-npm run db:generate  # Generate database migrations
-npm run db:migrate   # Run database migrations
-npm run db:push      # Push schema changes to database
-npm run db:studio    # Open Drizzle Studio (database GUI)
-npm run db:dev       # Push schema for development
-npm run db:reset     # Reset database (drop all tables)
-```
-
-## 📖 Pages Overview
-
-- **Home (`/`)**: Landing page with setup instructions and features overview
-- **Dashboard (`/dashboard`)**: Protected user dashboard with profile information
-- **Chat (`/chat`)**: AI-powered chat interface using OpenAI (requires authentication)
-
-## 🚀 Deployment
-
-### Deploy to Vercel (Recommended)
-
-1. Install the Vercel CLI globally:
-
+1. **Clone the repository**
    ```bash
-   npm install -g vercel
+   git clone https://github.com/yourusername/simplequiz.git
+   cd simplequiz
    ```
 
-2. Deploy your application:
-
+2. **Install dependencies**
    ```bash
-   vercel --prod
+   npm install
    ```
 
-3. Follow the prompts to configure your deployment
-4. Add your environment variables when prompted or via the Vercel dashboard
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   # Edit .env.local with your values
+   ```
 
-### Production Environment Variables
+4. **Set up the database**
+   ```bash
+   npm run db:push
+   ```
 
-Ensure these are set in your production environment:
+5. **Run the development server**
+   ```bash
+   npm run dev
+   ```
 
-- `POSTGRES_URL` - Production PostgreSQL connection string
-- `BETTER_AUTH_SECRET` - Secure random 32+ character string
-- `GOOGLE_CLIENT_ID` - Google OAuth Client ID
-- `GOOGLE_CLIENT_SECRET` - Google OAuth Client Secret
-- `OPENAI_API_KEY` - OpenAI API key (optional)
-- `OPENAI_MODEL` - OpenAI model name (optional, defaults to gpt-5-mini)
-- `NEXT_PUBLIC_APP_URL` - Your production domain
+6. **Open the app**
+   ```
+   http://localhost:3000
+   ```
 
-## 🎥 Tutorial Video
+## 🚀 Production Deployment on Vercel
 
-Watch my comprehensive tutorial on how to use this agentic coding boilerplate to build AI-powered applications:
+### Step 1: Prepare Your Database
 
-<a href="https://youtu.be/T0zFZsr_d0Q" target="_blank" rel="noopener noreferrer">📺 YouTube Tutorial - Building with Agentic Coding Boilerplate</a>
+1. Create a PostgreSQL database (Neon recommended for Vercel)
+2. Copy the connection string (should look like: `postgres://user:pass@host/database?sslmode=require`)
 
-## 🤝 Contributing
+### Step 2: Deploy to Vercel
 
-1. Fork this repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. **Fork/Clone this repository** to your GitHub account
+
+2. **Import to Vercel**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "New Project"
+   - Import your GitHub repository
+
+3. **Configure Environment Variables**
+   
+   Add the following environment variables in Vercel:
+
+   **Required Variables:**
+   ```
+   # Database
+   POSTGRES_URL=your_postgresql_connection_string
+
+   # Authentication
+   BETTER_AUTH_SECRET=generate_random_32_char_string
+
+   # Google OAuth
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+   # OpenAI
+   OPENAI_API_KEY=your_openai_api_key
+   OPENAI_MODEL=gpt-4o-mini
+
+   # LightRAG
+   LIGHTRAG_API_URL=your_lightrag_url
+   LIGHTRAG_API_KEY=your_lightrag_key
+
+   # Quiz Generation Webhook
+   QUIZ_GENERATION_WEBHOOK_URL=your_webhook_url
+
+   # Email (SMTP)
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_SECURE=false
+   SMTP_USER=your_email@gmail.com
+   SMTP_PASS=your_app_password
+   EMAIL_FROM=Scrolls of Wisdom <noreply@yourdomain.com>
+
+   # Application URL (update after deployment)
+   NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
+   ```
+
+4. **Deploy**
+   - Click "Deploy"
+   - Wait for the build to complete
+
+### Step 3: Post-Deployment Setup
+
+1. **Update OAuth Redirect URLs**
+   - Go to Google Cloud Console
+   - Add your production URL to authorized redirect URIs:
+     - `https://your-app.vercel.app/api/auth/callback/google`
+
+2. **Run Database Migrations**
+   - The migrations run automatically during build
+   - If needed, you can run manually:
+     ```bash
+     npm run db:migrate
+     ```
+
+3. **Update NEXT_PUBLIC_APP_URL**
+   - Go to Vercel Dashboard → Settings → Environment Variables
+   - Update `NEXT_PUBLIC_APP_URL` with your actual Vercel URL
+   - Redeploy for changes to take effect
+
+## 🔧 Environment Variables Reference
+
+See `.env.example` for a complete list of environment variables and their descriptions.
+
+### Required Variables:
+- `POSTGRES_URL` - PostgreSQL connection string
+- `BETTER_AUTH_SECRET` - Authentication secret key
+- `OPENAI_API_KEY` - OpenAI API key for AI features
+- `LIGHTRAG_API_URL` - LightRAG service URL
+- `LIGHTRAG_API_KEY` - LightRAG API key
+- `QUIZ_GENERATION_WEBHOOK_URL` - Webhook for quiz generation
+- `SMTP_*` - Email configuration
+
+### Optional Variables:
+- `GOOGLE_CLIENT_ID` - For Google OAuth
+- `GOOGLE_CLIENT_SECRET` - For Google OAuth
+- `BLOB_READ_WRITE_TOKEN` - For file storage (if using Vercel Blob)
+
+## 📦 Tech Stack
+
+- **Framework:** Next.js 15 with App Router
+- **Database:** PostgreSQL with Drizzle ORM
+- **Authentication:** Better Auth
+- **Styling:** Tailwind CSS
+- **AI:** OpenAI GPT-4
+- **Document Processing:** LightRAG
+- **Deployment:** Vercel
+
+## 🔒 Security Features
+
+- Secure authentication with Better Auth
+- Environment variable validation
+- Security headers via middleware
+- CSRF protection
+- SQL injection prevention via Drizzle ORM
+- XSS protection
+
+## 📱 Features
+
+- **AI-Powered Quiz Generation** - Generate quizzes from uploaded documents
+- **Biblical Document Processing** - Process various biblical texts
+- **Real-time Quiz Taking** - Students can take quizzes in real-time
+- **Comprehensive Analytics** - Track student performance
+- **Timezone Support** - Full timezone support for global users
+- **Email Notifications** - Automated email notifications
+- **Role-Based Access** - Separate educator and student dashboards
+
+## 🐛 Troubleshooting
+
+### Database Connection Issues
+- Ensure your PostgreSQL URL includes `?sslmode=require` for production
+- Check if your database allows connections from Vercel IPs
+
+### Authentication Issues
+- Regenerate `BETTER_AUTH_SECRET` if authentication fails
+- Ensure Google OAuth redirect URLs are correctly configured
+
+### Build Failures
+- Check all required environment variables are set
+- Run `npm run type-check` locally to catch TypeScript errors
+- Ensure database migrations are up to date
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT
 
-## 🆘 Need Help?
+## 🤝 Support
 
-If you encounter any issues:
-
-1. Check the [Issues](https://github.com/leonvanzyl/agentic-coding-starter-kit/issues) section
-2. Review the documentation above
-3. Create a new issue with detailed information about your problem
+For issues or questions, please open an issue on GitHub or contact support.
 
 ---
 
-**Happy coding! 🚀**
+Built with ❤️ for biblical education

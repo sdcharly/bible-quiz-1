@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDateInTimezone, getTimezoneInfo } from "@/lib/timezone";
 import {
   ArrowLeft,
   Plus,
@@ -33,6 +34,8 @@ interface Quiz {
   duration: number;
   enrolledStudents: number;
   createdAt: string;
+  startTime: string;
+  timezone: string;
 }
 
 export default function EducatorQuizzesPage() {
@@ -333,7 +336,14 @@ export default function EducatorQuizzesPage() {
                         )}
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(quiz.createdAt).toLocaleDateString()}
+                          {formatDateInTimezone(quiz.startTime, quiz.timezone || 'Asia/Kolkata', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZoneName: 'short'
+                          })}
                         </span>
                       </div>
                     </div>

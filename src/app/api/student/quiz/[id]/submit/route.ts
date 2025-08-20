@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { quizAttempts, questionResponses, questions, quizzes } from "@/lib/schema";
+import { quizAttempts, questionResponses, questions, quizzes, user } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -20,9 +20,20 @@ export async function POST(
 
     // For testing, use a default student ID if no session
     let studentId = "default-student-id";
+    let userTimezone = "Asia/Kolkata"; // Default timezone
     
     if (session?.user) {
       studentId = session.user.id;
+      
+      // Get user's timezone
+      const [userRecord] = await db
+        .select()
+        .from(user)
+        .where(eq(user.id, studentId));
+      
+      if (userRecord?.timezone) {
+        userTimezone = userRecord.timezone;
+      }
     }
 
     const body = await req.json();
@@ -104,6 +115,7 @@ export async function POST(
       totalQuestions,
       totalCorrect: correctAnswers,
       timeSpent: timeSpent,
+      timezone: userTimezone, // Store the user's timezone with the attempt
       status: "completed",
       answers: evaluatedAnswers,
       createdAt: new Date(),
