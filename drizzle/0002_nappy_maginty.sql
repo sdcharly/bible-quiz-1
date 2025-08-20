@@ -1,0 +1,1 @@
+ALTER TABLE "quizzes" ADD COLUMN "shuffle_questions" boolean DEFAULT false;

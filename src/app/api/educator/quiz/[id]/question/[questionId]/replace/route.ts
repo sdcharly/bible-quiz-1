@@ -1,0 +1,180 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { quizzes, questions } from "@/lib/schema";
+import { eq, and } from "drizzle-orm";
+// Note: crypto import not needed for this endpoint as we're updating existing questions
+
+export async function PUT(
+  req: NextRequest,
+  context: { params: Promise<{ id: string; questionId: string }> }
+) {
+  try {
+    const params = await context.params;
+    const { id: quizId, questionId } = params;
+
+    // Fetch quiz details to get configuration
+    const quiz = await db
+      .select()
+      .from(quizzes)
+      .where(eq(quizzes.id, quizId))
+      .limit(1);
+
+    if (!quiz.length) {
+      return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
+    }
+
+    const quizData = quiz[0];
+    const config = quizData.configuration as Record<string, unknown>;
+
+    // Verify the question exists and belongs to this quiz
+    const existingQuestion = await db
+      .select()
+      .from(questions)
+      .where(and(eq(questions.id, questionId), eq(questions.quizId, quizId)))
+      .limit(1);
+
+    if (!existingQuestion.length) {
+      return NextResponse.json({ error: "Question not found" }, { status: 404 });
+    }
+
+    let newQuestionData;
+
+    // Try to generate new question using webhook if available
+    if (process.env.QUIZ_GENERATION_WEBHOOK_URL) {
+      try {
+        console.log("Generating replacement question via webhook...");
+        
+        const webhookPayload = {
+          documentIds: quizData.documentIds,
+          questionCount: 1, // Generate just one question
+          topics: config.topics || [],
+          books: config.books || [],
+          chapters: config.chapters || [],
+          difficulty: config.difficulty || "intermediate",
+          bloomsLevel: config.bloomsLevels || ["knowledge", "comprehension"],
+          timeLimit: quizData.duration,
+          quizTitle: quizData.title,
+          quizDescription: quizData.description,
+        };
+
+        const webhookResponse = await fetch(process.env.QUIZ_GENERATION_WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(webhookPayload),
+          signal: AbortSignal.timeout(30000), // 30 second timeout for single question
+        });
+
+        if (webhookResponse.ok) {
+          const responseText = await webhookResponse.text();
+          if (responseText && responseText.trim() !== '') {
+            const webhookData = JSON.parse(responseText);
+            
+            // Extract question data from webhook response
+            let questionsData = [];
+            if (Array.isArray(webhookData) && webhookData[0]?.output?.questions) {
+              questionsData = webhookData[0].output.questions;
+            } else if (webhookData.output?.questions) {
+              questionsData = webhookData.output.questions;
+            } else if (webhookData.questions) {
+              questionsData = webhookData.questions;
+            } else if (Array.isArray(webhookData)) {
+              questionsData = webhookData;
+            }
+
+            if (questionsData.length > 0) {
+              newQuestionData = questionsData[0];
+              console.log("Successfully generated question via webhook");
+            }
+          }
+        }
+      } catch (webhookError) {
+        console.error("Webhook failed for question replacement:", webhookError);
+      }
+    }
+
+    // Fallback to sample question if webhook failed
+    if (!newQuestionData) {
+      console.log("Using fallback sample question");
+      newQuestionData = generateSampleQuestion(
+        (config.books as string[])?.[0] || "Genesis", 
+        (config.difficulty as string) || "intermediate", 
+        (config.bloomsLevels as string[])?.[0] || "knowledge"
+      );
+    }
+
+    // Prepare question data for database
+    let optionsArray = [];
+    if (newQuestionData.options) {
+      if (Array.isArray(newQuestionData.options)) {
+        optionsArray = newQuestionData.options;
+      } else if (typeof newQuestionData.options === 'object') {
+        // Convert {A: "text", B: "text"} to [{id: "A", text: "text"}]
+        optionsArray = Object.entries(newQuestionData.options).map(([key, value]) => ({
+          id: key.toLowerCase(),
+          text: value as string
+        }));
+      }
+    }
+
+    // Map question_type to a valid bloomsLevel if needed
+    let mappedBloomsLevel = (config.bloomsLevels as string[])?.[0] || "knowledge";
+    if (newQuestionData.bloomsLevel && ["knowledge", "comprehension", "application", "analysis", "synthesis", "evaluation"].includes(newQuestionData.bloomsLevel)) {
+      mappedBloomsLevel = newQuestionData.bloomsLevel;
+    }
+
+    // Update the question in database
+    const updatedQuestion = await db
+      .update(questions)
+      .set({
+        questionText: newQuestionData.question || newQuestionData.questionText,
+        options: optionsArray,
+        correctAnswer: newQuestionData.correct_answer?.toLowerCase() || newQuestionData.correctAnswer?.toLowerCase(),
+        explanation: newQuestionData.explanation,
+        difficulty: newQuestionData.difficulty || config.difficulty || "intermediate",
+        bloomsLevel: mappedBloomsLevel as "knowledge" | "comprehension" | "application" | "analysis" | "synthesis" | "evaluation",
+        topic: newQuestionData.topic || newQuestionData.question_type,
+        book: newQuestionData.biblical_reference?.split(' ')[0] || newQuestionData.book || (config.books as string[])?.[0],
+        chapter: newQuestionData.biblical_reference?.split(' ')[1]?.split(':')[0] || newQuestionData.chapter || (config.chapters as string[])?.[0],
+      })
+      .where(eq(questions.id, questionId))
+      .returning();
+
+    if (!updatedQuestion.length) {
+      return NextResponse.json({ error: "Failed to update question" }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      question: updatedQuestion[0],
+      message: "Question replaced successfully"
+    });
+
+  } catch (error) {
+    console.error("Error replacing question:", error);
+    return NextResponse.json(
+      { error: "Failed to replace question" },
+      { status: 500 }
+    );
+  }
+}
+
+// Helper function to generate sample question
+function generateSampleQuestion(book: string, difficulty: string, bloomsLevel: string) {
+  return {
+    id: 1,
+    question: `Sample Question: What is a key theme in the book of ${book}?`,
+    options: {
+      A: "God's faithfulness and covenant",
+      B: "The importance of ritual observance",
+      C: "The genealogy of ancient peoples",
+      D: "The construction of religious buildings"
+    },
+    correct_answer: "a",
+    explanation: "This is a replacement sample question. The original question generation service may have timed out, so this placeholder was created.",
+    biblical_reference: `${book} 1:1`,
+    difficulty: difficulty || "intermediate",
+    question_type: bloomsLevel || "knowledge"
+  };
+}

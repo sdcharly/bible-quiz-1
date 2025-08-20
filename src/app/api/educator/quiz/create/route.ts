@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       questionCount = 10,
       startTime = new Date().toISOString(),
       duration = 30,
-      passingScore = 70,
+      shuffleQuestions = false,
     } = body;
 
     const quizId = crypto.randomUUID();
@@ -202,9 +202,10 @@ export async function POST(req: NextRequest) {
       },
       startTime: new Date(startTime),
       duration,
-      status: "published",
+      status: "draft",
       totalQuestions: questionsData.length || questionCount,
-      passingScore,
+      passingScore: 70, // Default passing score since we're not collecting it from UI
+      shuffleQuestions,
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning();

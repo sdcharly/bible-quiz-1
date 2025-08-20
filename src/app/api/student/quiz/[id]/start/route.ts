@@ -5,6 +5,25 @@ import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
+// Seeded shuffle function for consistent randomization per attempt
+function shuffleArray<T>(array: T[], seed: string): T[] {
+  const arr = [...array];
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  // Fisher-Yates shuffle with seeded random
+  for (let i = arr.length - 1; i > 0; i--) {
+    hash = (hash * 9301 + 49297) % 233280;
+    const j = Math.floor((hash / 233280) * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  
+  return arr;
+}
+
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -88,22 +107,32 @@ export async function POST(
           .from(questions)
           .where(eq(questions.quizId, quizId));
 
+        // Sort questions - shuffle if enabled, otherwise by orderIndex
+        let sortedQuestions = quizQuestions.map(q => ({
+          id: q.id,
+          questionText: q.questionText,
+          options: q.options,
+          orderIndex: q.orderIndex,
+          book: q.book,
+          chapter: q.chapter,
+          topic: q.topic,
+          bloomsLevel: q.bloomsLevel,
+        }));
+
+        if (quiz[0].shuffleQuestions) {
+          // Use a seed based on attemptId for consistent shuffle per attempt
+          sortedQuestions = shuffleArray(sortedQuestions, attempt.id);
+        } else {
+          sortedQuestions.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+        }
+
         return NextResponse.json({
           quiz: {
             id: quiz[0].id,
             title: quiz[0].title,
             duration: quiz[0].duration,
             totalQuestions: quiz[0].totalQuestions,
-            questions: quizQuestions.map(q => ({
-              id: q.id,
-              questionText: q.questionText,
-              options: q.options,
-              orderIndex: q.orderIndex,
-              book: q.book,
-              chapter: q.chapter,
-              topic: q.topic,
-              bloomsLevel: q.bloomsLevel,
-            })).sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+            questions: sortedQuestions
           },
           attemptId: attempt.id,
           remainingTime,
@@ -157,6 +186,25 @@ export async function POST(
       createdAt: new Date(),
     });
 
+    // Prepare questions - shuffle if enabled, otherwise sort by orderIndex
+    let preparedQuestions = quizQuestions.map(q => ({
+      id: q.id,
+      questionText: q.questionText,
+      options: q.options,
+      orderIndex: q.orderIndex,
+      book: q.book,
+      chapter: q.chapter,
+      topic: q.topic,
+      bloomsLevel: q.bloomsLevel,
+    }));
+
+    if (quiz.shuffleQuestions) {
+      // Use attemptId as seed for consistent shuffle per attempt
+      preparedQuestions = shuffleArray(preparedQuestions, attemptId);
+    } else {
+      preparedQuestions.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+    }
+
     // Return quiz data without correct answers
     return NextResponse.json({
       quiz: {
@@ -164,16 +212,7 @@ export async function POST(
         title: quiz.title,
         duration: quiz.duration,
         totalQuestions: quiz.totalQuestions,
-        questions: quizQuestions.map(q => ({
-          id: q.id,
-          questionText: q.questionText,
-          options: q.options,
-          orderIndex: q.orderIndex,
-          book: q.book,
-          chapter: q.chapter,
-          topic: q.topic,
-          bloomsLevel: q.bloomsLevel,
-        })).sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+        questions: preparedQuestions
       },
       attemptId,
       remainingTime: quiz.duration * 60 // Full time in seconds

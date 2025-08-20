@@ -34,6 +34,8 @@ import {
   FileText,
   BarChart3,
   Hash,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 
 interface QuizQuestion {
@@ -83,6 +85,7 @@ export default function QuizReviewPage() {
   const [publishing, setPublishing] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [viewMode, setViewMode] = useState<"single" | "grid">("single");
+  const [replacingQuestion, setReplacingQuestion] = useState<string | null>(null);
 
   useEffect(() => {
     fetchQuizDetails();
@@ -152,7 +155,68 @@ export default function QuizReviewPage() {
     setEditedQuestions(updatedEdited);
   };
 
+  const handleReplaceQuestion = async (questionId: string) => {
+    if (!confirm("Are you sure you want to replace this question with a newly generated one? This action cannot be undone.")) {
+      return;
+    }
+
+    setReplacingQuestion(questionId);
+    try {
+      const response = await fetch(`/api/educator/quiz/${quizId}/question/${questionId}/replace`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update quiz state with new question
+        setQuiz(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            questions: prev.questions.map(q => 
+              q.id === questionId ? {
+                id: data.question.id,
+                questionText: data.question.questionText,
+                options: data.question.options,
+                correctAnswer: data.question.correctAnswer,
+                explanation: data.question.explanation,
+                difficulty: data.question.difficulty,
+                bloomsLevel: data.question.bloomsLevel,
+                topic: data.question.topic,
+                book: data.question.book,
+                chapter: data.question.chapter,
+              } : q
+            )
+          };
+        });
+        
+        // Clear any editing state for this question
+        if (editingQuestion === questionId) {
+          setEditingQuestion(null);
+        }
+        const updatedEdited = { ...editedQuestions };
+        delete updatedEdited[questionId];
+        setEditedQuestions(updatedEdited);
+        
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || "Failed to replace question");
+      }
+    } catch (error) {
+      console.error("Error replacing question:", error);
+      alert("Error replacing question");
+    } finally {
+      setReplacingQuestion(null);
+    }
+  };
+
   const handlePublishQuiz = async () => {
+    if (!confirm("Are you sure you want to publish this quiz? Once published, you won't be able to edit the questions anymore.")) {
+      return;
+    }
+
     setPublishing(true);
     try {
       const response = await fetch(`/api/educator/quiz/${quizId}/publish`, {
@@ -160,8 +224,12 @@ export default function QuizReviewPage() {
       });
 
       if (response.ok) {
-        alert("Quiz published successfully! 🎉");
-        router.push("/educator/dashboard");
+        // Update local state to reflect published status
+        setQuiz(prev => prev ? { ...prev, status: "published" } : null);
+        
+        alert("Quiz published successfully! 🎉\nYou can now assign students to take this quiz.");
+        // Redirect to quiz management page instead of dashboard
+        router.push(`/educator/quiz/${quizId}/manage`);
       } else {
         alert("Failed to publish quiz");
       }
@@ -449,7 +517,12 @@ export default function QuizReviewPage() {
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  {isEditing ? (
+                  {quiz.status === "published" ? (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg border border-green-200">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">Published - Read Only</span>
+                    </div>
+                  ) : isEditing ? (
                     <>
                       <Button
                         size="sm"
@@ -469,14 +542,30 @@ export default function QuizReviewPage() {
                       </Button>
                     </>
                   ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEditQuestion(currentQuestion.id)}
-                    >
-                      <Edit2 className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditQuestion(currentQuestion.id)}
+                      >
+                        <Edit2 className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleReplaceQuestion(currentQuestion.id)}
+                        disabled={replacingQuestion === currentQuestion.id}
+                        className="text-orange-600 border-orange-200 hover:bg-orange-50 hover:border-orange-300"
+                      >
+                        {replacingQuestion === currentQuestion.id ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                        )}
+                        {replacingQuestion === currentQuestion.id ? "Replacing..." : "Replace Question"}
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -644,33 +733,6 @@ export default function QuizReviewPage() {
           </Button>
         </div>
 
-        {/* Quick Stats */}
-        <Card className="mt-8 bg-gradient-to-r from-gray-50 to-gray-100/50 border-0">
-          <CardContent className="p-6">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Quiz Overview
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Total Questions</p>
-                <p className="text-2xl font-bold text-gray-900">{quiz.questions.length}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Duration</p>
-                <p className="text-2xl font-bold text-gray-900">{quiz.configuration.duration} min</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Passing Score</p>
-                <p className="text-2xl font-bold text-gray-900">{quiz.configuration.passingScore}%</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Difficulty</p>
-                <p className="text-2xl font-bold text-gray-900 capitalize">{quiz.configuration.difficulty}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

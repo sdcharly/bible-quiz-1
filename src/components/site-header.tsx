@@ -68,89 +68,76 @@ export function SiteHeader() {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/"
-              className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                pathname === "/" ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
-              }`}
-            >
-              Home
-            </Link>
-            
+          <nav className="hidden md:flex items-center gap-8">
             {session?.user && (
-              <Link
-                href={getDashboardLink()}
-                className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                  isActive("/educator/dashboard") || isActive("/student/dashboard") 
-                    ? "text-blue-600" 
-                    : "text-gray-600 dark:text-gray-300"
-                }`}
-              >
-                Dashboard
-              </Link>
-            )}
-
-            {session?.user && userRole === "educator" && (
               <>
                 <Link
-                  href="/educator/documents"
+                  href={getDashboardLink()}
                   className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                    isActive("/educator/documents") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                    isActive("/educator/dashboard") || isActive("/student/dashboard") 
+                      ? "text-blue-600" 
+                      : "text-gray-600 dark:text-gray-300"
                   }`}
                 >
-                  Documents
+                  Dashboard
                 </Link>
-                <Link
-                  href="/educator/quiz/create"
-                  className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                    isActive("/educator/quiz") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
-                  }`}
-                >
-                  Create Quiz
-                </Link>
-              </>
-            )}
 
-            {session?.user && userRole === "student" && (
-              <>
-                <Link
-                  href="/student/quizzes"
-                  className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                    isActive("/student/quizzes") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
-                  }`}
-                >
-                  Quizzes
-                </Link>
-                <Link
-                  href="/student/results"
-                  className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                    isActive("/student/results") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
-                  }`}
-                >
-                  My Results
-                </Link>
+                {userRole === "educator" && (
+                  <>
+                    <Link
+                      href="/educator/documents"
+                      className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                        isActive("/educator/documents") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      Documents
+                    </Link>
+                    <Link
+                      href="/educator/quiz/create"
+                      className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                        isActive("/educator/quiz/create") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      Create Quiz
+                    </Link>
+                  </>
+                )}
+
+                {userRole === "student" && (
+                  <>
+                    <Link
+                      href="/student/quizzes"
+                      className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                        isActive("/student/quizzes") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      Quizzes
+                    </Link>
+                    <Link
+                      href="/student/results"
+                      className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                        isActive("/student/results") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      My Results
+                    </Link>
+                  </>
+                )}
               </>
             )}
           </nav>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3">
             {session?.user ? (
               <>
-                <Link href={getDashboardLink()}>
-                  <Button variant="ghost" size="sm">
-                    <LayoutDashboard className="h-4 w-4 mr-2" />
-                    Dashboard
-                  </Button>
-                </Link>
                 <UserProfile />
+                <ModeToggle />
               </>
             ) : (
-              <div className="flex gap-2">
+              <>
                 <Link href="/auth/signin">
-                  <Button variant="outline" size="sm">
-                    <LogIn className="h-4 w-4 mr-2" />
+                  <Button variant="ghost" size="sm">
                     Sign In
                   </Button>
                 </Link>
@@ -159,9 +146,9 @@ export function SiteHeader() {
                     Get Started
                   </Button>
                 </Link>
-              </div>
+                <ModeToggle />
+              </>
             )}
-            <ModeToggle />
           </div>
 
           {/* Mobile Menu Button */}
@@ -180,84 +167,79 @@ export function SiteHeader() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden mt-4 pt-4 border-t">
-            <nav className="flex flex-col gap-4">
-              <Link
-                href="/"
-                className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                  pathname === "/" ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Home
-              </Link>
-
+            <nav className="flex flex-col gap-3">
               {session?.user && (
-                <Link
-                  href={getDashboardLink()}
-                  className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                    isActive("/educator/dashboard") || isActive("/student/dashboard")
-                      ? "text-blue-600"
-                      : "text-gray-600 dark:text-gray-300"
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
-              )}
-
-              {session?.user && userRole === "educator" && (
                 <>
                   <Link
-                    href="/educator/documents"
+                    href={getDashboardLink()}
                     className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                      isActive("/educator/documents") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                      isActive("/educator/dashboard") || isActive("/student/dashboard")
+                        ? "text-blue-600"
+                        : "text-gray-600 dark:text-gray-300"
                     }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Documents
+                    Dashboard
                   </Link>
-                  <Link
-                    href="/educator/quiz/create"
-                    className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                      isActive("/educator/quiz") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
-                    }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Create Quiz
-                  </Link>
+
+                  {userRole === "educator" && (
+                    <>
+                      <Link
+                        href="/educator/documents"
+                        className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                          isActive("/educator/documents") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Documents
+                      </Link>
+                      <Link
+                        href="/educator/quiz/create"
+                        className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                          isActive("/educator/quiz/create") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Create Quiz
+                      </Link>
+                    </>
+                  )}
+
+                  {userRole === "student" && (
+                    <>
+                      <Link
+                        href="/student/quizzes"
+                        className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                          isActive("/student/quizzes") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Quizzes
+                      </Link>
+                      <Link
+                        href="/student/results"
+                        className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                          isActive("/student/results") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        My Results
+                      </Link>
+                    </>
+                  )}
                 </>
               )}
 
-              {session?.user && userRole === "student" && (
-                <>
-                  <Link
-                    href="/student/quizzes"
-                    className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                      isActive("/student/quizzes") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
-                    }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Quizzes
-                  </Link>
-                  <Link
-                    href="/student/results"
-                    className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                      isActive("/student/results") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
-                    }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    My Results
-                  </Link>
-                </>
-              )}
-
-              <div className="flex items-center gap-4 pt-4 border-t">
+              <div className="flex items-center justify-between pt-3 border-t">
                 {session?.user ? (
-                  <UserProfile />
+                  <>
+                    <UserProfile />
+                    <ModeToggle />
+                  </>
                 ) : (
                   <div className="flex gap-2 w-full">
                     <Link href="/auth/signin" className="flex-1">
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button variant="ghost" size="sm" className="w-full">
                         Sign In
                       </Button>
                     </Link>
@@ -268,7 +250,6 @@ export function SiteHeader() {
                     </Link>
                   </div>
                 )}
-                <ModeToggle />
               </div>
             </nav>
           </div>

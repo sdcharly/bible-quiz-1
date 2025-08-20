@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { quizzes, enrollments, quizAttempts } from "@/lib/schema";
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
   try {
     // For now, using a test student ID - in production, get from session
     const studentId = "UeqiVFam4rO2P9KbbnwqofioJxZoQdvf"; // Your test student ID
     
-    // Fetch all published quizzes
+    // Fetch all published quizzes (excluding archived)
     const allQuizzes = await db
       .select()
       .from(quizzes)

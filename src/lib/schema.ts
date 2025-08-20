@@ -84,6 +84,7 @@ export const quizzes = pgTable("quizzes", {
   status: quizStatusEnum("status").notNull().default("draft"),
   totalQuestions: integer("total_questions").notNull(),
   passingScore: real("passing_score").default(70),
+  shuffleQuestions: boolean("shuffle_questions").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

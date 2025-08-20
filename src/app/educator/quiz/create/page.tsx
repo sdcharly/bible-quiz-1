@@ -44,6 +44,7 @@ interface QuizConfig {
   books: string[];
   chapters: string[];
   startTime: string;
+  shuffleQuestions: boolean;
 }
 
 function CreateQuizContent() {
@@ -67,7 +68,11 @@ function CreateQuizContent() {
     books: [],
     chapters: [],
     startTime: new Date().toISOString().slice(0, 16),
+    shuffleQuestions: false,
   });
+  
+  const [selectedBook, setSelectedBook] = useState<string>("");
+  const [chapterInput, setChapterInput] = useState<string>("");
 
   useEffect(() => {
     fetchDocuments();
@@ -123,13 +128,37 @@ function CreateQuizContent() {
     }
   };
 
-  const bloomsOptions = [
-    { value: "knowledge", label: "Knowledge" },
-    { value: "comprehension", label: "Comprehension" },
-    { value: "application", label: "Application" },
-    { value: "analysis", label: "Analysis" },
-    { value: "synthesis", label: "Synthesis" },
-    { value: "evaluation", label: "Evaluation" },
+  const complexityLevels = [
+    { 
+      value: "knowledge", 
+      label: "Basic Recall",
+      description: "Remember facts and basic concepts"
+    },
+    { 
+      value: "comprehension", 
+      label: "Understanding",
+      description: "Explain ideas and concepts"
+    },
+    { 
+      value: "application", 
+      label: "Practical Application",
+      description: "Apply knowledge to new situations"
+    },
+    { 
+      value: "analysis", 
+      label: "Critical Thinking",
+      description: "Draw connections and analyze information"
+    },
+    { 
+      value: "synthesis", 
+      label: "Creative Thinking",
+      description: "Combine ideas to form new understanding"
+    },
+    { 
+      value: "evaluation", 
+      label: "Expert Evaluation",
+      description: "Make judgments and defend opinions"
+    },
   ];
 
   const biblicalBooks = [
@@ -141,117 +170,110 @@ function CreateQuizContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center py-6">
-            <Link href="/educator/dashboard">
-              <Button variant="ghost" size="sm" className="mr-4">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Create New Quiz
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Configure and generate a biblical study quiz
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Link href="/educator/dashboard" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-4">
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Dashboard
+          </Link>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            Create Quiz
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Set up your quiz in three simple steps
+          </p>
+        </div>
+
         {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className={`flex items-center ${step >= 1 ? "text-blue-600" : "text-gray-400"}`}>
-              <div className={`rounded-full h-10 w-10 flex items-center justify-center border-2 ${
+              <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 text-sm ${
                 step >= 1 ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
               }`}>
                 1
               </div>
-              <span className="ml-2 font-medium">Basic Info</span>
+              <span className="ml-2 text-sm font-medium">Basic Info</span>
             </div>
-            <div className={`flex-1 h-1 mx-4 ${step >= 2 ? "bg-blue-600" : "bg-gray-300"}`} />
+            <div className={`flex-1 h-0.5 mx-3 ${step >= 2 ? "bg-blue-600" : "bg-gray-300"}`} />
             <div className={`flex items-center ${step >= 2 ? "text-blue-600" : "text-gray-400"}`}>
-              <div className={`rounded-full h-10 w-10 flex items-center justify-center border-2 ${
+              <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 text-sm ${
                 step >= 2 ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
               }`}>
                 2
               </div>
-              <span className="ml-2 font-medium">Documents</span>
+              <span className="ml-2 text-sm font-medium">Documents</span>
             </div>
-            <div className={`flex-1 h-1 mx-4 ${step >= 3 ? "bg-blue-600" : "bg-gray-300"}`} />
+            <div className={`flex-1 h-0.5 mx-3 ${step >= 3 ? "bg-blue-600" : "bg-gray-300"}`} />
             <div className={`flex items-center ${step >= 3 ? "text-blue-600" : "text-gray-400"}`}>
-              <div className={`rounded-full h-10 w-10 flex items-center justify-center border-2 ${
+              <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 text-sm ${
                 step >= 3 ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
               }`}>
                 3
               </div>
-              <span className="ml-2 font-medium">Configuration</span>
+              <span className="ml-2 text-sm font-medium">Configuration</span>
             </div>
           </div>
         </div>
 
         {/* Step Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           {step === 1 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <div className="space-y-5">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">
                 Basic Information
               </h2>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   Quiz Title
                 </label>
                 <input
                   type="text"
                   value={config.title}
                   onChange={(e) => setConfig({ ...config, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., Old Testament History Quiz"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   Description
                 </label>
                 <textarea
                   value={config.description}
                   onChange={(e) => setConfig({ ...config, description: e.target.value })}
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  rows={3}
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   placeholder="Describe the quiz content and objectives..."
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Start Time
                   </label>
                   <input
                     type="datetime-local"
                     value={config.startTime}
                     onChange={(e) => setConfig({ ...config, startTime: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Duration (minutes)
                   </label>
                   <input
                     type="number"
-                    value={config.duration}
-                    onChange={(e) => setConfig({ ...config, duration: parseInt(e.target.value) })}
+                    value={config.duration || ""}
+                    onChange={(e) => setConfig({ ...config, duration: parseInt(e.target.value) || 30 })}
                     min="5"
                     max="180"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -259,8 +281,8 @@ function CreateQuizContent() {
           )}
 
           {step === 2 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <div className="space-y-5">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">
                 Select Documents
               </h2>
               
@@ -322,112 +344,155 @@ function CreateQuizContent() {
           )}
 
           {step === 3 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <div className="space-y-5">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">
                 Quiz Configuration
               </h2>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Biblical Book and Chapters - Required */}
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Biblical Book <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedBook}
+                    onChange={(e) => {
+                      setSelectedBook(e.target.value);
+                      setConfig({ ...config, books: e.target.value ? [e.target.value] : [] });
+                    }}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select a book...</option>
+                    {biblicalBooks.map(book => (
+                      <option key={book} value={book}>{book}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Chapters <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={chapterInput}
+                    onChange={(e) => {
+                      setChapterInput(e.target.value);
+                      setConfig({ ...config, chapters: e.target.value ? [e.target.value] : [] });
+                    }}
+                    placeholder="e.g., 1-10 or 2,3,5"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Enter chapter ranges (1-10) or specific chapters (2,3,5)
+                  </p>
+                </div>
+              </div>
+
+              {/* Quiz Settings */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Number of Questions
                   </label>
                   <input
                     type="number"
-                    value={config.questionCount}
-                    onChange={(e) => setConfig({ ...config, questionCount: parseInt(e.target.value) })}
+                    value={config.questionCount || ""}
+                    onChange={(e) => setConfig({ ...config, questionCount: parseInt(e.target.value) || 10 })}
                     min="5"
                     max="100"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Passing Score (%)
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Overall Difficulty
                   </label>
-                  <input
-                    type="number"
-                    value={config.passingScore}
-                    onChange={(e) => setConfig({ ...config, passingScore: parseInt(e.target.value) })}
-                    min="0"
-                    max="100"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
+                  <select
+                    value={config.difficulty}
+                    onChange={(e) => setConfig({ ...config, difficulty: e.target.value as "easy" | "intermediate" | "hard" })}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="easy">Easy - Basic understanding</option>
+                    <option value="intermediate">Medium - Balanced challenge</option>
+                    <option value="hard">Hard - Deep knowledge required</option>
+                  </select>
                 </div>
               </div>
 
+              {/* Question Complexity */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Difficulty Level
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                  Question Complexity Types
                 </label>
-                <select
-                  value={config.difficulty}
-                  onChange={(e) => setConfig({ ...config, difficulty: e.target.value as "easy" | "intermediate" | "hard" })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="easy">Easy</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="hard">Hard</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Bloom&apos;s Taxonomy Levels
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {bloomsOptions.map((option) => (
-                    <label key={option.value} className="flex items-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  Select the types of thinking skills you want to test
+                </p>
+                <div className="space-y-2">
+                  {complexityLevels.map((level) => (
+                    <label 
+                      key={level.value} 
+                      className="flex items-start p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-700 cursor-pointer transition-colors"
+                    >
                       <input
                         type="checkbox"
-                        checked={config.bloomsLevels.includes(option.value)}
+                        checked={config.bloomsLevels.includes(level.value)}
                         onChange={(e) => {
                           const newLevels = e.target.checked
-                            ? [...config.bloomsLevels, option.value]
-                            : config.bloomsLevels.filter(l => l !== option.value);
+                            ? [...config.bloomsLevels, level.value]
+                            : config.bloomsLevels.filter(l => l !== level.value);
                           setConfig({ ...config, bloomsLevels: newLevels });
                         }}
-                        className="mr-2"
+                        className="mt-1 mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {option.label}
-                      </span>
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {level.label}
+                        </span>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {level.description}
+                        </p>
+                      </div>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Biblical Books (Optional)
+              {/* Shuffle Option */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.shuffleQuestions}
+                    onChange={(e) => setConfig({ ...config, shuffleQuestions: e.target.checked })}
+                    className="mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      Randomize Question Order
+                    </span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Each student will receive questions in a different order
+                    </p>
+                  </div>
                 </label>
-                <select
-                  multiple
-                  value={config.books}
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions, option => option.value);
-                    setConfig({ ...config, books: selected });
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  size={5}
-                >
-                  {biblicalBooks.map(book => (
-                    <option key={book} value={book}>{book}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
               </div>
             </div>
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8">
+          <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => setStep(Math.max(1, step - 1))}
               disabled={step === 1}
+              size="sm"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-1" />
               Previous
             </Button>
             
@@ -438,19 +503,21 @@ function CreateQuizContent() {
                   (step === 1 && !config.title) ||
                   (step === 2 && config.documentIds.length === 0)
                 }
+                size="sm"
               >
                 Next
-                <ArrowRight className="h-4 w-4 ml-2" />
+                <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={loading || !config.title || config.documentIds.length === 0}
+                disabled={loading || !config.title || config.documentIds.length === 0 || !selectedBook || !chapterInput || config.bloomsLevels.length === 0}
+                size="sm"
               >
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating Quiz...
+                    Creating...
                   </>
                 ) : (
                   <>

@@ -15,6 +15,13 @@
       "when": 1755622681024,
       "tag": "0001_outstanding_frank_castle",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1755668842163,
+      "tag": "0002_nappy_maginty",
+      "breakpoints": true
     }
   ]
 }

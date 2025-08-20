@@ -14,13 +14,32 @@ import {
   Clock,
   BookOpen,
   Upload,
-  ChevronRight
+  ChevronRight,
+  CheckCircle,
+  Eye,
+  Settings,
+  Edit3,
+  Trash2,
+  Archive,
+  ArchiveRestore
 } from "lucide-react";
+
+interface Quiz {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  totalQuestions: number;
+  duration: number;
+  enrolledStudents: number;
+  createdAt: string;
+}
 
 export default function EducatorDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<{ name?: string; email?: string; role?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [stats] = useState({
     totalQuizzes: 0,
     activeQuizzes: 0,
@@ -43,11 +62,103 @@ export default function EducatorDashboard() {
       }
       
       setUser(userWithRole);
+      await fetchQuizzes();
       setLoading(false);
     };
     
     checkAuth();
   }, [router]);
+
+  const fetchQuizzes = async () => {
+    try {
+      const response = await fetch('/api/educator/quizzes');
+      if (response.ok) {
+        const data = await response.json();
+        setQuizzes(data.quizzes || []);
+      }
+    } catch (error) {
+      console.error('Error fetching quizzes:', error);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    if (status === 'published') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+          <CheckCircle className="h-3 w-3" />
+          Published
+        </span>
+      );
+    } else if (status === 'archived') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+          <Archive className="h-3 w-3" />
+          Archived
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+        <Edit3 className="h-3 w-3" />
+        Draft
+      </span>
+    );
+  };
+
+  const handleDeleteQuiz = async (quizId: string, quizTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${quizTitle}"? This action cannot be undone for draft quizzes.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/educator/quiz/${quizId}/delete`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(data.message);
+        await fetchQuizzes(); // Refresh the quiz list
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      alert('Failed to delete quiz');
+    }
+  };
+
+  const handleToggleArchive = async (quizId: string, currentStatus: string) => {
+    const action = currentStatus === 'archived' ? 'activate' : 'deactivate';
+    const confirmMessage = currentStatus === 'archived' 
+      ? 'Are you sure you want to activate this quiz? Students will be able to take it again.'
+      : 'Are you sure you want to archive this quiz? Students will no longer be able to access it.';
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/educator/quiz/${quizId}/delete`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(data.message);
+        await fetchQuizzes(); // Refresh the quiz list
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error toggling archive status:', error);
+      alert('Failed to update quiz status');
+    }
+  };
 
   if (loading) {
     return (
@@ -141,27 +252,140 @@ export default function EducatorDashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Main Content */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent Quizzes */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Recent Quizzes
-                </h2>
-                <Link href="/educator/quizzes">
-                  <Button variant="ghost" size="sm">
-                    View All
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </Link>
+          <div className="lg:col-span-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Your Quizzes
+                  </h2>
+                  <Link href="/educator/quiz/create">
+                    <Button size="sm">
+                      <Plus className="h-4 w-4 mr-1" />
+                      New Quiz
+                    </Button>
+                  </Link>
+                </div>
               </div>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                No quizzes created yet. Create your first quiz to get started.
-              </p>
+              <div className="p-6">
+                {quizzes.length === 0 ? (
+                  <div className="text-center py-8">
+                    <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+                      No quizzes created yet. Create your first quiz to get started.
+                    </p>
+                    <Link href="/educator/quiz/create">
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create First Quiz
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {quizzes.slice(0, 5).map((quiz) => (
+                      <div
+                        key={quiz.id}
+                        className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1">
+                            <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                              {quiz.title}
+                            </h3>
+                            {getStatusBadge(quiz.status)}
+                          </div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                            {quiz.description || 'No description'}
+                          </p>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                            <span>{quiz.totalQuestions} questions</span>
+                            <span>{quiz.duration} min</span>
+                            {quiz.status === 'published' && (
+                              <span>{quiz.enrolledStudents} students enrolled</span>
+                            )}
+                            <span>Created {new Date(quiz.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          {quiz.status === 'draft' ? (
+                            <>
+                              <Link href={`/educator/quiz/${quiz.id}/review`}>
+                                <Button variant="ghost" size="sm">
+                                  <Edit3 className="h-4 w-4 mr-1" />
+                                  Continue Editing
+                                </Button>
+                              </Link>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleDeleteQuiz(quiz.id, quiz.title)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </>
+                          ) : quiz.status === 'published' ? (
+                            <>
+                              <Link href={`/educator/quiz/${quiz.id}/review`}>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
+                                </Button>
+                              </Link>
+                              <Link href={`/educator/quiz/${quiz.id}/manage`}>
+                                <Button variant="ghost" size="sm">
+                                  <Settings className="h-4 w-4 mr-1" />
+                                  Manage
+                                </Button>
+                              </Link>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleToggleArchive(quiz.id, quiz.status)}
+                                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                              >
+                                <Archive className="h-4 w-4 mr-1" />
+                                Archive
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Link href={`/educator/quiz/${quiz.id}/review`}>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
+                                </Button>
+                              </Link>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleToggleArchive(quiz.id, quiz.status)}
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                <ArchiveRestore className="h-4 w-4 mr-1" />
+                                Activate
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {quizzes.length > 5 && (
+                      <div className="text-center pt-4">
+                        <Button variant="ghost" size="sm">
+                          View All {quizzes.length} Quizzes
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
