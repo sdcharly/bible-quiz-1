@@ -8,8 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Loading } from "@/components/ui/loading";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   ArrowLeft,
+  ArrowRight,
   Edit2,
   Save,
   X,
@@ -19,7 +22,18 @@ import {
   Clock,
   Target,
   Brain,
-  Send
+  Send,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Sparkles,
+  List,
+  Grid3x3,
+  Check,
+  FileText,
+  BarChart3,
+  Hash,
 } from "lucide-react";
 
 interface QuizQuestion {
@@ -62,10 +76,13 @@ export default function QuizReviewPage() {
   const [quiz, setQuiz] = useState<QuizDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
   const [editedQuestions, setEditedQuestions] = useState<{[key: string]: QuizQuestion}>({});
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [viewMode, setViewMode] = useState<"single" | "grid">("single");
 
   useEffect(() => {
     fetchQuizDetails();
@@ -107,7 +124,6 @@ export default function QuizReviewPage() {
       });
 
       if (response.ok) {
-        // Update local state
         setQuiz(prev => {
           if (!prev) return null;
           return {
@@ -144,7 +160,7 @@ export default function QuizReviewPage() {
       });
 
       if (response.ok) {
-        alert("Quiz published successfully!");
+        alert("Quiz published successfully! 🎉");
         router.push("/educator/dashboard");
       } else {
         alert("Failed to publish quiz");
@@ -179,269 +195,482 @@ export default function QuizReviewPage() {
     }));
   };
 
+  const goToNextQuestion = () => {
+    if (quiz && currentQuestionIndex < quiz.questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+      setShowExplanation(false);
+    }
+  };
+
+  const goToPreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+      setShowExplanation(false);
+    }
+  };
+
+  const goToQuestion = (index: number) => {
+    setCurrentQuestionIndex(index);
+    setShowExplanation(false);
+    setViewMode("single");
+  };
+
   if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg">Loading quiz...</div>
-        </div>
-      </div>
-    );
+    return <Loading variant="page" message="Loading quiz questions..." />;
   }
 
   if (error || !quiz) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Error Loading Quiz</h2>
-          <p className="text-gray-600 mb-4">{error || "Quiz not found"}</p>
-          <Button onClick={() => router.push("/educator/dashboard")}>
-            Return to Dashboard
-          </Button>
+        <EmptyState
+          icon={<AlertCircle className="h-12 w-12 text-red-500" />}
+          title="Error Loading Quiz"
+          description={error || "Quiz not found"}
+          action={{
+            label: "Return to Dashboard",
+            onClick: () => router.push("/educator/dashboard")
+          }}
+        />
+      </div>
+    );
+  }
+
+  const currentQuestion = quiz.questions[currentQuestionIndex];
+  const isEditing = editingQuestion === currentQuestion?.id;
+  const displayQuestion = isEditing ? editedQuestions[currentQuestion.id] : currentQuestion;
+  const progressPercentage = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
+
+  if (viewMode === "grid") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <Link href="/educator/dashboard">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Dashboard
+                </Button>
+              </Link>
+              <Button
+                onClick={() => setViewMode("single")}
+                variant="outline"
+                size="sm"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Card View
+              </Button>
+            </div>
+            
+            <div className="bg-white rounded-2xl shadow-sm border p-6 mb-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h1 className="text-3xl font-bold mb-2 font-heading">{quiz.title}</h1>
+                  <p className="text-gray-600">{quiz.description}</p>
+                </div>
+                <Button
+                  onClick={handlePublishQuiz}
+                  disabled={publishing || quiz.status === "published"}
+                  className="bg-gradient-to-r from-green-500 to-green-600"
+                  size="lg"
+                >
+                  {publishing ? (
+                    "Publishing..."
+                  ) : quiz.status === "published" ? (
+                    <>
+                      <CheckCircle className="mr-2 h-5 w-5" />
+                      Published
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-5 w-5" />
+                      Publish Quiz
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Questions Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {quiz.questions.map((question, index) => (
+              <Card 
+                key={question.id} 
+                className="hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-primary/50"
+                onClick={() => goToQuestion(index)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-500">
+                      Question {index + 1}
+                    </span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      question.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
+                      question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {question.difficulty}
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm line-clamp-3 mb-3">{question.questionText}</p>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <BookOpen className="h-3 w-3" />
+                    <span>{question.book}</span>
+                    <span>•</span>
+                    <span>Ch. {question.chapter}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <Link href="/educator/dashboard">
-          <Button variant="ghost" size="sm" className="mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Button>
-        </Link>
-        
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">{quiz.title}</h1>
-            <p className="text-gray-600">{quiz.description}</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <Link href="/educator/dashboard">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Dashboard
+              </Button>
+            </Link>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setViewMode("grid")}
+                variant="outline"
+                size="sm"
+              >
+                <Grid3x3 className="mr-2 h-4 w-4" />
+                Grid View
+              </Button>
+              <Button
+                onClick={handlePublishQuiz}
+                disabled={publishing || quiz.status === "published"}
+                className="bg-gradient-to-r from-green-500 to-green-600"
+              >
+                {publishing ? (
+                  "Publishing..."
+                ) : quiz.status === "published" ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Published
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Publish Quiz
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={handlePublishQuiz}
-              disabled={publishing || quiz.status === "published"}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {publishing ? (
-                "Publishing..."
-              ) : quiz.status === "published" ? (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Published
-                </>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  Publish Quiz
-                </>
-              )}
-            </Button>
+          
+          {/* Quiz Title Card */}
+          <Card className="bg-gradient-to-r from-primary-50 to-accent-50 border-0 shadow-sm mb-6">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold mb-2 font-heading">{quiz.title}</h1>
+                  <p className="text-gray-600 text-sm">{quiz.description}</p>
+                </div>
+                <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2">
+                  <Sparkles className="h-5 w-5 text-accent-500" />
+                  <span className="font-semibold">{quiz.questions.length} Questions</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Progress Bar */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-gray-600">
+                Question {currentQuestionIndex + 1} of {quiz.questions.length}
+              </span>
+              <span className="text-sm font-medium text-gray-600">
+                {Math.round(progressPercentage)}% Complete
+              </span>
+            </div>
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-primary-500 to-accent-500 transition-all duration-500 ease-out"
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Question Navigation Dots */}
+          <div className="flex justify-center gap-2 mb-6 flex-wrap">
+            {quiz.questions.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToQuestion(index)}
+                className={`w-10 h-10 rounded-lg font-medium text-sm transition-all duration-200 ${
+                  index === currentQuestionIndex
+                    ? 'bg-primary text-white shadow-lg scale-110'
+                    : 'bg-white hover:bg-gray-50 text-gray-600 border'
+                }`}
+              >
+                {index + 1}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* Quiz Configuration Info */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Quiz Configuration</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-gray-500" />
-              <div>
-                <p className="text-sm text-gray-500">Difficulty</p>
-                <p className="font-medium">{quiz.configuration.difficulty}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-gray-500" />
-              <div>
-                <p className="text-sm text-gray-500">Duration</p>
-                <p className="font-medium">{quiz.configuration.duration} minutes</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-gray-500" />
-              <div>
-                <p className="text-sm text-gray-500">Bloom&apos;s Levels</p>
-                <p className="font-medium">{quiz.configuration.bloomsLevels.join(", ")}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-gray-500" />
-              <div>
-                <p className="text-sm text-gray-500">Books</p>
-                <p className="font-medium">{quiz.configuration.books.join(", ")}</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Questions */}
-      <div className="space-y-6">
-        <h2 className="text-2xl font-semibold mb-4">
-          Questions ({quiz.questions.length})
-        </h2>
-        
-        {quiz.questions.map((question, index) => {
-          const isEditing = editingQuestion === question.id;
-          const currentQuestion = isEditing ? editedQuestions[question.id] : question;
-          
-          return (
-            <Card key={question.id} className="relative">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg">
-                    Question {index + 1}
-                  </CardTitle>
-                  <div className="flex gap-2">
-                    {isEditing ? (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => handleSaveQuestion(question.id)}
-                          disabled={saving}
-                        >
-                          <Save className="h-4 w-4 mr-1" />
-                          {saving ? "Saving..." : "Save"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCancelEdit(question.id)}
-                        >
-                          <X className="h-4 w-4 mr-1" />
-                          Cancel
-                        </Button>
-                      </>
-                    ) : (
+        {/* Main Question Card */}
+        {currentQuestion && (
+          <Card className="shadow-xl border-0 mb-6">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-t-2xl">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Hash className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium">Question {currentQuestionIndex + 1}</span>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    displayQuestion.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
+                    displayQuestion.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {displayQuestion.difficulty}
+                  </span>
+                  <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                    {displayQuestion.bloomsLevel}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {isEditing ? (
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSaveQuestion(currentQuestion.id)}
+                        disabled={saving}
+                      >
+                        <Save className="h-4 w-4 mr-1" />
+                        {saving ? "Saving..." : "Save"}
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleEditQuestion(question.id)}
+                        onClick={() => handleCancelEdit(currentQuestion.id)}
                       >
-                        <Edit2 className="h-4 w-4 mr-1" />
-                        Edit
+                        <X className="h-4 w-4 mr-1" />
+                        Cancel
                       </Button>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Question Text */}
-                <div>
-                  <Label>Question</Label>
-                  {isEditing ? (
-                    <Textarea
-                      value={currentQuestion.questionText}
-                      onChange={(e) => updateEditedQuestion(question.id, "questionText", e.target.value)}
-                      className="mt-1"
-                      rows={3}
-                    />
+                    </>
                   ) : (
-                    <p className="mt-1">{currentQuestion.questionText}</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEditQuestion(currentQuestion.id)}
+                    >
+                      <Edit2 className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
                   )}
                 </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="p-8">
+              {/* Question Text */}
+              <div className="mb-8">
+                {isEditing ? (
+                  <Textarea
+                    value={displayQuestion.questionText}
+                    onChange={(e) => updateEditedQuestion(currentQuestion.id, "questionText", e.target.value)}
+                    className="text-lg"
+                    rows={3}
+                  />
+                ) : (
+                  <h2 className="text-xl font-medium leading-relaxed">{displayQuestion.questionText}</h2>
+                )}
+              </div>
 
-                {/* Options */}
-                <div>
-                  <Label>Options</Label>
-                  <div className="space-y-2 mt-2">
-                    {currentQuestion.options.map((option) => (
-                      <div key={option.id} className="flex items-center gap-2">
-                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                          option.id === currentQuestion.correctAnswer 
-                            ? "bg-green-100 text-green-700" 
-                            : "bg-gray-100"
-                        }`}>
-                          {option.id.toUpperCase()}
-                        </span>
-                        {isEditing ? (
-                          <Input
-                            value={option.text}
-                            onChange={(e) => updateOption(question.id, option.id, e.target.value)}
-                            className="flex-1"
-                          />
-                        ) : (
-                          <span className="flex-1">{option.text}</span>
-                        )}
-                      </div>
+              {/* Options */}
+              <div className="space-y-3 mb-8">
+                {displayQuestion.options.map((option) => (
+                  <div 
+                    key={option.id} 
+                    className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${
+                      option.id === displayQuestion.correctAnswer 
+                        ? "bg-green-50 border-2 border-green-200" 
+                        : "bg-gray-50 border-2 border-transparent hover:border-gray-200"
+                    }`}
+                  >
+                    <span className={`w-10 h-10 rounded-lg flex items-center justify-center font-semibold ${
+                      option.id === displayQuestion.correctAnswer 
+                        ? "bg-green-500 text-white" 
+                        : "bg-white text-gray-700 border"
+                    }`}>
+                      {option.id.toUpperCase()}
+                    </span>
+                    {isEditing ? (
+                      <Input
+                        value={option.text}
+                        onChange={(e) => updateOption(currentQuestion.id, option.id, e.target.value)}
+                        className="flex-1"
+                      />
+                    ) : (
+                      <span className="flex-1 text-base">{option.text}</span>
+                    )}
+                    {option.id === displayQuestion.correctAnswer && !isEditing && (
+                      <Check className="h-5 w-5 text-green-600" />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Correct Answer Selector (Edit Mode) */}
+              {isEditing && (
+                <div className="mb-6">
+                  <Label>Correct Answer</Label>
+                  <select
+                    value={displayQuestion.correctAnswer}
+                    onChange={(e) => updateEditedQuestion(currentQuestion.id, "correctAnswer", e.target.value)}
+                    className="mt-2 w-full px-4 py-2 border-2 rounded-lg"
+                  >
+                    {displayQuestion.options.map(opt => (
+                      <option key={opt.id} value={opt.id}>
+                        Option {opt.id.toUpperCase()}
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 </div>
+              )}
 
-                {/* Correct Answer */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Correct Answer</Label>
+              {/* Explanation Toggle */}
+              <div className="border-t pt-6">
+                <button
+                  onClick={() => setShowExplanation(!showExplanation)}
+                  className="flex items-center gap-2 text-primary hover:text-primary-600 transition-colors duration-200"
+                >
+                  {showExplanation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <span className="font-medium">
+                    {showExplanation ? "Hide" : "Show"} Explanation
+                  </span>
+                </button>
+                
+                {showExplanation && (
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                     {isEditing ? (
-                      <select
-                        value={currentQuestion.correctAnswer}
-                        onChange={(e) => updateEditedQuestion(question.id, "correctAnswer", e.target.value)}
-                        className="mt-1 w-full px-3 py-2 border rounded-md"
-                      >
-                        {currentQuestion.options.map(opt => (
-                          <option key={opt.id} value={opt.id}>
-                            {opt.id.toUpperCase()}
-                          </option>
-                        ))}
-                      </select>
+                      <Textarea
+                        value={displayQuestion.explanation}
+                        onChange={(e) => updateEditedQuestion(currentQuestion.id, "explanation", e.target.value)}
+                        rows={3}
+                      />
                     ) : (
-                      <p className="mt-1 font-medium text-green-600">
-                        Option {currentQuestion.correctAnswer.toUpperCase()}
-                      </p>
+                      <p className="text-gray-700">{displayQuestion.explanation}</p>
                     )}
                   </div>
-                  <div>
-                    <Label>Difficulty</Label>
-                    {isEditing ? (
-                      <select
-                        value={currentQuestion.difficulty}
-                        onChange={(e) => updateEditedQuestion(question.id, "difficulty", e.target.value)}
-                        className="mt-1 w-full px-3 py-2 border rounded-md"
-                      >
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                      </select>
-                    ) : (
-                      <p className="mt-1 capitalize">{currentQuestion.difficulty}</p>
-                    )}
+                )}
+              </div>
+
+              {/* Metadata */}
+              <div className="mt-6 pt-6 border-t">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <p className="text-gray-500">Book</p>
+                      <p className="font-medium">{displayQuestion.book}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <p className="text-gray-500">Chapter</p>
+                      <p className="font-medium">{displayQuestion.chapter}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <p className="text-gray-500">Topic</p>
+                      <p className="font-medium">{displayQuestion.topic}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <p className="text-gray-500">Bloom&apos;s Level</p>
+                      <p className="font-medium capitalize">{displayQuestion.bloomsLevel}</p>
+                    </div>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-                {/* Explanation */}
-                <div>
-                  <Label>Explanation</Label>
-                  {isEditing ? (
-                    <Textarea
-                      value={currentQuestion.explanation}
-                      onChange={(e) => updateEditedQuestion(question.id, "explanation", e.target.value)}
-                      className="mt-1"
-                      rows={2}
-                    />
-                  ) : (
-                    <p className="mt-1 text-sm text-gray-600">{currentQuestion.explanation}</p>
-                  )}
-                </div>
+        {/* Navigation Controls */}
+        <div className="flex justify-between items-center">
+          <Button
+            onClick={goToPreviousQuestion}
+            disabled={currentQuestionIndex === 0}
+            variant="outline"
+            size="lg"
+            className="min-w-[120px]"
+          >
+            <ChevronLeft className="mr-2 h-5 w-5" />
+            Previous
+          </Button>
 
-                {/* Metadata */}
-                <div className="flex gap-4 text-sm text-gray-500">
-                  <span>Topic: {currentQuestion.topic}</span>
-                  <span>Book: {currentQuestion.book}</span>
-                  <span>Chapter: {currentQuestion.chapter}</span>
-                  <span>Bloom&apos;s: {currentQuestion.bloomsLevel}</span>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-gray-400" />
+            <span className="text-sm text-gray-600">
+              {quiz.configuration.duration} min • {quiz.configuration.passingScore}% to pass
+            </span>
+          </div>
+
+          <Button
+            onClick={goToNextQuestion}
+            disabled={currentQuestionIndex === quiz.questions.length - 1}
+            size="lg"
+            className="min-w-[120px]"
+          >
+            Next
+            <ChevronRight className="ml-2 h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Quick Stats */}
+        <Card className="mt-8 bg-gradient-to-r from-gray-50 to-gray-100/50 border-0">
+          <CardContent className="p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Quiz Overview
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Total Questions</p>
+                <p className="text-2xl font-bold text-gray-900">{quiz.questions.length}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Duration</p>
+                <p className="text-2xl font-bold text-gray-900">{quiz.configuration.duration} min</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Passing Score</p>
+                <p className="text-2xl font-bold text-gray-900">{quiz.configuration.passingScore}%</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Difficulty</p>
+                <p className="text-2xl font-bold text-gray-900 capitalize">{quiz.configuration.difficulty}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

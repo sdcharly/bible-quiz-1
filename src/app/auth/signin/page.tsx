@@ -57,7 +57,7 @@ export default function SignInPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/api/auth/callback",
+        callbackURL: "/dashboard",
       });
     } catch (err) {
       setError((err as Error).message || "Failed to sign in with Google");
