@@ -27,6 +27,7 @@ interface Quiz {
   status: "draft" | "published" | "completed" | "archived";
   enrolled: boolean;
   attempted: boolean;
+  attemptId?: string;
   score?: number;
 }
 
@@ -223,7 +224,8 @@ export default function StudentQuizzesPage() {
                       <Button
                         variant="outline"
                         className="w-full"
-                        onClick={() => router.push(`/student/results/${quiz.id}`)}
+                        onClick={() => router.push(`/student/results/${quiz.attemptId}`)}
+                        disabled={!quiz.attemptId}
                       >
                         View Results
                       </Button>

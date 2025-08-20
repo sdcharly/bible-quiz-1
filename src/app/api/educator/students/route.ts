@@ -1,0 +1,158 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { educatorStudents, user, enrollments, quizAttempts } from "@/lib/schema";
+import { eq, and, count } from "drizzle-orm";
+
+export async function GET(req: NextRequest) {
+  try {
+    // Use hardcoded educator ID for now
+    const educatorId = "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2";
+
+    // Fetch all students under this educator
+    const students = await db
+      .select({
+        relationshipId: educatorStudents.id,
+        studentId: educatorStudents.studentId,
+        status: educatorStudents.status,
+        enrolledAt: educatorStudents.enrolledAt,
+        name: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+      })
+      .from(educatorStudents)
+      .innerJoin(user, eq(educatorStudents.studentId, user.id))
+      .where(eq(educatorStudents.educatorId, educatorId));
+
+    // Get statistics for each student
+    const studentsWithStats = await Promise.all(
+      students.map(async (student) => {
+        // Count enrollments
+        const enrollmentCount = await db
+          .select({ count: count() })
+          .from(enrollments)
+          .where(eq(enrollments.studentId, student.studentId));
+
+        // Count completed quizzes
+        const completedCount = await db
+          .select({ count: count() })
+          .from(quizAttempts)
+          .where(
+            and(
+              eq(quizAttempts.studentId, student.studentId),
+              eq(quizAttempts.status, "completed")
+            )
+          );
+
+        return {
+          ...student,
+          totalEnrollments: enrollmentCount[0]?.count || 0,
+          completedQuizzes: completedCount[0]?.count || 0,
+        };
+      })
+    );
+
+    return NextResponse.json({
+      students: studentsWithStats,
+      total: studentsWithStats.length,
+    });
+
+  } catch (error) {
+    console.error("Error fetching students:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch students" },
+      { status: 500 }
+    );
+  }
+}
+
+// Add a new student to educator's list
+export async function POST(req: NextRequest) {
+  try {
+    const { studentEmail } = await req.json();
+    
+    if (!studentEmail) {
+      return NextResponse.json(
+        { error: "Student email is required" },
+        { status: 400 }
+      );
+    }
+
+    const educatorId = "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2";
+
+    // Find student by email
+    const student = await db
+      .select()
+      .from(user)
+      .where(eq(user.email, studentEmail.toLowerCase().trim()))
+      .limit(1);
+
+    if (!student.length) {
+      return NextResponse.json(
+        { error: "Student not found. Please send an invitation first." },
+        { status: 404 }
+      );
+    }
+
+    const studentId = student[0].id;
+
+    // Check if relationship already exists
+    const existingRelation = await db
+      .select()
+      .from(educatorStudents)
+      .where(
+        and(
+          eq(educatorStudents.educatorId, educatorId),
+          eq(educatorStudents.studentId, studentId)
+        )
+      )
+      .limit(1);
+
+    if (existingRelation.length > 0) {
+      // Reactivate if inactive
+      if (existingRelation[0].status === "inactive") {
+        await db
+          .update(educatorStudents)
+          .set({ status: "active", updatedAt: new Date() })
+          .where(eq(educatorStudents.id, existingRelation[0].id));
+
+        return NextResponse.json({
+          success: true,
+          message: "Student reactivated successfully",
+        });
+      }
+
+      return NextResponse.json(
+        { error: "Student already exists in your list" },
+        { status: 409 }
+      );
+    }
+
+    // Create new educator-student relationship
+    await db.insert(educatorStudents).values({
+      id: crypto.randomUUID(),
+      educatorId,
+      studentId,
+      status: "active",
+      enrolledAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `${student[0].name} has been added to your student list`,
+      student: {
+        id: studentId,
+        name: student[0].name,
+        email: student[0].email,
+        phoneNumber: student[0].phoneNumber,
+      },
+    });
+
+  } catch (error) {
+    console.error("Error adding student:", error);
+    return NextResponse.json(
+      { error: "Failed to add student" },
+      { status: 500 }
+    );
+  }
+}

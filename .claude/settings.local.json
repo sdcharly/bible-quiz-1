@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm run:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(curl:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

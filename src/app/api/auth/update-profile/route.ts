@@ -1,0 +1,62 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { user } from "@/lib/schema";
+import { eq } from "drizzle-orm";
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { email, phoneNumber, role } = body;
+
+    if (!email) {
+      return NextResponse.json(
+        { error: "Email is required" },
+        { status: 400 }
+      );
+    }
+
+    // Find user by email
+    const existingUser = await db
+      .select()
+      .from(user)
+      .where(eq(user.email, email.toLowerCase()))
+      .limit(1);
+
+    if (!existingUser.length) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Update user profile with phone number and role
+    const updates: { updatedAt: Date; phoneNumber?: string; role?: "educator" | "student" } = {
+      updatedAt: new Date(),
+    };
+    
+    if (phoneNumber !== undefined) {
+      updates.phoneNumber = phoneNumber;
+    }
+    
+    if (role !== undefined) {
+      updates.role = role;
+    }
+
+    await db
+      .update(user)
+      .set(updates)
+      .where(eq(user.id, existingUser[0].id));
+
+    return NextResponse.json({
+      success: true,
+      message: "Profile updated successfully",
+    });
+
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return NextResponse.json(
+      { error: "Failed to update profile" },
+      { status: 500 }
+    );
+  }
+}

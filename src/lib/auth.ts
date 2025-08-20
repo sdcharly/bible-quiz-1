@@ -7,6 +7,9 @@ export const auth = betterAuth({
     provider: "pg",
   }),
   baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  emailAndPassword: {
+    enabled: true,
+  },
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -19,6 +22,10 @@ export const auth = betterAuth({
       role: {
         type: "string",
         defaultValue: "student",
+        required: false,
+      },
+      phoneNumber: {
+        type: "string",
         required: false,
       },
     },

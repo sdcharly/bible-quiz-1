@@ -1,0 +1,220 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { invitations, user, quizzes, educatorStudents } from "@/lib/schema";
+import { eq, and } from "drizzle-orm";
+import * as crypto from "crypto";
+import { sendEmail, emailTemplates } from "@/lib/email-service";
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { emails, quizId, educatorId } = body;
+
+    if (!emails || !Array.isArray(emails) || emails.length === 0) {
+      return NextResponse.json(
+        { error: "Email addresses are required" },
+        { status: 400 }
+      );
+    }
+
+    // Use the hardcoded educator ID for now
+    const actualEducatorId = educatorId || "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2";
+
+    // Verify educator exists
+    const educator = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, actualEducatorId))
+      .limit(1);
+
+    if (!educator.length || educator[0].role !== "educator") {
+      return NextResponse.json(
+        { error: "Invalid educator" },
+        { status: 403 }
+      );
+    }
+
+    const educatorData = educator[0];
+
+    // If quizId is provided, verify the quiz exists and belongs to the educator
+    if (quizId) {
+      const quiz = await db
+        .select()
+        .from(quizzes)
+        .where(eq(quizzes.id, quizId))
+        .limit(1);
+
+      if (!quiz.length || quiz[0].educatorId !== actualEducatorId) {
+        return NextResponse.json(
+          { error: "Quiz not found or doesn't belong to educator" },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Get quiz details if provided
+    let quizDetails = null;
+    if (quizId) {
+      const quiz = await db
+        .select()
+        .from(quizzes)
+        .where(eq(quizzes.id, quizId))
+        .limit(1);
+      
+      if (quiz.length) {
+        quizDetails = quiz[0];
+      }
+    }
+
+    const createdInvitations = [];
+    const errors = [];
+
+    for (const email of emails) {
+      try {
+        const normalizedEmail = email.toLowerCase().trim();
+        
+        // Check if user already exists
+        const existingUser = await db
+          .select()
+          .from(user)
+          .where(eq(user.email, normalizedEmail))
+          .limit(1);
+
+        if (existingUser.length > 0) {
+          // User exists - check if already connected to educator
+          const existingRelation = await db
+            .select()
+            .from(educatorStudents)
+            .where(
+              and(
+                eq(educatorStudents.educatorId, actualEducatorId),
+                eq(educatorStudents.studentId, existingUser[0].id)
+              )
+            )
+            .limit(1);
+
+          if (!existingRelation.length) {
+            // Add educator-student relationship
+            await db.insert(educatorStudents).values({
+              id: crypto.randomUUID(),
+              educatorId: actualEducatorId,
+              studentId: existingUser[0].id,
+              status: "active",
+              enrolledAt: new Date(),
+              updatedAt: new Date(),
+            });
+          } else if (existingRelation[0].status === "inactive") {
+            // Reactivate if inactive
+            await db
+              .update(educatorStudents)
+              .set({ status: "active", updatedAt: new Date() })
+              .where(eq(educatorStudents.id, existingRelation[0].id));
+          }
+
+          // If quiz is provided, send quiz assignment email
+          if (quizDetails) {
+            const quizUrl = `${process.env.NEXT_PUBLIC_APP_URL}/student/quiz/${quizId}`;
+            const emailContent = emailTemplates.existingUserInvitation(
+              educatorData.name || "Your Educator",
+              existingUser[0].name || "Student",
+              quizDetails.title,
+              quizUrl
+            );
+
+            await sendEmail({
+              to: normalizedEmail,
+              subject: emailContent.subject,
+              html: emailContent.html,
+              text: emailContent.text,
+            });
+
+            createdInvitations.push({
+              email,
+              userExists: true,
+              message: "Quiz assignment sent to existing user",
+              quizAssigned: true
+            });
+          } else {
+            // Just notify about being added to class
+            const emailContent = emailTemplates.studentAddedNotification(
+              educatorData.name || "Your Educator",
+              existingUser[0].name || "Student"
+            );
+
+            await sendEmail({
+              to: normalizedEmail,
+              subject: emailContent.subject,
+              html: emailContent.html,
+              text: emailContent.text,
+            });
+
+            createdInvitations.push({
+              email,
+              userExists: true,
+              message: "Added to your class and notified"
+            });
+          }
+        } else {
+          // New user - create invitation
+          const token = crypto.randomBytes(32).toString("hex");
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 7); // Expires in 7 days
+
+          // Create invitation record
+          await db.insert(invitations).values({
+            id: crypto.randomUUID(),
+            educatorId: actualEducatorId,
+            quizId: quizId || null,
+            email: normalizedEmail,
+            token,
+            status: "pending",
+            expiresAt,
+            createdAt: new Date(),
+          });
+
+          // Send invitation email
+          const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/signup?invitation=${token}`;
+          const emailContent = emailTemplates.newUserInvitation(
+            educatorData.name || "Your Educator",
+            invitationUrl,
+            quizDetails?.title
+          );
+
+          await sendEmail({
+            to: normalizedEmail,
+            subject: emailContent.subject,
+            html: emailContent.html,
+            text: emailContent.text,
+          });
+
+          createdInvitations.push({
+            email,
+            token,
+            invitationUrl,
+            userExists: false,
+            message: "Invitation sent to new user"
+          });
+        }
+        
+      } catch (error) {
+        console.error(`Error processing invitation for ${email}:`, error);
+        const errorMessage = error instanceof Error ? error.message : "Failed to process invitation";
+        errors.push({ email, error: errorMessage });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      invitations: createdInvitations,
+      errors,
+      message: `Successfully sent ${createdInvitations.length} invitation(s)`,
+    });
+
+  } catch (error) {
+    console.error("Error sending invitations:", error);
+    return NextResponse.json(
+      { error: "Failed to send invitations" },
+      { status: 500 }
+    );
+  }
+}

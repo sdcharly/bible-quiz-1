@@ -48,19 +48,20 @@ export async function GET(
       .from(quizzes)
       .where(eq(quizzes.id, attempt.quizId));
 
-    // Security check: Don't show results until quiz duration has passed
-    if (quiz) {
-      const quizEndTime = new Date(quiz.startTime);
-      quizEndTime.setMinutes(quizEndTime.getMinutes() + (quiz.duration || 30));
+    // Security check: Don't show results until quiz duration has passed from the attempt's start time
+    if (quiz && attempt.startTime) {
+      const attemptEndTime = new Date(attempt.startTime);
+      attemptEndTime.setMinutes(attemptEndTime.getMinutes() + (quiz.duration || 30));
       const now = new Date();
       
-      if (now < quizEndTime) {
-        const minutesRemaining = Math.ceil((quizEndTime.getTime() - now.getTime()) / (1000 * 60));
+      // Students must wait until their quiz time expires to see results
+      if (now < attemptEndTime) {
+        const minutesRemaining = Math.ceil((attemptEndTime.getTime() - now.getTime()) / (1000 * 60));
         return NextResponse.json(
           { 
             error: "Results not available yet",
-            message: `Results will be available after the quiz period ends (${minutesRemaining} minutes remaining)`,
-            availableAt: quizEndTime.toISOString()
+            message: `Results will be available after your quiz time expires (${minutesRemaining} minutes remaining)`,
+            availableAt: attemptEndTime.toISOString()
           },
           { status: 425 } // Too Early status code
         );

@@ -100,6 +100,14 @@ export function SiteHeader() {
                     >
                       Create Quiz
                     </Link>
+                    <Link
+                      href="/educator/students"
+                      className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                        isActive("/educator/students") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      Students
+                    </Link>
                   </>
                 )}
 
@@ -201,6 +209,15 @@ export function SiteHeader() {
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Create Quiz
+                      </Link>
+                      <Link
+                        href="/educator/students"
+                        className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                          isActive("/educator/students") ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Students
                       </Link>
                     </>
                   )}

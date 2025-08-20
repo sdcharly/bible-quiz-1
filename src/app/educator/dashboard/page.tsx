@@ -6,6 +6,7 @@ import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { isEducator } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   FileText, 
   Plus, 
@@ -21,7 +22,9 @@ import {
   Edit3,
   Trash2,
   Archive,
-  ArchiveRestore
+  ArchiveRestore,
+  TrendingUp,
+  Calendar
 } from "lucide-react";
 
 interface Quiz {
@@ -35,16 +38,33 @@ interface Quiz {
   createdAt: string;
 }
 
+interface PerformanceData {
+  averageScore: number;
+  passRate: number;
+  completionRate: number;
+  recentActivity: {
+    date: string;
+    attempts: number;
+    avgScore: number;
+  }[];
+}
+
 export default function EducatorDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<{ name?: string; email?: string; role?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [stats] = useState({
+  const [stats, setStats] = useState({
     totalQuizzes: 0,
     activeQuizzes: 0,
     totalStudents: 0,
     totalDocuments: 0,
+  });
+  const [performanceData, setPerformanceData] = useState<PerformanceData>({
+    averageScore: 0,
+    passRate: 0,
+    completionRate: 0,
+    recentActivity: []
   });
 
   useEffect(() => {
@@ -62,7 +82,11 @@ export default function EducatorDashboard() {
       }
       
       setUser(userWithRole);
-      await fetchQuizzes();
+      await Promise.all([
+        fetchQuizzes(),
+        fetchStats(),
+        fetchPerformanceData()
+      ]);
       setLoading(false);
     };
     
@@ -75,9 +99,58 @@ export default function EducatorDashboard() {
       if (response.ok) {
         const data = await response.json();
         setQuizzes(data.quizzes || []);
+        
+        const total = data.quizzes?.length || 0;
+        const active = data.quizzes?.filter((q: Quiz) => q.status === 'published').length || 0;
+        setStats(prev => ({
+          ...prev,
+          totalQuizzes: total,
+          activeQuizzes: active
+        }));
       }
     } catch (error) {
       console.error('Error fetching quizzes:', error);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const studentsResponse = await fetch('/api/educator/students');
+      if (studentsResponse.ok) {
+        const studentsData = await studentsResponse.json();
+        setStats(prev => ({
+          ...prev,
+          totalStudents: studentsData.students?.length || 0
+        }));
+      }
+
+      const docsResponse = await fetch('/api/educator/documents');
+      if (docsResponse.ok) {
+        const docsData = await docsResponse.json();
+        setStats(prev => ({
+          ...prev,
+          totalDocuments: docsData.documents?.length || 0
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchPerformanceData = async () => {
+    try {
+      const response = await fetch('/api/educator/analytics?timeRange=week');
+      if (response.ok) {
+        const data = await response.json();
+        setPerformanceData({
+          averageScore: data.overall?.averageScore || 0,
+          passRate: data.overall?.passRate || 0,
+          completionRate: data.overall?.completionRate || 0,
+          recentActivity: data.timeline || []
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching performance data:', error);
     }
   };
 
@@ -118,7 +191,7 @@ export default function EducatorDashboard() {
       if (response.ok) {
         const data = await response.json();
         alert(data.message);
-        await fetchQuizzes(); // Refresh the quiz list
+        await fetchQuizzes();
       } else {
         const error = await response.json();
         alert(`Error: ${error.error}`);
@@ -149,7 +222,7 @@ export default function EducatorDashboard() {
       if (response.ok) {
         const data = await response.json();
         alert(data.message);
-        await fetchQuizzes(); // Refresh the quiz list
+        await fetchQuizzes();
       } else {
         const error = await response.json();
         alert(`Error: ${error.error}`);
@@ -158,6 +231,12 @@ export default function EducatorDashboard() {
       console.error('Error toggling archive status:', error);
       alert('Failed to update quiz status');
     }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-600";
+    if (score >= 60) return "text-yellow-600";
+    return "text-red-600";
   };
 
   if (loading) {
@@ -183,10 +262,10 @@ export default function EducatorDashboard() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Link href="/educator/documents/upload">
+              <Link href="/educator/students">
                 <Button variant="outline">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Document
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Students
                 </Button>
               </Link>
               <Link href="/educator/quiz/create">
@@ -200,256 +279,324 @@ export default function EducatorDashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Quizzes</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                  {stats.totalQuizzes}
-                </p>
-              </div>
-              <BookOpen className="h-12 w-12 text-blue-600 opacity-20" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Active Quizzes</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                  {stats.activeQuizzes}
-                </p>
-              </div>
-              <Clock className="h-12 w-12 text-green-600 opacity-20" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Students</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                  {stats.totalStudents}
-                </p>
-              </div>
-              <Users className="h-12 w-12 text-purple-600 opacity-20" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Documents</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                  {stats.totalDocuments}
-                </p>
-              </div>
-              <FileText className="h-12 w-12 text-orange-600 opacity-20" />
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Quizzes */}
-          <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Your Quizzes
-                  </h2>
-                  <Link href="/educator/quiz/create">
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-1" />
-                      New Quiz
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-              <div className="p-6">
-                {quizzes.length === 0 ? (
-                  <div className="text-center py-8">
-                    <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
-                      No quizzes created yet. Create your first quiz to get started.
-                    </p>
-                    <Link href="/educator/quiz/create">
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create First Quiz
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {quizzes.slice(0, 5).map((quiz) => (
-                      <div
-                        key={quiz.id}
-                        className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="font-medium text-gray-900 dark:text-white truncate">
-                              {quiz.title}
-                            </h3>
-                            {getStatusBadge(quiz.status)}
-                          </div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                            {quiz.description || 'No description'}
-                          </p>
-                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                            <span>{quiz.totalQuestions} questions</span>
-                            <span>{quiz.duration} min</span>
-                            {quiz.status === 'published' && (
-                              <span>{quiz.enrolledStudents} students enrolled</span>
-                            )}
-                            <span>Created {new Date(quiz.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          {quiz.status === 'draft' ? (
-                            <>
-                              <Link href={`/educator/quiz/${quiz.id}/review`}>
-                                <Button variant="ghost" size="sm">
-                                  <Edit3 className="h-4 w-4 mr-1" />
-                                  Continue Editing
-                                </Button>
-                              </Link>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleDeleteQuiz(quiz.id, quiz.title)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
-                              </Button>
-                            </>
-                          ) : quiz.status === 'published' ? (
-                            <>
-                              <Link href={`/educator/quiz/${quiz.id}/review`}>
-                                <Button variant="ghost" size="sm">
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  View
-                                </Button>
-                              </Link>
-                              <Link href={`/educator/quiz/${quiz.id}/manage`}>
-                                <Button variant="ghost" size="sm">
-                                  <Settings className="h-4 w-4 mr-1" />
-                                  Manage
-                                </Button>
-                              </Link>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleToggleArchive(quiz.id, quiz.status)}
-                                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                              >
-                                <Archive className="h-4 w-4 mr-1" />
-                                Archive
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <Link href={`/educator/quiz/${quiz.id}/review`}>
-                                <Button variant="ghost" size="sm">
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  View
-                                </Button>
-                              </Link>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleToggleArchive(quiz.id, quiz.status)}
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                              >
-                                <ArchiveRestore className="h-4 w-4 mr-1" />
-                                Activate
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {quizzes.length > 5 && (
-                      <div className="text-center pt-4">
-                        <Button variant="ghost" size="sm">
-                          View All {quizzes.length} Quizzes
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        {/* Key Performance Indicators with Graphs */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Performance Overview Card */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
               <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Recent Activity
-                </h2>
+                <div>
+                  <CardTitle>Performance Overview</CardTitle>
+                  <CardDescription>Student performance trends this week</CardDescription>
+                </div>
                 <Link href="/educator/analytics">
                   <Button variant="ghost" size="sm">
-                    View Analytics
+                    View Details
                     <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 </Link>
               </div>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                No recent activity. Upload documents and create quizzes to see activity here.
-              </p>
-            </div>
-          </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="text-center">
+                  <div className={`text-3xl font-bold ${getScoreColor(performanceData.averageScore)}`}>
+                    {performanceData.averageScore.toFixed(1)}%
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Score</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600">
+                    {performanceData.passRate.toFixed(0)}%
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Pass Rate</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-600">
+                    {performanceData.completionRate.toFixed(0)}%
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Completion</p>
+                </div>
+              </div>
+              
+              {/* Mini Activity Chart */}
+              <div className="h-32 flex items-end gap-1">
+                {performanceData.recentActivity && performanceData.recentActivity.length > 0 ? (
+                  performanceData.recentActivity.map((day, index) => {
+                    const maxAttempts = Math.max(...performanceData.recentActivity.map(d => d.attempts || 0), 1);
+                    const height = ((day.attempts || 0) / maxAttempts) * 100;
+                    const avgScore = day.avgScore || 0;
+                    
+                    return (
+                      <div key={index} className="flex-1 flex flex-col items-center">
+                        <div 
+                          className="w-full bg-blue-200 dark:bg-blue-800 rounded-t hover:bg-blue-300 transition-colors relative"
+                          style={{ height: `${height}%` }}
+                          title={`${day.attempts || 0} attempts, ${avgScore.toFixed(0)}% avg score`}
+                        >
+                          {avgScore > 0 && (
+                            <div 
+                              className={`absolute inset-x-0 bottom-0 rounded-t ${
+                                avgScore >= 70 ? 'bg-green-500' : 'bg-orange-500'
+                              }`}
+                              style={{ height: `${avgScore}%` }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+                    No activity data yet
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 text-center mt-2">Daily activity (last 7 days)</p>
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Stats</CardTitle>
+              <CardDescription>Your educational content</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="h-8 w-8 text-blue-600 opacity-60" />
+                  <div>
+                    <p className="text-2xl font-bold">{stats.totalQuizzes}</p>
+                    <p className="text-xs text-gray-600">Total Quizzes</p>
+                  </div>
+                </div>
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                  {stats.activeQuizzes} active
+                </span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Users className="h-8 w-8 text-purple-600 opacity-60" />
+                  <div>
+                    <p className="text-2xl font-bold">{stats.totalStudents}</p>
+                    <p className="text-xs text-gray-600">Students</p>
+                  </div>
+                </div>
+                {stats.totalStudents > 0 && (
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                )}
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-8 w-8 text-orange-600 opacity-60" />
+                  <div>
+                    <p className="text-2xl font-bold">{stats.totalDocuments}</p>
+                    <p className="text-xs text-gray-600">Documents</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Quick Links */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link href="/educator/documents">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
-              <FileText className="h-8 w-8 text-blue-600 mb-3" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Manage Documents
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Upload and organize your biblical study materials
-              </p>
-            </div>
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Link href="/educator/analytics">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-purple-500">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <BarChart3 className="h-8 w-8 text-purple-600 mb-2" />
+                    <h3 className="font-semibold">Performance Analytics</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      View detailed insights
+                    </p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/educator/documents/upload">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-blue-500">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Upload className="h-8 w-8 text-blue-600 mb-2" />
+                    <h3 className="font-semibold">Upload Document</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Add study materials
+                    </p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                </div>
+              </CardContent>
+            </Card>
           </Link>
 
           <Link href="/educator/students">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
-              <Users className="h-8 w-8 text-green-600 mb-3" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Student Management
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                View and manage enrolled students
-              </p>
-            </div>
-          </Link>
-
-          <Link href="/educator/analytics">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
-              <BarChart3 className="h-8 w-8 text-purple-600 mb-3" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Performance Analytics
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Track student performance and quiz statistics
-              </p>
-            </div>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-green-500">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Users className="h-8 w-8 text-green-600 mb-2" />
+                    <h3 className="font-semibold">Student Management</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Invite & manage students
+                    </p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                </div>
+              </CardContent>
+            </Card>
           </Link>
         </div>
+
+        {/* Recent Quizzes */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Recent Quizzes</CardTitle>
+                <CardDescription>Manage your biblical study quizzes</CardDescription>
+              </div>
+              <Link href="/educator/quiz/create">
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  New Quiz
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {quizzes.length === 0 ? (
+              <div className="text-center py-12">
+                <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  No quizzes created yet
+                </p>
+                <Link href="/educator/quiz/create">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Quiz
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {quizzes.slice(0, 5).map((quiz) => (
+                  <div
+                    key={quiz.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                          {quiz.title}
+                        </h3>
+                        {getStatusBadge(quiz.status)}
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="h-3 w-3" />
+                          {quiz.totalQuestions} questions
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {quiz.duration} min
+                        </span>
+                        {quiz.status === 'published' && (
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {quiz.enrolledStudents} enrolled
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(quiz.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      {quiz.status === 'draft' ? (
+                        <>
+                          <Link href={`/educator/quiz/${quiz.id}/review`}>
+                            <Button variant="outline" size="sm">
+                              <Edit3 className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                          </Link>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteQuiz(quiz.id, quiz.title)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : quiz.status === 'published' ? (
+                        <>
+                          <Link href={`/educator/quiz/${quiz.id}/results`}>
+                            <Button variant="outline" size="sm">
+                              <BarChart3 className="h-4 w-4 mr-1" />
+                              Results
+                            </Button>
+                          </Link>
+                          <Link href={`/educator/quiz/${quiz.id}/manage`}>
+                            <Button variant="ghost" size="sm">
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleToggleArchive(quiz.id, quiz.status)}
+                            className="text-orange-600 hover:text-orange-700"
+                          >
+                            <Archive className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Link href={`/educator/quiz/${quiz.id}/review`}>
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          </Link>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleToggleArchive(quiz.id, quiz.status)}
+                            className="text-green-600 hover:text-green-700"
+                          >
+                            <ArchiveRestore className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {quizzes.length > 5 && (
+                  <div className="text-center pt-4">
+                    <Link href="/educator/quizzes">
+                      <Button variant="outline" size="sm">
+                        View All {quizzes.length} Quizzes
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

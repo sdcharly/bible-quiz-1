@@ -1,22 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { BookOpen, Loader2 } from "lucide-react";
+import { BookOpen, Loader2, UserCheck } from "lucide-react";
 
-export default function StudentSignUpPage() {
+function StudentSignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invitationData, setInvitationData] = useState<{email?: string; educatorName?: string; educatorId?: string; quizId?: string} | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phoneNumber: "",
     password: "",
     confirmPassword: "",
   });
+
+  const invitationToken = searchParams.get('invitation');
+
+  useEffect(() => {
+    if (invitationToken) {
+      // Validate invitation token
+      validateInvitation(invitationToken);
+    }
+  }, [invitationToken]);
+
+  const validateInvitation = async (token: string) => {
+    try {
+      const response = await fetch(`/api/invitations/validate?token=${token}`);
+      if (response.ok) {
+        const data = await response.json();
+        setInvitationData(data);
+        // Pre-fill email if invitation is valid
+        if (data.email) {
+          setFormData(prev => ({ ...prev, email: data.email }));
+        }
+      } else {
+        setError("Invalid or expired invitation link");
+      }
+    } catch (err) {
+      console.error("Error validating invitation:", err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,14 +62,42 @@ export default function StudentSignUpPage() {
       return;
     }
 
+    if (!formData.phoneNumber) {
+      setError("Phone number is required for communication");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await authClient.signUp.email({
+      // First, sign up the user
+      const signUpResult = await authClient.signUp.email({
         email: formData.email,
         password: formData.password,
         name: formData.name,
       });
+      
+      // Update user profile with phone number and role
+      if (signUpResult) {
+        await fetch('/api/auth/update-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            phoneNumber: formData.phoneNumber,
+            role: "student",
+          }),
+        });
+      }
+
+      // If there's an invitation, accept it
+      if (invitationToken) {
+        await fetch('/api/invitations/accept', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: invitationToken }),
+        });
+      }
       
       router.push("/student/dashboard");
     } catch (err) {
@@ -72,15 +130,26 @@ export default function StudentSignUpPage() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
             Create your student account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Or{" "}
-            <Link
-              href="/auth/educator-signup"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              sign up as an educator
-            </Link>
-          </p>
+          {invitationData ? (
+            <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+              <div className="flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <UserCheck className="h-5 w-5 mr-2" />
+                <p className="text-sm">
+                  You&apos;ve been invited by <strong>{invitationData.educatorName}</strong>
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+              Or{" "}
+              <Link
+                href="/auth/educator-signup"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
+                sign up as an educator
+              </Link>
+            </p>
+          )}
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
@@ -120,6 +189,25 @@ export default function StudentSignUpPage() {
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
                 placeholder="student@example.com"
               />
+            </div>
+            <div>
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Phone Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="phoneNumber"
+                name="phoneNumber"
+                type="tel"
+                autoComplete="tel"
+                required
+                value={formData.phoneNumber}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                placeholder="+1 (555) 123-4567"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Required for educator communication and quiz notifications
+              </p>
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -220,5 +308,17 @@ export default function StudentSignUpPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function StudentSignUpPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <StudentSignUpForm />
+    </Suspense>
   );
 }

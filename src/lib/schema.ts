@@ -12,6 +12,7 @@ export const user = pgTable("user", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   role: userRoleEnum("role").notNull().default("student"),
+  phoneNumber: text("phone_number"),
   emailVerified: boolean("emailVerified"),
   image: text("image"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
@@ -141,4 +142,26 @@ export const questionResponses = pgTable("question_responses", {
   timeSpent: integer("time_spent"), // in seconds
   markedForReview: boolean("marked_for_review").default(false),
   answeredAt: timestamp("answered_at").defaultNow(),
+});
+
+// New tables for educator-student management
+export const educatorStudents = pgTable("educator_students", {
+  id: text("id").primaryKey(),
+  educatorId: text("educator_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  studentId: text("student_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("active"), // active, inactive
+  enrolledAt: timestamp("enrolled_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const invitations = pgTable("invitations", {
+  id: text("id").primaryKey(),
+  educatorId: text("educator_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  quizId: text("quiz_id").references(() => quizzes.id, { onDelete: "cascade" }), // Optional: specific quiz invitation
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  status: text("status").notNull().default("pending"), // pending, accepted, expired
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });

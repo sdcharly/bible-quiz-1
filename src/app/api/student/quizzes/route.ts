@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
         status: quiz.status,
         enrolled: !!enrollment,
         attempted: !!attempt,
+        attemptId: attempt?.id,
         score: attempt?.score,
       };
     });
