@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { documents } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { documents, quizzes } from "@/lib/schema";
+import { eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { LightRAGService } from "@/lib/lightrag-service";
 
 export async function DELETE(
   req: NextRequest,
@@ -46,66 +47,110 @@ export async function DELETE(
 
     // Get the LightRAG document ID from metadata
     const processedData = document.processedData as Record<string, unknown> | null;
-    
-    // The trackId is what LightRAG returns when uploading - this is what we need for deletion
     const lightragDocumentId = processedData?.trackId || processedData?.lightragDocumentId;
     
     console.log("Document deletion attempt:", {
       localDocumentId: params.id,
       lightragDocumentId: lightragDocumentId,
-      processedData: processedData
+      documentStatus: document.status,
+      filename: document.filename
     });
 
-    // Delete from LightRAG if document was processed and has a valid LightRAG ID
-    if (lightragDocumentId && document.status === "processed") {
-      const lightragUrl = process.env.LIGHTRAG_API_URL || "https://lightrag-jxo2.onrender.com";
-      const lightragApiKey = process.env.LIGHTRAG_API_KEY || "01d8343f-fdf7-430f-927e-837df61d44fe";
+    let lightragResult = null;
+    const deletionWarnings: string[] = [];
 
+    // Enhanced LightRAG deletion with safety checks
+    if (lightragDocumentId && (document.status === "processed" || document.status === "processing")) {
       try {
-        console.log(`Deleting document from LightRAG with ID: ${lightragDocumentId}`);
+        console.log(`Attempting safe deletion of LightRAG document: ${lightragDocumentId}`);
         
-        // Call LightRAG deletion endpoint for specific document
-        const lightragResponse = await fetch(`${lightragUrl}/documents/delete_document`, {
-          method: "DELETE",
-          headers: {
-            "accept": "application/json",
-            "X-API-Key": lightragApiKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            doc_ids: [String(lightragDocumentId)],
-            delete_file: false
-          }),
-        });
+        // Use the enhanced safe deletion method
+        lightragResult = await LightRAGService.safeDeleteDocument(String(lightragDocumentId));
+        
+        console.log(`LightRAG deletion result for ${lightragDocumentId}:`, lightragResult);
 
-        if (!lightragResponse.ok) {
-          const errorText = await lightragResponse.text();
-          console.error("Failed to delete from LightRAG:", errorText);
-          // Continue with local deletion even if LightRAG deletion fails
-          // You might want to handle this differently based on your requirements
-        } else {
-          const result = await lightragResponse.json();
-          console.log(`Successfully deleted document ${lightragDocumentId} from LightRAG:`, result);
+        // Handle different deletion outcomes
+        if (!lightragResult.success) {
+          deletionWarnings.push(`LightRAG deletion failed: ${lightragResult.error}`);
+          
+          // Decide whether to continue with local deletion
+          if (lightragResult.error?.includes("busy")) {
+            return NextResponse.json({
+              success: false,
+              error: "Cannot delete document: LightRAG is currently busy processing. Please try again in a few moments.",
+              retryAfter: 30 // seconds
+            }, { status: 429 });
+          }
+          
+          if (lightragResult.error?.includes("not_allowed")) {
+            return NextResponse.json({
+              success: false,
+              error: "Document deletion not allowed: It may be currently in use or protected by LightRAG.",
+              details: lightragResult.lightragStatus?.message
+            }, { status: 403 });
+          }
+        } else if (!lightragResult.verified) {
+          deletionWarnings.push("Document deleted from LightRAG but verification timeout occurred");
         }
+
       } catch (error) {
-        console.error("Error deleting from LightRAG:", error);
-        // Continue with local deletion even if LightRAG is unreachable
+        console.error(`Error in safe LightRAG deletion for ${lightragDocumentId}:`, error);
+        deletionWarnings.push(`LightRAG deletion error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        
+        // For network errors, we might want to prevent local deletion
+        if (error instanceof Error && error.message.includes('fetch')) {
+          return NextResponse.json({
+            success: false,
+            error: "Cannot verify document deletion from LightRAG due to network issues. Please try again later.",
+            retryAfter: 60
+          }, { status: 503 });
+        }
       }
     } else if (document.status === "processed" && !lightragDocumentId) {
-      console.warn("Document marked as processed but has no LightRAG ID - skipping LightRAG deletion");
+      deletionWarnings.push("Document marked as processed but has no LightRAG ID - local deletion only");
+    } else if (document.status === "failed") {
+      console.log("Document failed processing, safe to delete locally");
+    } else if (document.status === "pending") {
+      console.log("Document never processed, safe to delete locally");
+    }
+
+    // Check for active quizzes using this document before deletion
+    try {
+      const affectedQuizzes = await db
+        .select({ id: quizzes.id, title: quizzes.title })
+        .from(quizzes)
+        .where(sql`${quizzes.documentIds} @> ${JSON.stringify([params.id])}`);
+
+      if (affectedQuizzes.length > 0) {
+        return NextResponse.json({
+          success: false,
+          error: `Cannot delete document: It is being used in ${affectedQuizzes.length} quiz(es). Please remove it from quizzes first.`,
+          affectedQuizzes: affectedQuizzes
+        }, { status: 409 });
+      }
+    } catch (quizCheckError) {
+      console.warn("Could not check for quiz dependencies:", quizCheckError);
+      deletionWarnings.push("Could not verify quiz dependencies");
     }
 
     // Delete from local database
-    await db
-      .delete(documents)
-      .where(eq(documents.id, params.id));
+    await db.delete(documents).where(eq(documents.id, params.id));
+
+    console.log(`Successfully deleted document ${params.id} from local database`);
 
     return NextResponse.json({
       success: true,
       message: "Document deleted successfully",
-      deletedFromLightRAG: !!lightragDocumentId,
-      lightragDocumentId: lightragDocumentId || null,
-      localDocumentId: params.id
+      details: {
+        localDocumentId: params.id,
+        lightragDocumentId: lightragDocumentId || null,
+        lightragDeletion: lightragResult ? {
+          success: lightragResult.success,
+          verified: lightragResult.verified,
+          status: lightragResult.lightragStatus?.status
+        } : null,
+        warnings: deletionWarnings.length > 0 ? deletionWarnings : undefined
+      }
     });
 
   } catch (error) {

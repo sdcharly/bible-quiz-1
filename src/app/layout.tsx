@@ -1,26 +1,28 @@
 import { ThemeProvider } from "@/components/theme-provider";
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
-const plusJakarta = Plus_Jakarta_Sans({
+const playfairDisplay = Playfair_Display({
   variable: "--font-heading",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 const inter = Inter({
   variable: "--font-body",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "SimpleQuiz - Friendly Learning Platform",
+  title: "Scrolls of Wisdom - Biblical Knowledge Quest",
   description:
-    "A modern, friendly quiz platform for educators and students. Create engaging quizzes with AI-powered question generation.",
+    "Embark on a divine journey through scripture with AI-powered wisdom quests. A sacred platform for guides and disciples to explore biblical knowledge and strengthen faith through engaging assessments.",
 };
 
 export default function RootLayout({
@@ -31,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${plusJakarta.variable} ${inter.variable} antialiased font-sans`}
+        className={`${playfairDisplay.variable} ${inter.variable} antialiased font-sans`}
       >
         <ThemeProvider
           attribute="class"

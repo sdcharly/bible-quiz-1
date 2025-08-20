@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { quizzes, questions, documents } from "@/lib/schema";
 import { inArray } from "drizzle-orm";
 import * as crypto from "crypto";
+import { QuestionValidator, QuestionToValidate } from "@/lib/question-validator";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,6 +19,7 @@ export async function POST(req: NextRequest) {
       chapters = [],
       questionCount = 10,
       startTime = new Date().toISOString(),
+      timezone = "Asia/Kolkata",
       duration = 30,
       shuffleQuestions = false,
     } = body;
@@ -186,6 +188,60 @@ export async function POST(req: NextRequest) {
       questionsData = getSampleQuestions(books, difficulty, bloomsLevels);
     }
 
+    // Validate questions before saving
+    let validationResults = null;
+    let validationSummary = null;
+    
+    if (questionsData && questionsData.length > 0) {
+      try {
+        console.log("Validating generated questions...");
+        
+        // Convert questionsData to QuestionToValidate format
+        const questionsToValidate: QuestionToValidate[] = questionsData.map((q: Record<string, unknown>, index: number) => {
+          // Convert options object to array format if needed
+          let optionsArray = [];
+          if (q.options) {
+            if (Array.isArray(q.options)) {
+              optionsArray = q.options;
+            } else if (typeof q.options === 'object') {
+              // Convert {A: "text", B: "text"} to [{id: "A", text: "text"}]
+              optionsArray = Object.entries(q.options).map(([key, value]) => ({
+                id: key.toLowerCase(),
+                text: value as string
+              }));
+            }
+          }
+          
+          return {
+            id: `q_${index}`,
+            questionText: (q.question as string) || (q.questionText as string),
+            options: optionsArray,
+            correctAnswer: (q.correct_answer as string)?.toLowerCase() || (q.correctAnswer as string)?.toLowerCase() || 'a',
+            explanation: q.explanation as string
+          };
+        });
+
+        // Validate all questions
+        validationResults = await QuestionValidator.validateQuestions(questionsToValidate);
+        validationSummary = QuestionValidator.getValidationSummary(validationResults);
+        
+        console.log(`Question validation completed: ${validationSummary.validQuestions}/${validationSummary.totalQuestions} valid (avg score: ${validationSummary.averageScore})`);
+        
+        // Log validation issues for debugging
+        if (validationSummary.issueCount.high > 0 || validationSummary.issueCount.medium > 0) {
+          console.log("Validation issues found:", {
+            highSeverity: validationSummary.issueCount.high,
+            mediumSeverity: validationSummary.issueCount.medium,
+            lowSeverity: validationSummary.issueCount.low
+          });
+        }
+
+      } catch (validationError) {
+        console.error("Error during question validation:", validationError);
+        // Continue with quiz creation even if validation fails
+      }
+    }
+
     // Save quiz to database
     const newQuiz = await db.insert(quizzes).values({
       id: quizId,
@@ -201,6 +257,7 @@ export async function POST(req: NextRequest) {
         chapters,
       },
       startTime: new Date(startTime),
+      timezone,
       duration,
       status: "draft",
       totalQuestions: questionsData.length || questionCount,
@@ -265,8 +322,15 @@ export async function POST(req: NextRequest) {
       quiz: newQuiz[0],
       questionsCreated: questionsData.length,
       webhookTimedOut,
+      validation: validationSummary ? {
+        summary: validationSummary,
+        hasIssues: validationSummary.issueCount.high > 0 || validationSummary.issueCount.medium > 0,
+        overallValid: validationSummary.overallValid
+      } : null,
       message: webhookTimedOut 
         ? "The question generation service timed out. Sample questions have been created. You can edit them in the review page." 
+        : validationSummary && !validationSummary.overallValid
+        ? `Quiz created successfully, but ${validationSummary.totalQuestions - validationSummary.validQuestions} questions may need review due to validation issues.`
         : undefined
     });
 

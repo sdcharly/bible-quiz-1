@@ -15,6 +15,7 @@ export const user = pgTable("user", {
   phoneNumber: text("phone_number"),
   emailVerified: boolean("emailVerified"),
   image: text("image"),
+  timezone: text("timezone").notNull().default("Asia/Kolkata"), // Default to IST for Indian users
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
@@ -68,6 +69,20 @@ export const documents = pgTable("documents", {
   mimeType: text("mime_type"),
   processedData: jsonb("processed_data"),
   status: documentStatusEnum("status").notNull().default("pending"),
+  lightragProcessingStatus: jsonb("lightrag_processing_status").$type<{
+    busy: boolean;
+    jobName?: string;
+    jobStart?: string;
+    docs: number;
+    batches: number;
+    currentBatch: number;
+    totalChunks?: number;
+    processedChunks?: number;
+    latestMessage?: string;
+    lastChecked?: string;
+  }>(),
+  processingStartedAt: timestamp("processing_started_at"),
+  processingCompletedAt: timestamp("processing_completed_at"),
   uploadDate: timestamp("upload_date").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -81,6 +96,7 @@ export const quizzes = pgTable("quizzes", {
   documentIds: jsonb("document_ids").notNull().$type<string[]>(),
   configuration: jsonb("configuration").notNull(),
   startTime: timestamp("start_time").notNull(),
+  timezone: text("timezone").notNull().default("Asia/Kolkata"), // Quiz timezone for accurate scheduling
   duration: integer("duration").notNull(), // in minutes
   status: quizStatusEnum("status").notNull().default("draft"),
   totalQuestions: integer("total_questions").notNull(),

@@ -20,6 +20,10 @@ interface FileUpload {
   status: "pending" | "uploading" | "success" | "error";
   progress: number;
   error?: string;
+  warnings?: string[];
+  retryCount?: number;
+  processingRequired?: boolean;
+  trackId?: string;
 }
 
 export default function DocumentUploadPage() {
@@ -66,8 +70,12 @@ export default function DocumentUploadPage() {
         alert(`${file.name} is not a supported file type. Please upload PDF, DOCX, DOC, or TXT files.`);
         return false;
       }
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        alert(`${file.name} is too large. Maximum file size is 10MB.`);
+      if (file.size > 50 * 1024 * 1024) { // 50MB limit (updated to match backend)
+        alert(`${file.name} is too large. Maximum file size is 50MB.`);
+        return false;
+      }
+      if (file.size === 0) {
+        alert(`${file.name} is empty and cannot be uploaded.`);
         return false;
       }
       return true;
@@ -122,21 +130,48 @@ export default function DocumentUploadPage() {
         const responseData = await response.json();
 
         if (response.ok && responseData.success) {
+          const details = responseData.details || {};
+          const warnings = details.validationWarnings || [];
+          
           setFiles(prev => prev.map(f => 
             f.id === fileUpload.id 
-              ? { ...f, status: "success" as const, progress: 100 }
+              ? { 
+                  ...f, 
+                  status: "success" as const, 
+                  progress: 100,
+                  warnings: warnings.length > 0 ? warnings : undefined,
+                  retryCount: details.retryCount || 0,
+                  processingRequired: details.processingRequired,
+                  trackId: responseData.document?.trackId
+                }
               : f
           ));
           
-          // Show message if document was duplicated
-          if (responseData.message && responseData.message.includes("already exists")) {
-            alert(`Note: ${responseData.message}`);
+          // Show enhanced success message
+          if (responseData.message) {
+            if (responseData.message.includes("duplicate")) {
+              console.log(`Note: ${responseData.message}`);
+            } else if (details.retryCount > 0) {
+              console.log(`Upload succeeded after ${details.retryCount} retries`);
+            }
+          }
+          
+          // Log warnings for user awareness
+          if (warnings.length > 0) {
+            console.warn(`Upload warnings for ${fileUpload.file.name}:`, warnings);
           }
         } else {
           const errorMessage = responseData.error || responseData.message || "Upload failed";
+          const details = responseData.details || {};
+          
           setFiles(prev => prev.map(f => 
             f.id === fileUpload.id 
-              ? { ...f, status: "error" as const, error: errorMessage }
+              ? { 
+                  ...f, 
+                  status: "error" as const, 
+                  error: errorMessage,
+                  retryCount: details.retryCount || 0
+                }
               : f
           ));
         }
@@ -151,11 +186,24 @@ export default function DocumentUploadPage() {
     
     setIsUploading(false);
     
-    // Redirect to documents page after successful upload
-    if (files.every(f => f.status === "success")) {
+    // Show completion summary
+    const successCount = files.filter(f => f.status === "success").length;
+    const errorCount = files.filter(f => f.status === "error").length;
+    const warningCount = files.filter(f => f.status === "success" && f.warnings && f.warnings.length > 0).length;
+    
+    if (successCount > 0 || errorCount > 0) {
+      let message = `Upload completed: ${successCount} successful`;
+      if (errorCount > 0) message += `, ${errorCount} failed`;
+      if (warningCount > 0) message += `, ${warningCount} with warnings`;
+      
+      console.log(message);
+    }
+    
+    // Redirect to documents page after successful upload (only if all succeeded)
+    if (files.length > 0 && files.every(f => f.status === "success")) {
       setTimeout(() => {
         router.push("/educator/documents");
-      }, 1500);
+      }, 2000); // Slightly longer delay to show completion status
     }
   };
 
@@ -205,7 +253,7 @@ export default function DocumentUploadPage() {
             Drop files here or click to browse
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Supported formats: PDF, DOCX, DOC, TXT (Max 10MB per file)
+            Supported formats: PDF, DOCX, DOC, TXT (Max 50MB per file)
           </p>
           <input
             type="file"
@@ -266,7 +314,20 @@ export default function DocumentUploadPage() {
                     {fileUpload.status === "error" && (
                       <div className="flex items-center gap-2">
                         <AlertCircle className="h-5 w-5 text-red-500" />
-                        <span className="text-sm text-red-500">{fileUpload.error}</span>
+                        <div className="text-sm text-red-500">
+                          <div>{fileUpload.error}</div>
+                          {fileUpload.retryCount && fileUpload.retryCount > 0 && (
+                            <div className="text-xs mt-1">Failed after {fileUpload.retryCount} retries</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {fileUpload.status === "success" && fileUpload.warnings && fileUpload.warnings.length > 0 && (
+                      <div className="flex items-center gap-1 ml-2">
+                        <AlertCircle className="h-4 w-4 text-yellow-500" />
+                        <span className="text-xs text-yellow-600" title={fileUpload.warnings.join('; ')}>
+                          Warnings
+                        </span>
                       </div>
                     )}
                   </div>
@@ -280,6 +341,37 @@ export default function DocumentUploadPage() {
                         style={{ width: `${fileUpload.progress}%` }}
                       />
                     </div>
+                    <div className="text-xs text-gray-500 mt-1 text-right">
+                      {fileUpload.progress}%
+                    </div>
+                  </div>
+                )}
+                
+                {fileUpload.status === "success" && (
+                  <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                    <div className="flex justify-between items-center">
+                      <span>Upload completed successfully</span>
+                      {fileUpload.processingRequired && (
+                        <span className="text-blue-600 dark:text-blue-400">
+                          Processing in background...
+                        </span>
+                      )}
+                    </div>
+                    {fileUpload.retryCount && fileUpload.retryCount > 0 && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Succeeded after {fileUpload.retryCount} retries
+                      </div>
+                    )}
+                    {fileUpload.warnings && fileUpload.warnings.length > 0 && (
+                      <div className="mt-1 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
+                        <div className="text-xs text-yellow-800 dark:text-yellow-200 font-medium mb-1">Warnings:</div>
+                        <ul className="text-xs text-yellow-700 dark:text-yellow-300 list-disc list-inside space-y-0.5">
+                          {fileUpload.warnings.map((warning, idx) => (
+                            <li key={idx}>{warning}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

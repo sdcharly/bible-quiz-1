@@ -4,6 +4,7 @@ import { documents } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { LightRAGService } from "@/lib/lightrag-service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,19 +34,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate file type
-    const allowedTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/msword",
-      "text/plain"
-    ];
+    // Enhanced file validation using LightRAG service
+    const validation = LightRAGService.validateFileForUpload(file);
+    
+    if (!validation.isValid) {
+      return NextResponse.json({
+        success: false,
+        error: "File validation failed",
+        details: {
+          errors: validation.errors,
+          warnings: validation.warnings,
+          fileInfo: validation.fileInfo
+        }
+      }, { status: 400 });
+    }
 
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json(
-        { error: "Invalid file type" },
-        { status: 400 }
-      );
+    // Log validation warnings if any
+    if (validation.warnings.length > 0) {
+      console.warn(`Upload warnings for ${file.name}:`, validation.warnings);
     }
 
     // Generate document ID
@@ -54,114 +60,133 @@ export async function POST(req: NextRequest) {
     // Save initial document metadata to database
     const newDocument = await db.insert(documents).values({
       id: documentId,
-      educatorId: educatorId, // Use the educator ID from session or default
+      educatorId: educatorId,
       filename: file.name,
-      filePath: "", // Will be updated after upload
+      filePath: "",
       fileSize: file.size,
       mimeType: file.type,
-      status: "processing",
+      status: "pending",
       uploadDate: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning();
 
-    // Upload to LightRAG API
-    const lightragUrl = process.env.LIGHTRAG_API_URL || "https://lightrag-jxo2.onrender.com";
-    const lightragApiKey = process.env.LIGHTRAG_API_KEY || "01d8343f-fdf7-430f-927e-837df61d44fe";
+    console.log(`Starting enhanced upload process for: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
 
     try {
-      // Create FormData for the external API
-      const uploadFormData = new FormData();
-      uploadFormData.append("file", file);
-
-      // Send file to LightRAG
-      const lightragResponse = await fetch(`${lightragUrl}/documents/upload`, {
-        method: "POST",
-        headers: {
-          "accept": "application/json",
-          "X-API-Key": lightragApiKey,
-        },
-        body: uploadFormData,
-      });
-
-      const lightragData = await lightragResponse.json();
-
-      if (lightragResponse.ok) {
-        // Update document status based on LightRAG response
-        if (lightragData.status === "success" || lightragData.status === "duplicated") {
-          const trackId = lightragData.track_id || lightragData.trackId || documentId;
-          
-          await db
-            .update(documents)
-            .set({ 
-              status: "processed",
-              processedData: {
-                status: lightragData.status,
-                message: lightragData.message,
-                trackId: trackId,
-                lightragDocumentId: trackId,
-                fileName: file.name,
-                fileType: file.type,
-                fileSize: file.size,
-                uploadedAt: new Date().toISOString(),
-                lightragUrl: lightragUrl,
-                processedBy: "LightRAG"
-              },
-              filePath: trackId
-            })
-            .where(eq(documents.id, documentId));
-
-          return NextResponse.json({
-            success: true,
-            document: {
-              ...newDocument[0],
-              status: "processed",
-              lightragResponse: lightragData,
-              trackId: trackId
-            },
-            message: lightragData.message || "Document uploaded successfully"
-          });
-        } else {
-          // Handle other statuses
-          await db
-            .update(documents)
-            .set({ 
-              status: "failed",
-              processedData: {
-                error: lightragData.message || "Upload failed",
-                response: lightragData
-              }
-            })
-            .where(eq(documents.id, documentId));
-
-          return NextResponse.json({
-            success: false,
-            error: lightragData.message || "Failed to process document",
-            document: newDocument[0]
-          }, { status: 400 });
+      // Use the enhanced safe upload method
+      const uploadResult = await LightRAGService.safeUploadDocument(file);
+      
+      if (uploadResult.success && uploadResult.uploadResponse) {
+        const response = uploadResult.uploadResponse;
+        const trackId = response.track_id || documentId;
+        
+        // Determine final status based on upload response
+        let finalStatus: "processing" | "processed" | "failed" = "processing";
+        if (response.status === "duplicated") {
+          finalStatus = "processed"; // Duplicated files are already processed
         }
+
+        // Update document with upload success
+        await db
+          .update(documents)
+          .set({ 
+            status: finalStatus,
+            processedData: {
+              status: response.status,
+              message: response.message,
+              trackId: trackId,
+              lightragDocumentId: trackId,
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size,
+              uploadedAt: new Date().toISOString(),
+              processedBy: "LightRAG",
+              retryCount: uploadResult.retryCount,
+              validationWarnings: validation.warnings.length > 0 ? validation.warnings : undefined
+            },
+            filePath: trackId,
+            processingStartedAt: finalStatus === "processing" ? new Date() : undefined,
+            processingCompletedAt: finalStatus === "processed" ? new Date() : undefined
+          })
+          .where(eq(documents.id, documentId));
+
+        // Start background polling only if document is still processing
+        if (finalStatus === "processing") {
+          setImmediate(async () => {
+            try {
+              await LightRAGService.pollDocumentStatus(documentId);
+            } catch (error) {
+              console.error(`Background polling failed for document ${documentId}:`, error);
+            }
+          });
+        }
+
+        // Prepare success response
+        let successMessage = response.message || "Document uploaded successfully";
+        if (response.status === "duplicated") {
+          successMessage = "Document was already processed (duplicate detected)";
+        } else if (uploadResult.retryCount > 0) {
+          successMessage += ` (succeeded after ${uploadResult.retryCount} retries)`;
+        }
+
+        return NextResponse.json({
+          success: true,
+          document: {
+            ...newDocument[0],
+            status: finalStatus,
+            lightragResponse: response,
+            trackId: trackId
+          },
+          message: successMessage,
+          details: {
+            uploadStatus: response.status,
+            retryCount: uploadResult.retryCount,
+            validationWarnings: validation.warnings.length > 0 ? validation.warnings : undefined,
+            processingRequired: finalStatus === "processing"
+          }
+        });
+        
       } else {
-        // LightRAG API error
+        // Upload failed after retries
         await db
           .update(documents)
           .set({ 
             status: "failed",
             processedData: {
-              error: "LightRAG API error",
-              statusCode: lightragResponse.status,
-              response: lightragData
+              error: uploadResult.error || "Upload failed",
+              retryCount: uploadResult.retryCount,
+              validationDetails: uploadResult.validation,
+              lastAttempt: new Date().toISOString()
             }
           })
           .where(eq(documents.id, documentId));
 
+        // Determine appropriate HTTP status code
+        let statusCode = 500;
+        if (uploadResult.error?.includes('File validation failed')) {
+          statusCode = 400;
+        } else if (uploadResult.error?.includes('busy')) {
+          statusCode = 429;
+        } else if (uploadResult.error?.includes('not supported')) {
+          statusCode = 415;
+        }
+
         return NextResponse.json({
           success: false,
-          error: lightragData.message || "Failed to upload to LightRAG",
-          document: newDocument[0]
-        }, { status: 500 });
+          error: uploadResult.error || "Upload failed after all retry attempts",
+          document: newDocument[0],
+          details: {
+            retryCount: uploadResult.retryCount,
+            validationErrors: uploadResult.validation.errors,
+            validationWarnings: uploadResult.validation.warnings,
+            fileInfo: uploadResult.validation.fileInfo
+          }
+        }, { status: statusCode });
       }
+
     } catch (uploadError) {
-      console.error("Error uploading to LightRAG:", uploadError);
+      console.error(`Unexpected error during upload of ${file.name}:`, uploadError);
       
       // Update document status to failed
       await db
@@ -169,16 +194,21 @@ export async function POST(req: NextRequest) {
         .set({ 
           status: "failed",
           processedData: {
-            error: "Failed to connect to LightRAG API",
-            details: uploadError instanceof Error ? uploadError.message : "Unknown error"
+            error: "Unexpected upload error",
+            details: uploadError instanceof Error ? uploadError.message : "Unknown error",
+            timestamp: new Date().toISOString()
           }
         })
         .where(eq(documents.id, documentId));
 
       return NextResponse.json({
         success: false,
-        error: "Failed to upload document to processing service",
-        document: newDocument[0]
+        error: "An unexpected error occurred during upload",
+        document: newDocument[0],
+        details: {
+          errorType: "unexpected_error",
+          message: uploadError instanceof Error ? uploadError.message : "Unknown error"
+        }
       }, { status: 500 });
     }
   } catch (error) {

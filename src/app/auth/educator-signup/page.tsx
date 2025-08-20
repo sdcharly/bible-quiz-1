@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { GraduationCap, Loader2 } from "lucide-react";
+import { BookOpenIcon as BookOpenSolid, AcademicCapIcon } from "@heroicons/react/24/solid";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 
 export default function EducatorSignUpPage() {
   const router = useRouter();
@@ -91,18 +92,25 @@ export default function EducatorSignUpPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="flex justify-center">
-            <GraduationCap className="h-12 w-12 text-blue-600" />
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full blur-lg opacity-30"></div>
+              <div className="relative bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-full shadow-xl">
+                <AcademicCapIcon className="h-12 w-12 text-white" />
+              </div>
+            </div>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Create your educator account
+          <h2 className="mt-6 text-center text-3xl font-bold">
+            <span className="bg-gradient-to-r from-amber-700 via-orange-600 to-amber-800 bg-clip-text text-transparent">
+              Become a Sacred Guide
+            </span>
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             Or{" "}
             <Link
               href="/auth/signup"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-medium text-amber-600 hover:text-amber-500 transition-colors"
             >
-              sign up as a student
+              join as disciple
             </Link>
           </p>
         </div>
@@ -125,8 +133,8 @@ export default function EducatorSignUpPage() {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
-                placeholder="Dr. Jane Smith"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                placeholder="Guide Solomon"
               />
             </div>
             <div>
@@ -141,13 +149,13 @@ export default function EducatorSignUpPage() {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
-                placeholder="educator@seminary.edu"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                placeholder="guide@temple.edu"
               />
             </div>
             <div>
               <label htmlFor="institution" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Institution / Organization
+                Sacred Institution / Temple
               </label>
               <input
                 id="institution"
@@ -156,8 +164,8 @@ export default function EducatorSignUpPage() {
                 required
                 value={formData.institution}
                 onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
-                placeholder="Biblical Seminary"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                placeholder="Temple of Learning"
               />
             </div>
             <div>
@@ -172,7 +180,7 @@ export default function EducatorSignUpPage() {
                 required
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
                 placeholder="••••••••"
               />
             </div>
@@ -188,7 +196,7 @@ export default function EducatorSignUpPage() {
                 required
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
                 placeholder="••••••••"
               />
             </div>
@@ -201,9 +209,9 @@ export default function EducatorSignUpPage() {
               className="group relative w-full flex justify-center"
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <ArrowPathIcon className="h-4 w-4 animate-spin" />
               ) : (
-                "Sign up as Educator"
+                "Begin Sacred Ministry"
               )}
             </Button>
           </div>
@@ -251,9 +259,9 @@ export default function EducatorSignUpPage() {
             Already have an account?{" "}
             <Link
               href="/auth/signin"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-medium text-amber-600 hover:text-amber-500 transition-colors"
             >
-              Sign in
+              Enter sacred realm
             </Link>
           </p>
         </form>

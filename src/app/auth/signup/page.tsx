@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { BookOpen, Loader2, UserCheck } from "lucide-react";
+import { BookOpenIcon as BookOpenSolid } from "@heroicons/react/24/solid";
+import { ArrowPathIcon, UserPlusIcon } from "@heroicons/react/24/outline";
 
 function StudentSignUpForm() {
   const router = useRouter();
@@ -125,17 +126,24 @@ function StudentSignUpForm() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="flex justify-center">
-            <BookOpen className="h-12 w-12 text-blue-600" />
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full blur-lg opacity-30"></div>
+              <div className="relative bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-full shadow-xl">
+                <BookOpenSolid className="h-12 w-12 text-white" />
+              </div>
+            </div>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Create your student account
+          <h2 className="mt-6 text-center text-3xl font-bold">
+            <span className="bg-gradient-to-r from-amber-700 via-orange-600 to-amber-800 bg-clip-text text-transparent">
+              Begin Your Discipleship
+            </span>
           </h2>
           {invitationData ? (
-            <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-              <div className="flex items-center justify-center text-blue-600 dark:text-blue-400">
-                <UserCheck className="h-5 w-5 mr-2" />
+            <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+              <div className="flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <UserPlusIcon className="h-5 w-5 mr-2" />
                 <p className="text-sm">
-                  You&apos;ve been invited by <strong>{invitationData.educatorName}</strong>
+                  You&apos;ve been called by Guide <strong>{invitationData.educatorName}</strong>
                 </p>
               </div>
             </div>
@@ -144,9 +152,9 @@ function StudentSignUpForm() {
               Or{" "}
               <Link
                 href="/auth/educator-signup"
-                className="font-medium text-blue-600 hover:text-blue-500"
+                className="font-medium text-amber-600 hover:text-amber-500 transition-colors"
               >
-                sign up as an educator
+                become a sacred guide
               </Link>
             </p>
           )}
@@ -170,7 +178,7 @@ function StudentSignUpForm() {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
                 placeholder="John Doe"
               />
             </div>
@@ -186,7 +194,7 @@ function StudentSignUpForm() {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
                 placeholder="student@example.com"
               />
             </div>
@@ -202,7 +210,7 @@ function StudentSignUpForm() {
                 required
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
                 placeholder="+1 (555) 123-4567"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -221,7 +229,7 @@ function StudentSignUpForm() {
                 required
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
                 placeholder="••••••••"
               />
             </div>
@@ -237,7 +245,7 @@ function StudentSignUpForm() {
                 required
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
                 placeholder="••••••••"
               />
             </div>
@@ -250,9 +258,9 @@ function StudentSignUpForm() {
               className="group relative w-full flex justify-center"
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <ArrowPathIcon className="h-4 w-4 animate-spin" />
               ) : (
-                "Sign up as Student"
+                "Join as Disciple"
               )}
             </Button>
           </div>
@@ -300,9 +308,9 @@ function StudentSignUpForm() {
             Already have an account?{" "}
             <Link
               href="/auth/signin"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-medium text-amber-600 hover:text-amber-500 transition-colors"
             >
-              Sign in
+              Enter sacred realm
             </Link>
           </p>
         </form>
@@ -315,7 +323,7 @@ export default function StudentSignUpPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
       </div>
     }>
       <StudentSignUpForm />

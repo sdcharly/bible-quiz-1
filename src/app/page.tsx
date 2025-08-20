@@ -1,29 +1,58 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Users, Clock, BarChart3, FileText, CheckCircle } from "lucide-react";
+import { 
+  BookOpenIcon, 
+  UserGroupIcon, 
+  ClockIcon, 
+  ChartBarIcon, 
+  DocumentTextIcon, 
+  CheckCircleIcon,
+  AcademicCapIcon,
+  SparklesIcon,
+  HeartIcon
+} from "@heroicons/react/24/outline";
+import { 
+  BookOpenIcon as BookOpenSolid
+} from "@heroicons/react/24/solid";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Hero Section */}
       <section className="px-6 py-24 sm:px-12 lg:px-24">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
-            <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-              Biblical Study Quiz Platform
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-              Empower your biblical education with AI-powered quizzes. Create, manage, and take comprehensive assessments based on scripture and study materials.
+            <div className="mb-8">
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full blur-2xl opacity-30"></div>
+                  <div className="relative bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-full shadow-2xl">
+                    <BookOpenSolid className="h-16 w-16 text-white" />
+                  </div>
+                </div>
+              </div>
+              <h1 className="text-5xl sm:text-6xl font-heading font-bold mb-4">
+                <span className="bg-gradient-to-r from-amber-700 via-orange-600 to-amber-800 bg-clip-text text-transparent">
+                  Scrolls of Wisdom
+                </span>
+              </h1>
+              <p className="text-xl font-body font-medium text-amber-600 dark:text-amber-400 mb-2">
+                Biblical Knowledge Quest Platform
+              </p>
+            </div>
+            <p className="text-xl font-body text-gray-700 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+              Embark on a journey through scripture with AI-powered wisdom quests. Create, manage, and experience 
+              comprehensive biblical assessments that deepen understanding and strengthen faith.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/signup">
                 <Button size="lg" className="w-full sm:w-auto">
-                  Get Started as Student
+                  Begin Your Journey
                 </Button>
               </Link>
               <Link href="/auth/educator-signup">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                  Join as Educator
+                <Button size="lg" variant="outline" className="w-full sm:w-auto border-amber-600 text-amber-700 hover:bg-amber-50">
+                  Become a Guide
                 </Button>
               </Link>
             </div>
@@ -32,75 +61,94 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="px-6 py-16 sm:px-12 lg:px-24 bg-white dark:bg-gray-900">
+      <section className="px-6 py-16 sm:px-12 lg:px-24 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900 dark:text-white">
-            Platform Features
-          </h2>
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                Sacred Features
+              </span>
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              Discover the tools that will guide your biblical learning journey
+            </p>
+          </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Feature 1 */}
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <FileText className="h-12 w-12 text-blue-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
-                Document Processing
+            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
+                <DocumentTextIcon className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
+                Sacred Text Processing
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Upload biblical study materials in PDF, DOCX, or TXT formats for automatic quiz generation.
+              <p className="text-gray-700 dark:text-gray-300">
+                Upload biblical study materials and scriptures in multiple formats for divine wisdom extraction.
               </p>
             </div>
 
             {/* Feature 2 */}
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <BookOpen className="h-12 w-12 text-blue-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
-                Smart Quiz Generation
+            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
+                <SparklesIcon className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
+                Divine Quest Generation
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                AI-powered quiz creation with customizable difficulty levels and Bloom&apos;s Taxonomy support.
+              <p className="text-gray-700 dark:text-gray-300">
+                AI-guided quest creation with wisdom levels and spiritual taxonomy support for deeper learning.
               </p>
             </div>
 
             {/* Feature 3 */}
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <Clock className="h-12 w-12 text-blue-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
-                Timed Assessments
+            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
+                <ClockIcon className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
+                Sacred Time Keeper
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Server-synchronized timers with scheduled start times and automatic submission.
+              <p className="text-gray-700 dark:text-gray-300">
+                Divine timing with synchronized sessions and guided meditation periods for focused learning.
               </p>
             </div>
 
             {/* Feature 4 */}
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <Users className="h-12 w-12 text-blue-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
-                Role-Based Access
+            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
+                <UserGroupIcon className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
+                Guided Community
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Dedicated dashboards for educators and students with tailored functionality.
+              <p className="text-gray-700 dark:text-gray-300">
+                Sacred spaces for guides and disciples with personalized spiritual learning experiences.
               </p>
             </div>
 
             {/* Feature 5 */}
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <BarChart3 className="h-12 w-12 text-blue-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
-                Analytics & Insights
+            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
+                <ChartBarIcon className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
+                Wisdom Analytics
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Comprehensive performance tracking with individual and class-wide statistics.
+              <p className="text-gray-700 dark:text-gray-300">
+                Divine insights into spiritual growth with comprehensive journey tracking and enlightenment metrics.
               </p>
             </div>
 
             {/* Feature 6 */}
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <CheckCircle className="h-12 w-12 text-blue-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
-                Instant Results
+            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
+                <HeartIcon className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
+                Instant Revelation
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Immediate scoring with detailed explanations and performance metrics by topic.
+              <p className="text-gray-700 dark:text-gray-300">
+                Immediate spiritual feedback with divine explanations and growth insights by sacred topic.
               </p>
             </div>
           </div>
@@ -110,46 +158,53 @@ export default function HomePage() {
       {/* How It Works Section */}
       <section className="px-6 py-16 sm:px-12 lg:px-24">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900 dark:text-white">
-            How It Works
-          </h2>
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                The Sacred Path
+              </span>
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              Journey through wisdom with purpose and divine guidance
+            </p>
+          </div>
           <div className="grid md:grid-cols-2 gap-12">
             {/* For Educators */}
             <div>
-              <h3 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">
-                For Educators
+              <h3 className="text-2xl font-semibold mb-6 text-amber-800 dark:text-amber-300">
+                For Spiritual Guides
               </h3>
               <ol className="space-y-4">
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
                     1
                   </span>
-                  <span className="ml-4 text-gray-600 dark:text-gray-300">
-                    Upload your biblical study documents and materials
+                  <span className="ml-4 text-gray-700 dark:text-gray-300">
+                    Upload your sacred texts and biblical study materials
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
                     2
                   </span>
-                  <span className="ml-4 text-gray-600 dark:text-gray-300">
-                    Configure quiz parameters (topics, difficulty, duration)
+                  <span className="ml-4 text-gray-700 dark:text-gray-300">
+                    Configure quest parameters (wisdom topics, spiritual depth, divine timing)
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
                     3
                   </span>
-                  <span className="ml-4 text-gray-600 dark:text-gray-300">
-                    Review and publish quizzes for your students
+                  <span className="ml-4 text-gray-700 dark:text-gray-300">
+                    Review and share wisdom quests with your disciples
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
                     4
                   </span>
-                  <span className="ml-4 text-gray-600 dark:text-gray-300">
-                    Monitor progress and analyze performance metrics
+                  <span className="ml-4 text-gray-700 dark:text-gray-300">
+                    Watch spiritual growth and celebrate divine revelations
                   </span>
                 </li>
               </ol>
@@ -157,40 +212,40 @@ export default function HomePage() {
 
             {/* For Students */}
             <div>
-              <h3 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">
-                For Students
+              <h3 className="text-2xl font-semibold mb-6 text-amber-800 dark:text-amber-300">
+                For Disciples
               </h3>
               <ol className="space-y-4">
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
                     1
                   </span>
-                  <span className="ml-4 text-gray-600 dark:text-gray-300">
-                    Sign up and enroll in available quizzes
+                  <span className="ml-4 text-gray-700 dark:text-gray-300">
+                    Join the fellowship and enroll in wisdom quests
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
                     2
                   </span>
-                  <span className="ml-4 text-gray-600 dark:text-gray-300">
-                    Take quizzes at scheduled times with timer support
+                  <span className="ml-4 text-gray-700 dark:text-gray-300">
+                    Embark on quests during sacred times with divine guidance
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
                     3
                   </span>
-                  <span className="ml-4 text-gray-600 dark:text-gray-300">
-                    Navigate questions with skip and review options
+                  <span className="ml-4 text-gray-700 dark:text-gray-300">
+                    Navigate wisdom with contemplation and reflection opportunities
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
                     4
                   </span>
-                  <span className="ml-4 text-gray-600 dark:text-gray-300">
-                    Review detailed results and track your progress
+                  <span className="ml-4 text-gray-700 dark:text-gray-300">
+                    Receive divine revelations and track your spiritual journey
                   </span>
                 </li>
               </ol>
@@ -200,17 +255,17 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="px-6 py-16 sm:px-12 lg:px-24 bg-blue-600 dark:bg-blue-700">
+      <section className="px-6 py-16 sm:px-12 lg:px-24 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 dark:from-amber-700 dark:via-orange-700 dark:to-amber-800">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to Transform Your Biblical Education?
+          <h2 className="text-4xl font-bold text-white mb-6">
+            Ready to Begin Your Sacred Journey?
           </h2>
-          <p className="text-xl text-blue-100 mb-8">
-            Join educators and students in creating a more engaging learning experience.
+          <p className="text-xl text-amber-100 mb-8 leading-relaxed">
+            Join guides and disciples in the most profound biblical learning experience ever created.
           </p>
           <Link href="/auth/signup">
-            <Button size="lg" variant="secondary" className="font-semibold">
-              Start Your Free Trial
+            <Button size="lg" className="bg-white text-amber-700 hover:bg-amber-50 font-semibold px-8 py-3 shadow-lg">
+              Start Your Divine Quest
             </Button>
           </Link>
         </div>

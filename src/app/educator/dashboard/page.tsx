@@ -7,25 +7,28 @@ import { authClient } from "@/lib/auth-client";
 import { isEducator } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  FileText, 
-  Plus, 
-  BarChart3, 
-  Users, 
-  Clock,
-  BookOpen,
-  Upload,
-  ChevronRight,
-  CheckCircle,
-  Eye,
-  Settings,
-  Edit3,
-  Trash2,
-  Archive,
-  ArchiveRestore,
-  TrendingUp,
-  Calendar
-} from "lucide-react";
+import {
+  DocumentTextIcon,
+  PlusCircleIcon,
+  ChartBarIcon,
+  UserGroupIcon,
+  ClockIcon,
+  ArrowUpTrayIcon,
+  ChevronRightIcon,
+  CheckCircleIcon,
+  EyeIcon,
+  Cog6ToothIcon,
+  PencilSquareIcon,
+  TrashIcon,
+  ArchiveBoxIcon,
+  ArchiveBoxArrowDownIcon,
+  ArrowTrendingUpIcon,
+  CalendarDaysIcon,
+  SparklesIcon
+} from "@heroicons/react/24/outline";
+import {
+  BookOpenIcon as BookOpenSolid
+} from "@heroicons/react/24/solid";
 
 interface Quiz {
   id: string;
@@ -158,21 +161,21 @@ export default function EducatorDashboard() {
     if (status === 'published') {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-          <CheckCircle className="h-3 w-3" />
-          Published
+          <CheckCircleIcon className="h-3 w-3" />
+          Active
         </span>
       );
     } else if (status === 'archived') {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-          <Archive className="h-3 w-3" />
-          Archived
+          <ArchiveBoxIcon className="h-3 w-3" />
+          Resting
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-        <Edit3 className="h-3 w-3" />
+      <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+        <PencilSquareIcon className="h-3 w-3" />
         Draft
       </span>
     );
@@ -242,7 +245,7 @@ export default function EducatorDashboard() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
       </div>
     );
   }
@@ -254,24 +257,24 @@ export default function EducatorDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Educator Dashboard
+              <h1 className="text-3xl font-heading font-semibold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
+                Sacred Guide Dashboard
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">
                 Welcome back, {user?.name}
               </p>
             </div>
             <div className="flex gap-3">
               <Link href="/educator/students">
                 <Button variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage Students
+                  <UserGroupIcon className="h-4 w-4 mr-2" />
+                  Guide Disciples
                 </Button>
               </Link>
               <Link href="/educator/quiz/create">
                 <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Quiz
+                  <SparklesIcon className="h-4 w-4 mr-2" />
+                  Create Quest
                 </Button>
               </Link>
             </div>
@@ -279,21 +282,21 @@ export default function EducatorDashboard() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Key Performance Indicators with Graphs */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Performance Overview Card */}
           <Card className="lg:col-span-2">
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle>Performance Overview</CardTitle>
-                  <CardDescription>Student performance trends this week</CardDescription>
+                  <CardTitle className="text-lg font-heading font-semibold text-amber-800 dark:text-amber-300">Wisdom Journey Overview</CardTitle>
+                  <CardDescription className="text-sm font-body text-gray-600 dark:text-gray-400">Disciple enlightenment trends this week</CardDescription>
                 </div>
                 <Link href="/educator/analytics">
                   <Button variant="ghost" size="sm">
                     View Details
-                    <ChevronRight className="h-4 w-4 ml-1" />
+                    <ChevronRightIcon className="h-4 w-4 ml-1" />
                   </Button>
                 </Link>
               </div>
@@ -301,22 +304,22 @@ export default function EducatorDashboard() {
             <CardContent>
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="text-center">
-                  <div className={`text-3xl font-bold ${getScoreColor(performanceData.averageScore)}`}>
+                  <div className={`text-3xl font-heading font-bold ${getScoreColor(performanceData.averageScore)}`}>
                     {performanceData.averageScore.toFixed(1)}%
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Score</p>
+                  <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">Avg Score</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">
+                  <div className="text-3xl font-heading font-bold text-green-600">
                     {performanceData.passRate.toFixed(0)}%
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Pass Rate</p>
+                  <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">Enlightenment Rate</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">
+                  <div className="text-3xl font-heading font-bold text-amber-600">
                     {performanceData.completionRate.toFixed(0)}%
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Completion</p>
+                  <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">Quest Completion</p>
                 </div>
               </div>
               
@@ -331,7 +334,7 @@ export default function EducatorDashboard() {
                     return (
                       <div key={index} className="flex-1 flex flex-col items-center">
                         <div 
-                          className="w-full bg-blue-200 dark:bg-blue-800 rounded-t hover:bg-blue-300 transition-colors relative"
+                          className="w-full bg-amber-200 dark:bg-amber-800 rounded-t hover:bg-amber-300 transition-colors relative"
                           style={{ height: `${height}%` }}
                           title={`${day.attempts || 0} attempts, ${avgScore.toFixed(0)}% avg score`}
                         >
@@ -353,49 +356,49 @@ export default function EducatorDashboard() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-gray-500 text-center mt-2">Daily activity (last 7 days)</p>
+              <p className="text-xs font-body text-gray-500 text-center mt-2">Daily activity (last 7 days)</p>
             </CardContent>
           </Card>
 
           {/* Quick Stats Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Stats</CardTitle>
-              <CardDescription>Your educational content</CardDescription>
+              <CardTitle className="text-lg font-heading font-semibold text-amber-800 dark:text-amber-300">Sacred Statistics</CardTitle>
+              <CardDescription className="text-sm font-body text-gray-600 dark:text-gray-400">Your divine teachings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <BookOpen className="h-8 w-8 text-blue-600 opacity-60" />
+                  <BookOpenSolid className="h-8 w-8 text-amber-600 opacity-60" />
                   <div>
-                    <p className="text-2xl font-bold">{stats.totalQuizzes}</p>
-                    <p className="text-xs text-gray-600">Total Quizzes</p>
+                    <p className="text-2xl font-heading font-bold">{stats.totalQuizzes}</p>
+                    <p className="text-xs font-body text-gray-600">Total Quests</p>
                   </div>
                 </div>
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                <span className="text-xs font-body bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
                   {stats.activeQuizzes} active
                 </span>
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Users className="h-8 w-8 text-purple-600 opacity-60" />
+                  <UserGroupIcon className="h-8 w-8 text-orange-600 opacity-60" />
                   <div>
-                    <p className="text-2xl font-bold">{stats.totalStudents}</p>
-                    <p className="text-xs text-gray-600">Students</p>
+                    <p className="text-2xl font-heading font-bold">{stats.totalStudents}</p>
+                    <p className="text-xs font-body text-gray-600">Disciples</p>
                   </div>
                 </div>
                 {stats.totalStudents > 0 && (
-                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
                 )}
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <FileText className="h-8 w-8 text-orange-600 opacity-60" />
+                  <DocumentTextIcon className="h-8 w-8 text-amber-700 opacity-60" />
                   <div>
-                    <p className="text-2xl font-bold">{stats.totalDocuments}</p>
-                    <p className="text-xs text-gray-600">Documents</p>
+                    <p className="text-2xl font-heading font-bold">{stats.totalDocuments}</p>
+                    <p className="text-xs font-body text-gray-600">Sacred Scrolls</p>
                   </div>
                 </div>
               </div>
@@ -404,53 +407,53 @@ export default function EducatorDashboard() {
         </div>
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <Link href="/educator/analytics">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-purple-500">
+            <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-amber-500">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <BarChart3 className="h-8 w-8 text-purple-600 mb-2" />
-                    <h3 className="font-semibold">Performance Analytics</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      View detailed insights
+                    <ChartBarIcon className="h-8 w-8 text-amber-600 mb-2" />
+                    <h3 className="font-heading font-semibold">Wisdom Analytics</h3>
+                    <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">
+                      View enlightenment insights
                     </p>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                  <ChevronRightIcon className="h-5 w-5 text-gray-400" />
                 </div>
               </CardContent>
             </Card>
           </Link>
 
           <Link href="/educator/documents/upload">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-blue-500">
+            <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-orange-500">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Upload className="h-8 w-8 text-blue-600 mb-2" />
-                    <h3 className="font-semibold">Upload Document</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Add study materials
+                    <ArrowUpTrayIcon className="h-8 w-8 text-orange-600 mb-2" />
+                    <h3 className="font-heading font-semibold">Upload Sacred Scroll</h3>
+                    <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">
+                      Add divine materials
                     </p>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                  <ChevronRightIcon className="h-5 w-5 text-gray-400" />
                 </div>
               </CardContent>
             </Card>
           </Link>
 
           <Link href="/educator/students">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-green-500">
+            <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-green-500">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Users className="h-8 w-8 text-green-600 mb-2" />
-                    <h3 className="font-semibold">Student Management</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Invite & manage students
+                    <UserGroupIcon className="h-8 w-8 text-green-600 mb-2" />
+                    <h3 className="font-heading font-semibold">Disciple Guidance</h3>
+                    <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">
+                      Invite & guide disciples
                     </p>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                  <ChevronRightIcon className="h-5 w-5 text-gray-400" />
                 </div>
               </CardContent>
             </Card>
@@ -462,13 +465,13 @@ export default function EducatorDashboard() {
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle>Recent Quizzes</CardTitle>
-                <CardDescription>Manage your biblical study quizzes</CardDescription>
+                <CardTitle className="text-lg font-heading font-semibold text-amber-800 dark:text-amber-300">Recent Wisdom Quests</CardTitle>
+                <CardDescription className="text-sm font-body text-gray-600 dark:text-gray-400">Manage your sacred learning journeys</CardDescription>
               </div>
               <Link href="/educator/quiz/create">
                 <Button size="sm">
-                  <Plus className="h-4 w-4 mr-1" />
-                  New Quiz
+                  <SparklesIcon className="h-4 w-4 mr-1" />
+                  New Quest
                 </Button>
               </Link>
             </div>
@@ -476,59 +479,59 @@ export default function EducatorDashboard() {
           <CardContent>
             {quizzes.length === 0 ? (
               <div className="text-center py-12">
-                <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  No quizzes created yet
+                <BookOpenSolid className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-sm font-body text-gray-500 dark:text-gray-400 mb-4">
+                  No wisdom quests created yet
                 </p>
                 <Link href="/educator/quiz/create">
                   <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Quiz
+                    <SparklesIcon className="h-4 w-4 mr-2" />
+                    Create Your First Quest
                   </Button>
                 </Link>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {quizzes.slice(0, 5).map((quiz) => (
                   <div
                     key={quiz.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 border border-transparent hover:border-amber-200 dark:hover:border-amber-800"
                   >
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pr-4">
                       <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                        <h3 className="font-heading font-medium text-gray-900 dark:text-white truncate">
                           {quiz.title}
                         </h3>
                         {getStatusBadge(quiz.status)}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-4 text-sm font-body text-gray-500">
                         <span className="flex items-center gap-1">
-                          <BookOpen className="h-3 w-3" />
-                          {quiz.totalQuestions} questions
+                          <BookOpenSolid className="h-3 w-3" />
+                          {quiz.totalQuestions} revelations
                         </span>
                         <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
+                          <ClockIcon className="h-3 w-3" />
                           {quiz.duration} min
                         </span>
                         {quiz.status === 'published' && (
                           <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {quiz.enrolledStudents} enrolled
+                            <UserGroupIcon className="h-3 w-3" />
+                            {quiz.enrolledStudents} disciples
                           </span>
                         )}
                         <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
+                          <CalendarDaysIcon className="h-3 w-3" />
                           {new Date(quiz.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {quiz.status === 'draft' ? (
                         <>
                           <Link href={`/educator/quiz/${quiz.id}/review`}>
                             <Button variant="outline" size="sm">
-                              <Edit3 className="h-4 w-4 mr-1" />
-                              Edit
+                              <PencilSquareIcon className="h-4 w-4 mr-1" />
+                              Refine
                             </Button>
                           </Link>
                           <Button 
@@ -537,20 +540,20 @@ export default function EducatorDashboard() {
                             onClick={() => handleDeleteQuiz(quiz.id, quiz.title)}
                             className="text-red-600 hover:text-red-700"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <TrashIcon className="h-4 w-4" />
                           </Button>
                         </>
                       ) : quiz.status === 'published' ? (
                         <>
                           <Link href={`/educator/quiz/${quiz.id}/results`}>
                             <Button variant="outline" size="sm">
-                              <BarChart3 className="h-4 w-4 mr-1" />
-                              Results
+                              <ChartBarIcon className="h-4 w-4 mr-1" />
+                              Insights
                             </Button>
                           </Link>
                           <Link href={`/educator/quiz/${quiz.id}/manage`}>
                             <Button variant="ghost" size="sm">
-                              <Settings className="h-4 w-4" />
+                              <Cog6ToothIcon className="h-4 w-4" />
                             </Button>
                           </Link>
                           <Button 
@@ -559,15 +562,15 @@ export default function EducatorDashboard() {
                             onClick={() => handleToggleArchive(quiz.id, quiz.status)}
                             className="text-orange-600 hover:text-orange-700"
                           >
-                            <Archive className="h-4 w-4" />
+                            <ArchiveBoxIcon className="h-4 w-4" />
                           </Button>
                         </>
                       ) : (
                         <>
                           <Link href={`/educator/quiz/${quiz.id}/review`}>
                             <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
+                              <EyeIcon className="h-4 w-4 mr-1" />
+                              Behold
                             </Button>
                           </Link>
                           <Button 
@@ -576,7 +579,7 @@ export default function EducatorDashboard() {
                             onClick={() => handleToggleArchive(quiz.id, quiz.status)}
                             className="text-green-600 hover:text-green-700"
                           >
-                            <ArchiveRestore className="h-4 w-4" />
+                            <ArchiveBoxArrowDownIcon className="h-4 w-4" />
                           </Button>
                         </>
                       )}
@@ -587,8 +590,8 @@ export default function EducatorDashboard() {
                   <div className="text-center pt-4">
                     <Link href="/educator/quizzes">
                       <Button variant="outline" size="sm">
-                        View All {quizzes.length} Quizzes
-                        <ChevronRight className="h-4 w-4 ml-1" />
+                        <span className="font-body">View All {quizzes.length} Quests</span>
+                        <ChevronRightIcon className="h-4 w-4 ml-1" />
                       </Button>
                     </Link>
                   </div>

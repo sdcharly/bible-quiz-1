@@ -5,13 +5,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowLeft,
-  ArrowRight,
-  FileText,
-  Save,
-  Loader2,
-  CheckCircle,
-} from "lucide-react";
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  DocumentTextIcon,
+  CheckCircleIcon,
+  ArrowPathIcon,
+} from "@heroicons/react/24/outline";
+import {
+  BookmarkIcon,
+} from "@heroicons/react/24/solid";
+import { TimezoneSelector } from "@/components/ui/timezone-selector";
+import { getDefaultTimezone, formatDateInTimezone, isQuizTimeValid } from "@/lib/timezone";
 
 interface Document {
   id: string;
@@ -44,6 +48,7 @@ interface QuizConfig {
   books: string[];
   chapters: string[];
   startTime: string;
+  timezone: string;
   shuffleQuestions: boolean;
 }
 
@@ -68,8 +73,35 @@ function CreateQuizContent() {
     books: [],
     chapters: [],
     startTime: new Date().toISOString().slice(0, 16),
+    timezone: getDefaultTimezone(),
     shuffleQuestions: false,
   });
+  
+  // Helper functions for date/time handling
+  const getCurrentDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+  
+  const getCurrentTime = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+  
+  const getDateFromStartTime = () => {
+    return config.startTime ? config.startTime.split('T')[0] : getCurrentDate();
+  };
+  
+  const getTimeFromStartTime = () => {
+    return config.startTime ? config.startTime.split('T')[1] : getCurrentTime();
+  };
+  
+  const updateDateTime = (date: string, time: string) => {
+    const newDateTime = `${date}T${time}`;
+    setConfig({ ...config, startTime: newDateTime });
+  };
   
   const [selectedBook, setSelectedBook] = useState<string>("");
   const [chapterInput, setChapterInput] = useState<string>("");
@@ -174,7 +206,7 @@ function CreateQuizContent() {
         {/* Header */}
         <div className="mb-8">
           <Link href="/educator/dashboard" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-4">
-            <ArrowLeft className="h-4 w-4 mr-1" />
+            <ArrowLeftIcon className="h-4 w-4 mr-1" />
             Back to Dashboard
           </Link>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
@@ -188,27 +220,27 @@ function CreateQuizContent() {
         {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div className={`flex items-center ${step >= 1 ? "text-blue-600" : "text-gray-400"}`}>
+            <div className={`flex items-center ${step >= 1 ? "text-amber-600" : "text-gray-400"}`}>
               <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 text-sm ${
-                step >= 1 ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
+                step >= 1 ? "border-amber-600 bg-amber-600 text-white" : "border-gray-300"
               }`}>
                 1
               </div>
               <span className="ml-2 text-sm font-medium">Basic Info</span>
             </div>
-            <div className={`flex-1 h-0.5 mx-3 ${step >= 2 ? "bg-blue-600" : "bg-gray-300"}`} />
-            <div className={`flex items-center ${step >= 2 ? "text-blue-600" : "text-gray-400"}`}>
+            <div className={`flex-1 h-0.5 mx-3 ${step >= 2 ? "bg-amber-600" : "bg-gray-300"}`} />
+            <div className={`flex items-center ${step >= 2 ? "text-amber-600" : "text-gray-400"}`}>
               <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 text-sm ${
-                step >= 2 ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
+                step >= 2 ? "border-amber-600 bg-amber-600 text-white" : "border-gray-300"
               }`}>
                 2
               </div>
               <span className="ml-2 text-sm font-medium">Documents</span>
             </div>
-            <div className={`flex-1 h-0.5 mx-3 ${step >= 3 ? "bg-blue-600" : "bg-gray-300"}`} />
-            <div className={`flex items-center ${step >= 3 ? "text-blue-600" : "text-gray-400"}`}>
+            <div className={`flex-1 h-0.5 mx-3 ${step >= 3 ? "bg-amber-600" : "bg-gray-300"}`} />
+            <div className={`flex items-center ${step >= 3 ? "text-amber-600" : "text-gray-400"}`}>
               <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 text-sm ${
-                step >= 3 ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
+                step >= 3 ? "border-amber-600 bg-amber-600 text-white" : "border-gray-300"
               }`}>
                 3
               </div>
@@ -226,55 +258,107 @@ function CreateQuizContent() {
               </h2>
               
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  Quiz Title
+                <label className="block text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
+                  Sacred Quest Title
                 </label>
                 <input
                   type="text"
                   value={config.title}
                   onChange={(e) => setConfig({ ...config, title: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., Old Testament History Quiz"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200"
+                  placeholder="e.g., Wisdom of Solomon Quest"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  Description
+                <label className="block text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
+                  Divine Description
                 </label>
                 <textarea
                   value={config.description}
                   onChange={(e) => setConfig({ ...config, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  placeholder="Describe the quiz content and objectives..."
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200 resize-none"
+                  placeholder="Describe the sacred journey and learning objectives..."
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                    Start Time
+                  <label className="block text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
+                    Sacred Date
                   </label>
                   <input
-                    type="datetime-local"
-                    value={config.startTime}
-                    onChange={(e) => setConfig({ ...config, startTime: e.target.value })}
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    type="date"
+                    value={getDateFromStartTime()}
+                    onChange={(e) => updateDateTime(e.target.value, getTimeFromStartTime())}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                    Duration (minutes)
+                  <label className="block text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
+                    Divine Hour
                   </label>
                   <input
-                    type="number"
-                    value={config.duration || ""}
-                    onChange={(e) => setConfig({ ...config, duration: parseInt(e.target.value) || 30 })}
-                    min="5"
-                    max="180"
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    type="time"
+                    value={getTimeFromStartTime()}
+                    onChange={(e) => updateDateTime(getDateFromStartTime(), e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200"
                   />
+                </div>
+                <div>
+                  <TimezoneSelector
+                    value={config.timezone}
+                    onChange={(timezone) => setConfig({ ...config, timezone })}
+                    showLabel={true}
+                    className=""
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
+                    Quest Duration
+                  </label>
+                  <select
+                    value={config.duration}
+                    onChange={(e) => setConfig({ ...config, duration: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200"
+                  >
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>1 hour</option>
+                    <option value={90}>1.5 hours</option>
+                    <option value={120}>2 hours</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* Date/Time Preview with Timezone */}
+              <div className="mt-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-heading font-semibold text-amber-800 dark:text-amber-300">
+                      🗓️ Quest Schedule Preview:
+                    </span>
+                    <span className="text-xs px-2 py-1 bg-amber-100 dark:bg-amber-800 text-amber-700 dark:text-amber-300 rounded-full">
+                      {config.timezone.split('/')[1]?.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <div className="font-body text-amber-700 dark:text-amber-400">
+                    📅 {formatDateInTimezone(config.startTime, config.timezone)}
+                  </div>
+                  <div className="text-xs text-amber-600 dark:text-amber-500">
+                    ⏱️ Duration: {config.duration} minutes • Ends at {formatDateInTimezone(
+                      new Date(new Date(config.startTime).getTime() + config.duration * 60000),
+                      config.timezone,
+                      { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }
+                    )}
+                  </div>
+                  {!isQuizTimeValid(config.startTime, config.timezone) && (
+                    <div className="text-xs text-red-600 dark:text-red-400 font-medium">
+                      ⚠️ Quiz time should be at least 5 minutes in the future
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -288,7 +372,7 @@ function CreateQuizContent() {
               
               {documents.length === 0 ? (
                 <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 dark:text-gray-400">
                     No processed documents available.
                   </p>
@@ -303,7 +387,7 @@ function CreateQuizContent() {
                       key={doc.id}
                       className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                         config.documentIds.includes(doc.id)
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
                           : "border-gray-300 dark:border-gray-600 hover:border-gray-400"
                       }`}
                       onClick={() => {
@@ -315,7 +399,7 @@ function CreateQuizContent() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 flex-1">
-                          <FileText className="h-6 w-6 text-blue-600 flex-shrink-0" />
+                          <DocumentTextIcon className="h-6 w-6 text-amber-600 flex-shrink-0" />
                           <div className="min-w-0">
                             <p className="font-medium text-gray-900 dark:text-white truncate">
                               {doc.filename}
@@ -333,7 +417,7 @@ function CreateQuizContent() {
                           </div>
                         </div>
                         {config.documentIds.includes(doc.id) && (
-                          <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                          <CheckCircleIcon className="h-5 w-5 text-amber-600 flex-shrink-0" />
                         )}
                       </div>
                     </div>
@@ -361,7 +445,7 @@ function CreateQuizContent() {
                       setSelectedBook(e.target.value);
                       setConfig({ ...config, books: e.target.value ? [e.target.value] : [] });
                     }}
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     required
                   >
                     <option value="">Select a book...</option>
@@ -383,7 +467,7 @@ function CreateQuizContent() {
                       setConfig({ ...config, chapters: e.target.value ? [e.target.value] : [] });
                     }}
                     placeholder="e.g., 1-10 or 2,3,5"
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     required
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -404,7 +488,7 @@ function CreateQuizContent() {
                     onChange={(e) => setConfig({ ...config, questionCount: parseInt(e.target.value) || 10 })}
                     min="5"
                     max="100"
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   />
                 </div>
                 
@@ -415,7 +499,7 @@ function CreateQuizContent() {
                   <select
                     value={config.difficulty}
                     onChange={(e) => setConfig({ ...config, difficulty: e.target.value as "easy" | "intermediate" | "hard" })}
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   >
                     <option value="easy">Easy - Basic understanding</option>
                     <option value="intermediate">Medium - Balanced challenge</option>
@@ -447,7 +531,7 @@ function CreateQuizContent() {
                             : config.bloomsLevels.filter(l => l !== level.value);
                           setConfig({ ...config, bloomsLevels: newLevels });
                         }}
-                        className="mt-1 mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="mt-1 mr-3 h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
                       />
                       <div className="flex-1">
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -469,7 +553,7 @@ function CreateQuizContent() {
                     type="checkbox"
                     checked={config.shuffleQuestions}
                     onChange={(e) => setConfig({ ...config, shuffleQuestions: e.target.checked })}
-                    className="mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="mr-3 h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
                   />
                   <div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -492,7 +576,7 @@ function CreateQuizContent() {
               disabled={step === 1}
               size="sm"
             >
-              <ArrowLeft className="h-4 w-4 mr-1" />
+              <ArrowLeftIcon className="h-4 w-4 mr-1" />
               Previous
             </Button>
             
@@ -506,7 +590,7 @@ function CreateQuizContent() {
                 size="sm"
               >
                 Next
-                <ArrowRight className="h-4 w-4 ml-1" />
+                <ArrowRightIcon className="h-4 w-4 ml-1" />
               </Button>
             ) : (
               <Button
@@ -516,12 +600,12 @@ function CreateQuizContent() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
                     Creating...
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4 mr-2" />
+                    <BookmarkIcon className="h-4 w-4 mr-2" />
                     Create Quiz
                   </>
                 )}

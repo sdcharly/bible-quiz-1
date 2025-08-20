@@ -10,6 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loading } from "@/components/ui/loading";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QuestionValidationDisplay } from "@/components/question-validation-display";
+import { ValidationSummary } from "@/components/validation-summary";
+import { QuestionValidationResult } from "@/lib/question-validator";
 import {
   ArrowLeft,
   ArrowRight,
@@ -86,6 +89,16 @@ export default function QuizReviewPage() {
   const [showExplanation, setShowExplanation] = useState(false);
   const [viewMode, setViewMode] = useState<"single" | "grid">("single");
   const [replacingQuestion, setReplacingQuestion] = useState<string | null>(null);
+  const [validationResults, setValidationResults] = useState<Record<string, QuestionValidationResult>>({});
+  const [validationSummary, setValidationSummary] = useState<{
+    totalQuestions: number;
+    validQuestions: number;
+    invalidQuestions: number;
+    averageScore: number;
+    issueCount: { high: number; medium: number; low: number; };
+    overallValid: boolean;
+  } | null>(null);
+  const [validating, setValidating] = useState(false);
 
   useEffect(() => {
     fetchQuizDetails();
@@ -97,6 +110,10 @@ export default function QuizReviewPage() {
       if (response.ok) {
         const data = await response.json();
         setQuiz(data);
+        // Auto-validate questions after loading
+        if (data?.questions?.length > 0) {
+          validateAllQuestions(data.questions);
+        }
       } else {
         setError("Failed to load quiz details");
       }
@@ -105,6 +122,92 @@ export default function QuizReviewPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const validateAllQuestions = async (questions?: QuizQuestion[]) => {
+    const questionsToValidate = questions || quiz?.questions;
+    if (!questionsToValidate?.length) return;
+
+    setValidating(true);
+    try {
+      const questionsData = questionsToValidate.map((q) => ({
+        id: q.id,
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation
+      }));
+
+      const response = await fetch('/api/educator/questions/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questions: questionsData })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setValidationResults(data.validations || {});
+        setValidationSummary(data.summary);
+      }
+    } catch (error) {
+      console.error('Validation failed:', error);
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  const validateSingleQuestion = async (questionId: string) => {
+    const question = quiz?.questions.find(q => q.id === questionId);
+    if (!question) return;
+
+    try {
+      const questionData = {
+        id: question.id,
+        questionText: question.questionText,
+        options: question.options,
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation
+      };
+
+      const response = await fetch('/api/educator/questions/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questions: questionData, single: true })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setValidationResults(prev => ({
+          ...prev,
+          [questionId]: data.validation
+        }));
+        
+        // Update summary with new results
+        const allResults = { ...validationResults, [questionId]: data.validation };
+        const results = Object.values(allResults);
+        const summary = {
+          totalQuestions: Object.keys(allResults).length,
+          validQuestions: results.filter((r) => r.isValid).length,
+          invalidQuestions: results.filter((r) => !r.isValid).length,
+          averageScore: Math.round(results.reduce((sum, r) => sum + r.score, 0) / Object.keys(allResults).length),
+          issueCount: {
+            high: results.reduce((count, r) => 
+              count + r.issues.filter((issue: { severity: string }) => issue.severity === 'high').length, 0
+            ),
+            medium: results.reduce((count, r) => 
+              count + r.issues.filter((issue: { severity: string }) => issue.severity === 'medium').length, 0
+            ),
+            low: results.reduce((count, r) => 
+              count + r.issues.filter((issue: { severity: string }) => issue.severity === 'low').length, 0
+            )
+          },
+          overallValid: true // Will be calculated properly by the server
+        };
+        setValidationSummary(summary);
+      }
+    } catch (error) {
+      console.error('Single question validation failed:', error);
     }
   };
 
@@ -310,7 +413,7 @@ export default function QuizReviewPage() {
 
   if (viewMode === "grid") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           {/* Header */}
           <div className="mb-8">
@@ -401,7 +504,7 @@ export default function QuizReviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Header */}
         <div className="mb-8">
@@ -458,6 +561,17 @@ export default function QuizReviewPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Validation Summary */}
+          {validationSummary && (
+            <div className="mb-6">
+              <ValidationSummary
+                summary={validationSummary}
+                onRevalidateAll={() => validateAllQuestions()}
+                isRevalidating={validating}
+              />
+            </div>
+          )}
 
           {/* Progress Bar */}
           <div className="mb-6">
@@ -651,7 +765,7 @@ export default function QuizReviewPage() {
                 </button>
                 
                 {showExplanation && (
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <div className="mt-4 p-4 bg-amber-50 rounded-lg">
                     {isEditing ? (
                       <Textarea
                         value={displayQuestion.explanation}
@@ -664,6 +778,19 @@ export default function QuizReviewPage() {
                   </div>
                 )}
               </div>
+
+              {/* Question Validation */}
+              {validationResults[currentQuestion.id] && (
+                <div className="mt-6 pt-6 border-t">
+                  <QuestionValidationDisplay
+                    validation={validationResults[currentQuestion.id]}
+                    questionId={currentQuestion.id}
+                    questionText={currentQuestion.questionText}
+                    onRevalidate={() => validateSingleQuestion(currentQuestion.id)}
+                    compact={false}
+                  />
+                </div>
+              )}
 
               {/* Metadata */}
               <div className="mt-6 pt-6 border-t">
