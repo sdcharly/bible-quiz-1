@@ -118,6 +118,7 @@ export default function QuizReviewPage() {
   const [validating, setValidating] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasShownTimeoutAlert = useRef(false);
+  const isCompletingRef = useRef(false);
 
   useEffect(() => {
     fetchQuizDetails();
@@ -306,11 +307,21 @@ export default function QuizReviewPage() {
       clearInterval(pollIntervalRef.current);
     }
     
-    // Reset the timeout alert flag
+    // Reset flags
     hasShownTimeoutAlert.current = false;
+    isCompletingRef.current = false;
     
     pollIntervalRef.current = setInterval(async () => {
       attempts++;
+      
+      // Stop polling if job was cleared (e.g., user cancelled or completed)
+      if (!replaceJobId || isCompletingRef.current) {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+        return;
+      }
       
       try {
         const response = await fetch(`/api/educator/quiz/poll-status?jobId=${jobId}`);
@@ -333,22 +344,30 @@ export default function QuizReviewPage() {
           setReplaceMessage(progressMessage);
           
           if (status.status === 'completed') {
+            // Mark as completing to prevent race conditions
+            isCompletingRef.current = true;
+            
+            // Stop polling immediately
             if (pollIntervalRef.current) {
               clearInterval(pollIntervalRef.current);
               pollIntervalRef.current = null;
             }
+            
+            // Clear jobId immediately to prevent further polling
+            setReplaceJobId(null);
+            
             setReplaceProgress(100);
             setReplaceMessage("Question replaced successfully!");
             
             // Refresh quiz data to show the new question
             await fetchQuizDetails();
             
-            // Clear states after a short delay
+            // Clear remaining states after a short delay
             setTimeout(() => {
               setReplacingQuestion(null);
-              setReplaceJobId(null);
               setReplaceProgress(0);
               setReplaceMessage("");
+              isCompletingRef.current = false;
             }, 1500);
           } else if (status.status === 'failed') {
             if (pollIntervalRef.current) {
@@ -377,31 +396,41 @@ export default function QuizReviewPage() {
             }
           }
         } else if (response.status === 404) {
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current);
-            pollIntervalRef.current = null;
+          // Don't show error if we're in the process of completing
+          if (!isCompletingRef.current) {
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            setReplacingQuestion(null);
+            setReplaceJobId(null);
+            setReplaceProgress(0);
+            
+            // Only show alert if we're not completing and haven't shown timeout alert
+            if (!hasShownTimeoutAlert.current) {
+              alert("Replacement job expired. Please try again.");
+            }
           }
-          setReplacingQuestion(null);
-          setReplaceJobId(null);
-          setReplaceProgress(0);
-          alert("Replacement job expired. Please try again.");
         }
       } catch (error) {
-        console.error("Error polling replacement status:", error);
-        if (attempts >= maxAttempts) {
-          // Stop polling and clean up
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current);
-            pollIntervalRef.current = null;
-          }
-          setReplacingQuestion(null);
-          setReplaceJobId(null);
-          setReplaceProgress(0);
-          
-          // Show alert only if we haven't shown the timeout alert
-          if (!hasShownTimeoutAlert.current) {
-            hasShownTimeoutAlert.current = true;
-            alert("Failed to check replacement status. Please try again.");
+        // Don't process errors if we're completing
+        if (!isCompletingRef.current) {
+          console.error("Error polling replacement status:", error);
+          if (attempts >= maxAttempts) {
+            // Stop polling and clean up
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            setReplacingQuestion(null);
+            setReplaceJobId(null);
+            setReplaceProgress(0);
+            
+            // Show alert only if we haven't shown the timeout alert
+            if (!hasShownTimeoutAlert.current) {
+              hasShownTimeoutAlert.current = true;
+              alert("Failed to check replacement status. Please try again.");
+            }
           }
         }
       }

@@ -300,7 +300,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center text-sm text-gray-500 dark:text-gray-600">
             <p className="mb-2">
-              "The fear of the Lord is the beginning of wisdom" - Proverbs 9:10
+              &ldquo;The fear of the Lord is the beginning of wisdom&rdquo; - Proverbs 9:10
             </p>
             <div className="flex justify-center items-center gap-4 mt-4">
               <span>© 2024 Scrolls of Wisdom</span>

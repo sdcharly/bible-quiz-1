@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,8 @@ function CreateQuizContent() {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationMessage, setGenerationMessage] = useState("");
   const [jobId, setJobId] = useState<string | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isCompletingRef = useRef(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [config, setConfig] = useState<QuizConfig>({
     title: "",
@@ -111,6 +113,13 @@ function CreateQuizContent() {
 
   useEffect(() => {
     fetchDocuments();
+    
+    // Cleanup interval on unmount
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
   }, []);
 
   const fetchDocuments = async () => {
@@ -132,8 +141,25 @@ function CreateQuizContent() {
     const maxAttempts = 180; // Poll for up to 3 minutes
     let attempts = 0;
     
-    const pollInterval = setInterval(async () => {
+    // Clear any existing interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+    
+    // Reset completion flag
+    isCompletingRef.current = false;
+    
+    pollIntervalRef.current = setInterval(async () => {
       attempts++;
+      
+      // Stop polling if job was cleared or is completing
+      if (!jobId || isCompletingRef.current) {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+        return;
+      }
       
       try {
         const response = await fetch(`/api/educator/quiz/poll-status?jobId=${jobId}`);
@@ -146,7 +172,18 @@ function CreateQuizContent() {
           setGenerationMessage(status.message || "Processing...");
           
           if (status.status === 'completed') {
-            clearInterval(pollInterval);
+            // Mark as completing to prevent race conditions
+            isCompletingRef.current = true;
+            
+            // Stop polling immediately
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            
+            // Clear jobId immediately to prevent further polling
+            setJobId(null);
+            
             setGenerationProgress(100);
             setGenerationMessage("Quiz generated successfully! Redirecting...");
             
@@ -155,31 +192,48 @@ function CreateQuizContent() {
               router.push(`/educator/quiz/${quizId}/review`);
             }, 1500);
           } else if (status.status === 'failed') {
-            clearInterval(pollInterval);
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             setLoading(false);
             setGenerationProgress(0);
             alert(status.error || "Quiz generation failed. Please try again.");
           } else if (attempts >= maxAttempts) {
-            clearInterval(pollInterval);
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             setLoading(false);
             setGenerationProgress(0);
             alert("Quiz generation is taking longer than expected. You can check back later or try again.");
           }
         } else if (response.status === 404) {
-          // Job expired or not found
-          clearInterval(pollInterval);
-          setLoading(false);
-          setGenerationProgress(0);
-          alert("Quiz generation job expired. Please try again.");
+          // Don't show error if we're in the process of completing
+          if (!isCompletingRef.current) {
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            setLoading(false);
+            setGenerationProgress(0);
+            alert("Quiz generation job expired. Please try again.");
+          }
         }
       } catch (error) {
-        console.error("Error polling status:", error);
-        // Continue polling unless max attempts reached
-        if (attempts >= maxAttempts) {
-          clearInterval(pollInterval);
-          setLoading(false);
-          setGenerationProgress(0);
-          alert("Failed to check quiz generation status. Please try again.");
+        // Don't process errors if we're completing
+        if (!isCompletingRef.current) {
+          console.error("Error polling status:", error);
+          // Continue polling unless max attempts reached
+          if (attempts >= maxAttempts) {
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            setLoading(false);
+            setGenerationProgress(0);
+            alert("Failed to check quiz generation status. Please try again.");
+          }
         }
       }
     }, 1000); // Poll every second
