@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateInTimezone } from "@/lib/timezone";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -27,10 +26,6 @@ import {
   Calendar,
   Eye,
   BookOpen,
-  UserCheck,
-  UserX,
-  CheckSquare,
-  Square,
   Loader2,
 } from "lucide-react";
 
@@ -156,34 +151,6 @@ export default function QuizManagePage() {
     }
   };
 
-  const handleEnrollAll = async () => {
-    if (!confirm("Are you sure you want to enroll ALL your students in this quiz?")) return;
-
-    setEnrolling(true);
-    try {
-      const response = await fetch(`/api/educator/quiz/${quizId}/bulk-enroll`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enrollAll: true })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        alert(`Successfully enrolled ${data.enrolledCount} student(s)!`);
-        setShowBulkEnroll(false);
-        fetchEnrolledStudents();
-        fetchAvailableStudents();
-      } else {
-        const error = await response.json();
-        alert(error.error || "Failed to enroll students");
-      }
-    } catch (error) {
-      console.error("Error enrolling all students:", error);
-      alert("Error enrolling students");
-    } finally {
-      setEnrolling(false);
-    }
-  };
 
   const toggleStudent = (studentId: string) => {
     const newSelected = new Set(selectedStudents);
@@ -435,176 +402,105 @@ export default function QuizManagePage() {
           </div>
         </div>
 
-        {/* Bulk Enroll Students Modal */}
+        {/* Minimalistic Bulk Enroll Students Modal */}
         <Dialog open={showBulkEnroll} onOpenChange={setShowBulkEnroll}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-            <DialogHeader className="px-6 pt-6 pb-4 border-b">
-              <DialogTitle className="text-xl font-semibold">Assign Students to Quiz</DialogTitle>
-              <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
-                Select students to enroll in &quot;{quiz?.title}&quot;. Already enrolled students are marked and cannot be selected.
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Assign Students to Quiz</DialogTitle>
+              <DialogDescription>
+                Select students to enroll in &quot;{quiz?.title}&quot;. {selectedStudents.size} selected.
               </DialogDescription>
             </DialogHeader>
             
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Stats Bar */}
-              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-b">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Total Students: <strong className="text-gray-900 dark:text-white">{enrollmentStats.total}</strong>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <UserCheck className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Already Enrolled: <strong className="text-green-600">{enrollmentStats.enrolled}</strong>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <UserX className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Available: <strong className="text-blue-600">{enrollmentStats.total - enrollmentStats.enrolled}</strong>
-                      </span>
-                    </div>
-                  </div>
-                  <Badge 
-                    variant={selectedStudents.size > 0 ? "default" : "secondary"}
-                    className={selectedStudents.size > 0 ? "bg-orange-500 text-white" : ""}
-                  >
-                    {selectedStudents.size} selected
-                  </Badge>
-                </div>
+            <div className="flex-1 flex flex-col gap-4">
+              {/* Simple Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search students..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
 
-              {/* Search and Actions */}
-              <div className="px-6 py-4 border-b">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      type="text"
-                      placeholder="Search students by name or email..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 h-10"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={selectAll}
-                      disabled={enrollmentStats.total === enrollmentStats.enrolled}
-                      className="whitespace-nowrap"
-                    >
-                      <CheckSquare className="h-4 w-4 mr-2" />
-                      Select All Available
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={deselectAll}
-                      className="whitespace-nowrap"
-                    >
-                      <Square className="h-4 w-4 mr-2" />
-                      Deselect All
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Student List */}
-              <div className="flex-1 overflow-y-auto px-6 py-4">
+              {/* Student List - Clean and Simple */}
+              <div className="flex-1 overflow-y-auto min-h-64">
                 {filteredStudents.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                    <Users className="h-12 w-12 mb-3 text-gray-300" />
-                    <p className="text-base">
-                      {searchTerm ? "No students found matching your search" : "No students available"}
-                    </p>
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                    <Users className="h-8 w-8 mb-2 text-gray-300" />
+                    <p>{searchTerm ? "No students found" : "No students available"}</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {filteredStudents.map((student) => (
                       <div
                         key={student.studentId}
-                        className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all ${
+                        className={`flex items-center gap-3 p-3 rounded-md transition-colors ${
                           student.isEnrolled
-                            ? "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 opacity-60 cursor-not-allowed"
+                            ? "bg-gray-50 opacity-50 cursor-not-allowed"
                             : selectedStudents.has(student.studentId)
-                            ? "bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-600"
-                            : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 cursor-pointer"
+                            ? "bg-blue-50 border border-blue-200"
+                            : "hover:bg-gray-50 cursor-pointer"
                         }`}
                         onClick={() => !student.isEnrolled && toggleStudent(student.studentId)}
                       >
-                        <div className="flex items-center gap-3">
-                          <Checkbox
-                            checked={selectedStudents.has(student.studentId) || student.isEnrolled}
-                            disabled={student.isEnrolled}
-                            onCheckedChange={() => toggleStudent(student.studentId)}
-                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                            className="h-5 w-5"
-                          />
-                          <div>
-                            <div className="font-medium text-gray-900 dark:text-white">
-                              {student.name}
-                            </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              {student.email}
-                            </div>
-                          </div>
+                        <Checkbox
+                          checked={selectedStudents.has(student.studentId) || student.isEnrolled}
+                          disabled={student.isEnrolled}
+                          onCheckedChange={() => toggleStudent(student.studentId)}
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium">{student.name}</div>
+                          <div className="text-sm text-gray-500">{student.email}</div>
                         </div>
                         {student.isEnrolled && (
-                          <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Already Enrolled
-                          </Badge>
+                          <span className="text-xs text-green-600 font-medium">Enrolled</span>
                         )}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
+
+              {/* Quick Actions */}
+              <div className="flex gap-2 text-sm">
+                <button
+                  onClick={selectAll}
+                  disabled={enrollmentStats.total === enrollmentStats.enrolled}
+                  className="text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+                >
+                  Select All
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  onClick={deselectAll}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  Clear Selection
+                </button>
+              </div>
             </div>
 
-            <DialogFooter className="px-6 py-4 border-t bg-gray-50 dark:bg-gray-900">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
-                <Button
-                  variant="outline"
-                  onClick={handleEnrollAll}
-                  disabled={enrolling || enrollmentStats.total === enrollmentStats.enrolled}
-                  className="w-full sm:w-auto"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Enroll All Students
-                </Button>
-                <div className="flex gap-3 w-full sm:w-auto">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowBulkEnroll(false)} 
-                    disabled={enrolling}
-                    className="flex-1 sm:flex-initial"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleBulkEnroll}
-                    disabled={enrolling || selectedStudents.size === 0}
-                    className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    {enrolling ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Enrolling...
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Enroll {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBulkEnroll(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleBulkEnroll}
+                disabled={enrolling || selectedStudents.size === 0}
+              >
+                {enrolling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Enrolling...
+                  </>
+                ) : (
+                  `Enroll ${selectedStudents.size} Student${selectedStudents.size !== 1 ? "s" : ""}`
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

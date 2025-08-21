@@ -14,7 +14,13 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function useUserContext() {
   const context = useContext(UserContext);
   if (!context) {
-    throw new Error('useUserContext must be used within a UserProvider');
+    // Return default values instead of throwing error during initialization
+    console.warn('useUserContext called outside of UserProvider, using defaults');
+    return {
+      timezone: 'Asia/Kolkata',
+      setTimezone: () => {},
+      isLoading: false
+    };
   }
   return context;
 }
@@ -28,6 +34,12 @@ export function UserProvider({ children }: UserProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') {
+      setIsLoading(false);
+      return;
+    }
+    
     // Get timezone from browser
     const browserTz = getBrowserTimezone();
     setTimezoneState(browserTz);
@@ -48,11 +60,13 @@ export function UserProvider({ children }: UserProviderProps) {
   const setTimezone = (newTimezone: string) => {
     setTimezoneState(newTimezone);
     
-    // Store in localStorage for persistence
-    try {
-      localStorage.setItem('user-timezone', newTimezone);
-    } catch (error) {
-      console.warn('Failed to save timezone to localStorage:', error);
+    // Store in localStorage for persistence (only on client side)
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('user-timezone', newTimezone);
+      } catch (error) {
+        console.warn('Failed to save timezone to localStorage:', error);
+      }
     }
     
     // TODO: Also update user profile in database when user authentication is available

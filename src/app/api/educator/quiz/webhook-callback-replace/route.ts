@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
           
           // If it's a Postgres error, log the query that failed
           if ('code' in dbError) {
-            console.error("Database error code:", (dbError as any).code);
+            console.error("Database error code:", (dbError as { code: string }).code);
           }
         }
         
