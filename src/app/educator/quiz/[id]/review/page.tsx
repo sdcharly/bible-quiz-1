@@ -97,6 +97,9 @@ export default function QuizReviewPage() {
   const [showExplanation, setShowExplanation] = useState(false);
   const [viewMode, setViewMode] = useState<"single" | "grid">("single");
   const [replacingQuestion, setReplacingQuestion] = useState<string | null>(null);
+  const [replaceJobId, setReplaceJobId] = useState<string | null>(null);
+  const [replaceProgress, setReplaceProgress] = useState(0);
+  const [replaceMessage, setReplaceMessage] = useState("");
   const [showReplaceDialog, setShowReplaceDialog] = useState(false);
   const [replaceOptions, setReplaceOptions] = useState({
     difficulty: "medium",
@@ -286,14 +289,82 @@ export default function QuizReviewPage() {
     }
   };
 
+  const pollReplaceJobStatus = async (jobId: string, questionId: string) => {
+    const maxAttempts = 30; // Poll for up to 30 seconds
+    let attempts = 0;
+    
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      
+      try {
+        const response = await fetch(`/api/educator/quiz/poll-status?jobId=${jobId}`);
+        
+        if (response.ok) {
+          const status = await response.json();
+          
+          // Update progress UI
+          setReplaceProgress(status.progress || 0);
+          setReplaceMessage(status.message || "Generating replacement question...");
+          
+          if (status.status === 'completed') {
+            clearInterval(pollInterval);
+            setReplaceProgress(100);
+            setReplaceMessage("Question replaced successfully!");
+            
+            // Refresh quiz data to show the new question
+            await fetchQuizDetails();
+            
+            // Clear states after a short delay
+            setTimeout(() => {
+              setReplacingQuestion(null);
+              setReplaceJobId(null);
+              setReplaceProgress(0);
+              setReplaceMessage("");
+            }, 1500);
+          } else if (status.status === 'failed') {
+            clearInterval(pollInterval);
+            setReplacingQuestion(null);
+            setReplaceJobId(null);
+            setReplaceProgress(0);
+            alert(status.error || "Failed to replace question. Please try again.");
+          } else if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            setReplacingQuestion(null);
+            setReplaceJobId(null);
+            setReplaceProgress(0);
+            alert("Question replacement is taking longer than expected. Please try again.");
+          }
+        } else if (response.status === 404) {
+          clearInterval(pollInterval);
+          setReplacingQuestion(null);
+          setReplaceJobId(null);
+          setReplaceProgress(0);
+          alert("Replacement job expired. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error polling replacement status:", error);
+        if (attempts >= maxAttempts) {
+          clearInterval(pollInterval);
+          setReplacingQuestion(null);
+          setReplaceJobId(null);
+          setReplaceProgress(0);
+          alert("Failed to check replacement status. Please try again.");
+        }
+      }
+    }, 1000); // Poll every second
+  };
+
   const handleReplaceQuestion = async () => {
     if (!questionToReplace) return;
     
     setShowReplaceDialog(false);
     setReplacingQuestion(questionToReplace);
+    setReplaceProgress(0);
+    setReplaceMessage("Initializing question replacement...");
     
     try {
-      const response = await fetch(`/api/educator/quiz/${quizId}/question/${questionToReplace}/replace`, {
+      // Use the async endpoint
+      const response = await fetch(`/api/educator/quiz/${quizId}/question/${questionToReplace}/replace-async`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(replaceOptions)
@@ -302,44 +373,26 @@ export default function QuizReviewPage() {
       if (response.ok) {
         const data = await response.json();
         
-        // Update quiz state with new question
-        setQuiz(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            questions: prev.questions.map(q => 
-              q.id === questionToReplace ? {
-                id: data.question.id,
-                questionText: data.question.questionText,
-                options: data.question.options,
-                correctAnswer: data.question.correctAnswer,
-                explanation: data.question.explanation,
-                difficulty: data.question.difficulty,
-                bloomsLevel: data.question.bloomsLevel,
-                topic: data.question.topic,
-                book: data.question.book,
-                chapter: data.question.chapter,
-              } : q
-            )
-          };
-        });
-        
-        // Clear any editing state for this question
-        if (editingQuestion === questionToReplace) {
-          setEditingQuestion(null);
+        if (data.jobId) {
+          setReplaceJobId(data.jobId);
+          setReplaceProgress(5);
+          setReplaceMessage("Starting question generation...");
+          
+          // Start polling for status
+          pollReplaceJobStatus(data.jobId, questionToReplace);
+        } else {
+          // Fallback if no jobId (shouldn't happen with async endpoint)
+          alert("Failed to start question replacement");
+          setReplacingQuestion(null);
         }
-        const updatedEdited = { ...editedQuestions };
-        delete updatedEdited[questionToReplace];
-        setEditedQuestions(updatedEdited);
-        
       } else {
-        const errorData = await response.json();
-        alert(errorData.message || "Failed to replace question");
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.error || "Failed to replace question");
+        setReplacingQuestion(null);
       }
     } catch (error) {
       console.error("Error replacing question:", error);
       alert("Error replacing question");
-    } finally {
       setReplacingQuestion(null);
       setQuestionToReplace(null);
     }
@@ -1016,6 +1069,49 @@ export default function QuizReviewPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Question Replacement Progress Modal */}
+        {replacingQuestion && replaceProgress > 0 && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4">
+              <div className="text-center">
+                <div className="mb-4">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900 mb-4">
+                    <RefreshCw className="h-8 w-8 text-orange-600 dark:text-orange-400 animate-spin" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Generating Replacement Question
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    {replaceMessage}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
+                    AI is creating a new question based on your criteria...
+                  </p>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
+                  <div 
+                    className="bg-orange-600 h-2.5 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${replaceProgress}%` }}
+                  ></div>
+                </div>
+                
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {replaceProgress}% Complete
+                </p>
+                
+                {/* Info box */}
+                <div className="mt-6 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                  <p className="text-xs text-orange-800 dark:text-orange-200">
+                    💡 Generating contextually relevant question for {replaceOptions.book || "selected book"} {replaceOptions.chapter ? `chapter ${replaceOptions.chapter}` : ""}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

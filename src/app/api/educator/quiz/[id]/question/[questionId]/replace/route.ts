@@ -84,7 +84,7 @@ export async function PUT(
             "Content-Type": "application/json",
           },
           body: JSON.stringify(webhookPayload),
-          signal: AbortSignal.timeout(30000), // 30 second timeout for single question
+          signal: AbortSignal.timeout(20000), // 20 second timeout to avoid Cloudflare timeout
         });
 
         if (webhookResponse.ok) {
