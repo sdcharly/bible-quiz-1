@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { user, enrollments, quizAttempts, educatorStudents, quizzes } from "@/lib/schema";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, and } from "drizzle-orm";
 import StudentDetails from "./StudentDetails";
 
 async function getStudentDetails(studentId: string) {
@@ -31,15 +31,19 @@ async function getStudentDetails(studentId: string) {
   const [completedCount] = await db
     .select({ count: sql`count(*)` })
     .from(quizAttempts)
-    .where(eq(quizAttempts.studentId, studentId))
-    .where(eq(quizAttempts.status, "completed"));
+    .where(and(
+      eq(quizAttempts.studentId, studentId),
+      eq(quizAttempts.status, "completed")
+    ));
 
   // Get average score
   const [avgScore] = await db
     .select({ avg: sql`AVG(score)` })
     .from(quizAttempts)
-    .where(eq(quizAttempts.studentId, studentId))
-    .where(eq(quizAttempts.status, "completed"));
+    .where(and(
+      eq(quizAttempts.studentId, studentId),
+      eq(quizAttempts.status, "completed")
+    ));
 
   // Get recent quiz attempts
   const recentAttempts = await db
@@ -87,8 +91,15 @@ async function getStudentDetails(studentId: string) {
     .orderBy(desc(enrollments.enrolledAt))
     .limit(10);
 
-  return {
-    ...student,
+  const studentInfo = {
+    id: student.id,
+    name: student.name,
+    email: student.email,
+    phoneNumber: student.phoneNumber,
+    emailVerified: student.emailVerified,
+    timezone: student.timezone,
+    createdAt: student.createdAt,
+    role: student.role,
     enrollmentCount: Number(enrollmentCount?.count || 0),
     attemptCount: Number(attemptCount?.count || 0),
     completedCount: Number(completedCount?.count || 0),
@@ -97,12 +108,14 @@ async function getStudentDetails(studentId: string) {
     educators,
     enrollments: studentEnrollments,
   };
+  
+  return studentInfo;
 }
 
 export default async function StudentDetailsPage({ 
   params 
 }: { 
-  params: { id: string } 
+  params: Promise<{ id: string }> 
 }) {
   const session = await getAdminSession();
   
@@ -110,7 +123,8 @@ export default async function StudentDetailsPage({
     redirect("/admin/login");
   }
 
-  const student = await getStudentDetails(params.id);
+  const { id } = await params;
+  const student = await getStudentDetails(id);
 
   if (!student) {
     redirect("/admin/students");

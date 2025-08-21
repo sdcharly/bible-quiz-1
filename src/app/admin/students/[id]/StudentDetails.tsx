@@ -11,8 +11,52 @@ import {
   TrendingUp, Users, CheckCircle, XCircle
 } from "lucide-react";
 
+interface QuizAttempt {
+  id: string;
+  quizTitle: string;
+  score: number | null;
+  totalQuestions: number | null;
+  startTime: Date;
+  endTime: Date | null;
+  status: string;
+}
+
+interface QuizEnrollment {
+  id: string;
+  quizTitle: string;
+  enrolledAt: Date;
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+  status: string;
+}
+
+interface ConnectedEducator {
+  id: string;
+  name: string | null;
+  email: string;
+  enrolledAt: Date;
+}
+
+interface StudentInfo {
+  id: string;
+  name: string | null;
+  email: string;
+  phoneNumber: string | null;
+  timezone: string;
+  createdAt: Date;
+  emailVerified: boolean | null;
+  role: string;
+  enrollmentCount: number;
+  attemptCount: number;
+  completedCount: number;
+  averageScore: number;
+  recentAttempts?: QuizAttempt[];
+  enrollments?: QuizEnrollment[];
+  educators?: ConnectedEducator[];
+}
+
 interface StudentDetailsProps {
-  student: any;
+  student: StudentInfo;
 }
 
 export default function StudentDetails({ student }: StudentDetailsProps) {
@@ -203,7 +247,7 @@ export default function StudentDetails({ student }: StudentDetailsProps) {
                   <p className="text-sm text-gray-500">No quiz attempts yet</p>
                 ) : (
                   <div className="space-y-2">
-                    {student.recentAttempts?.map((attempt: any) => (
+                    {student.recentAttempts?.map((attempt: QuizAttempt) => (
                       <div key={attempt.id} className="flex justify-between items-center p-3 border rounded-lg">
                         <div className="flex-1">
                           <p className="font-medium text-sm">{attempt.quizTitle}</p>
@@ -237,7 +281,7 @@ export default function StudentDetails({ student }: StudentDetailsProps) {
                   <p className="text-sm text-gray-500">No enrollments yet</p>
                 ) : (
                   <div className="space-y-2">
-                    {student.enrollments?.map((enrollment: any) => (
+                    {student.enrollments?.map((enrollment: QuizEnrollment) => (
                       <div key={enrollment.id} className="flex justify-between items-center p-3 border rounded-lg">
                         <div className="flex-1">
                           <p className="font-medium text-sm">{enrollment.quizTitle}</p>
@@ -300,7 +344,7 @@ export default function StudentDetails({ student }: StudentDetailsProps) {
                   <p className="text-sm text-gray-500">No educators connected</p>
                 ) : (
                   <div className="space-y-3">
-                    {student.educators?.map((educator: any) => (
+                    {student.educators?.map((educator: ConnectedEducator) => (
                       <div key={educator.id} className="text-sm">
                         <p className="font-medium">{educator.name || "Unnamed"}</p>
                         <p className="text-xs text-gray-500">{educator.email}</p>

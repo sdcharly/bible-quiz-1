@@ -55,19 +55,33 @@ async function getEducatorDetails(educatorId: string) {
     .where(eq(educatorStudents.educatorId, educatorId))
     .limit(10);
 
-  return {
-    ...educator,
+  const educatorInfo = {
+    id: educator.id,
+    name: educator.name,
+    email: educator.email,
+    role: educator.role,
+    approvalStatus: educator.approvalStatus,
+    approvedBy: educator.approvedBy,
+    approvedAt: educator.approvedAt,
+    rejectionReason: educator.rejectionReason,
+    permissions: (educator.permissions || {}) as Record<string, unknown>,
+    createdAt: educator.createdAt,
+    phoneNumber: educator.phoneNumber,
+    emailVerified: educator.emailVerified,
+    timezone: educator.timezone,
     quizCount: Number(quizCount?.count || 0),
     studentCount: Number(studentCount?.count || 0),
     recentQuizzes,
     students,
   };
+  
+  return educatorInfo;
 }
 
 export default async function EducatorDetailsPage({ 
   params 
 }: { 
-  params: { id: string } 
+  params: Promise<{ id: string }> 
 }) {
   const session = await getAdminSession();
   
@@ -75,7 +89,8 @@ export default async function EducatorDetailsPage({
     redirect("/admin/login");
   }
 
-  const educator = await getEducatorDetails(params.id);
+  const { id } = await params;
+  const educator = await getEducatorDetails(id);
 
   if (!educator) {
     redirect("/admin/educators");

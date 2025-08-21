@@ -19,7 +19,7 @@ interface ActivityLog {
   actionType: string;
   entityType: string;
   entityId: string | null;
-  details: any;
+  details: Record<string, unknown> | null;
   ipAddress: string | null;
   userAgent: string | null;
   createdAt: Date;
@@ -242,9 +242,13 @@ export default function ActivityLogsView({ logs }: ActivityLogsViewProps) {
                         <span className="font-medium">
                           {log.userName || log.userEmail || "System"}
                         </span>
-                        {log.details?.educatorEmail && (
-                          <span> → {log.details.educatorEmail}</span>
-                        )}
+                        {(() => {
+                          const details = log.details as Record<string, unknown> | null;
+                          if (details && 'educatorEmail' in details && typeof details.educatorEmail === 'string') {
+                            return <span> → {details.educatorEmail}</span>;
+                          }
+                          return null;
+                        })()}
                       </div>
                       <div className="mt-1 flex items-center space-x-4 text-xs text-gray-400">
                         <span className="flex items-center">

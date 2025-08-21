@@ -441,7 +441,7 @@ export default function QuizManagePage() {
             <DialogHeader>
               <DialogTitle>Assign Students to Quiz</DialogTitle>
               <DialogDescription>
-                Select students to enroll in "{quiz?.title}". Already enrolled students are marked and cannot be selected.
+                Select students to enroll in &quot;{quiz?.title}&quot;. Already enrolled students are marked and cannot be selected.
               </DialogDescription>
             </DialogHeader>
             

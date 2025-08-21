@@ -26,7 +26,12 @@ async function getActivityLogs() {
     .orderBy(desc(activityLogs.createdAt))
     .limit(500);
 
-  return logs;
+  return logs.map(log => ({
+    ...log,
+    details: log.details as Record<string, unknown> | null,
+    userName: log.userName || null,
+    userEmail: log.userEmail || null,
+  }));
 }
 
 export default async function ActivityPage() {

@@ -22,7 +22,7 @@ interface Educator {
   approvedBy: string | null;
   approvedAt: Date | null;
   rejectionReason: string | null;
-  permissions: any;
+  permissions: Record<string, unknown>;
   createdAt: Date;
   phoneNumber: string | null;
   emailVerified: boolean | null;
@@ -55,7 +55,7 @@ export default function EducatorsManagement({ educators }: EducatorsManagementPr
     return matchesSearch && matchesFilter;
   });
 
-  const handleUpdatePermissions = async (educatorId: string, permissions: any) => {
+  const handleUpdatePermissions = async (educatorId: string, permissions: Record<string, unknown>) => {
     try {
       const response = await fetch(`/api/admin/educators/${educatorId}/permissions`, {
         method: "PUT",

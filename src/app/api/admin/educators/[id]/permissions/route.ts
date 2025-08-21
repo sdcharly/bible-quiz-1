@@ -6,11 +6,11 @@ import { eq } from "drizzle-orm";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAdminAuth();
-    const educatorId = params.id;
+    const { id: educatorId } = await params;
     const { permissions } = await request.json();
 
     // Get educator details

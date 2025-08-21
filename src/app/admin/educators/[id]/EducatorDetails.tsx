@@ -14,8 +14,55 @@ import {
   Edit, Save, Ban, Unlock, Clock, MapPin
 } from "lucide-react";
 
+interface EducatorPermissions {
+  canPublishQuiz?: boolean;
+  canAddStudents?: boolean;
+  canEditQuiz?: boolean;
+  canDeleteQuiz?: boolean;
+  canViewAnalytics?: boolean;
+  canExportData?: boolean;
+  maxStudents?: number;
+  maxQuizzes?: number;
+  maxQuestionsPerQuiz?: number;
+  [key: string]: unknown;
+}
+
+interface QuizInfo {
+  id: string;
+  title: string;
+  totalQuestions: number;
+  createdAt: Date;
+  status: string;
+}
+
+interface StudentInfo {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
+interface EducatorInfo {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  approvalStatus: string | null;
+  approvedBy: string | null;
+  approvedAt: Date | null;
+  rejectionReason: string | null;
+  permissions: EducatorPermissions;
+  createdAt: Date;
+  phoneNumber: string | null;
+  emailVerified: boolean | null;
+  timezone: string;
+  quizCount: number;
+  studentCount: number;
+  recentQuizzes?: QuizInfo[];
+  students?: StudentInfo[];
+}
+
 interface EducatorDetailsProps {
-  educator: any;
+  educator: EducatorInfo;
 }
 
 export default function EducatorDetails({ educator }: EducatorDetailsProps) {
@@ -223,7 +270,7 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
                     <div key={perm.key} className="flex items-center space-x-2">
                       <Checkbox
                         id={perm.key}
-                        checked={permissions[perm.key] || false}
+                        checked={Boolean(permissions[perm.key])}
                         disabled={!isEditing}
                         onCheckedChange={(checked) => 
                           setPermissions({ ...permissions, [perm.key]: checked })
@@ -250,7 +297,7 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
                       <Input
                         id={perm.key}
                         type="number"
-                        value={permissions[perm.key] || 0}
+                        value={Number(permissions[perm.key]) || 0}
                         disabled={!isEditing}
                         onChange={(e) => 
                           setPermissions({ ...permissions, [perm.key]: parseInt(e.target.value) })
@@ -276,7 +323,7 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
                   <p className="text-sm text-gray-500">No quizzes created yet</p>
                 ) : (
                   <div className="space-y-2">
-                    {educator.recentQuizzes?.map((quiz: any) => (
+                    {educator.recentQuizzes?.map((quiz: QuizInfo) => (
                       <div key={quiz.id} className="flex justify-between items-center p-2 border rounded">
                         <div>
                           <p className="font-medium text-sm">{quiz.title}</p>
@@ -375,15 +422,15 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
                   <p className="text-sm text-gray-500">No students enrolled</p>
                 ) : (
                   <div className="space-y-2">
-                    {educator.students?.slice(0, 5).map((student: any) => (
+                    {educator.students?.slice(0, 5).map((student: StudentInfo) => (
                       <div key={student.id} className="text-sm">
                         <p className="font-medium">{student.name || "Unnamed"}</p>
                         <p className="text-xs text-gray-500">{student.email}</p>
                       </div>
                     ))}
-                    {educator.students?.length > 5 && (
+                    {(educator.students?.length || 0) > 5 && (
                       <p className="text-xs text-gray-500 pt-2">
-                        And {educator.students.length - 5} more...
+                        And {(educator.students?.length || 0) - 5} more...
                       </p>
                     )}
                   </div>

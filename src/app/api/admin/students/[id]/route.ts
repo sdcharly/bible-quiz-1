@@ -6,11 +6,11 @@ import { eq } from "drizzle-orm";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAdminAuth();
-    const studentId = params.id;
+    const { id: studentId } = await params;
 
     // Get student details before deletion
     const [student] = await db

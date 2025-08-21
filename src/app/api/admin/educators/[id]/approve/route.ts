@@ -6,15 +6,14 @@ import { eq } from "drizzle-orm";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log("Approve educator API called with ID:", params.id);
+    const { id: educatorId } = await params;
+    console.log("Approve educator API called with ID:", educatorId);
     
     const session = await requireAdminAuth();
     console.log("Admin session:", session);
-    
-    const educatorId = params.id;
 
     // Get educator details
     const [educator] = await db

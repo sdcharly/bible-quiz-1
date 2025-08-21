@@ -8,7 +8,8 @@ export const enrollmentStatusEnum = pgEnum("enrollment_status", ["enrolled", "in
 export const difficultyEnum = pgEnum("difficulty", ["easy", "intermediate", "hard"]);
 export const bloomsLevelEnum = pgEnum("blooms_level", ["knowledge", "comprehension", "application", "analysis", "synthesis", "evaluation"]);
 
-export const user = pgTable("user", {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const user: any = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
@@ -18,7 +19,8 @@ export const user = pgTable("user", {
   image: text("image"),
   timezone: text("timezone").notNull().default("Asia/Kolkata"), // Default to IST for Indian users
   approvalStatus: approvalStatusEnum("approval_status").notNull().default("pending"),
-  approvedBy: text("approved_by").references(() => user.id),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  approvedBy: text("approved_by").references((): any => user.id),
   approvedAt: timestamp("approved_at"),
   rejectionReason: text("rejection_reason"),
   permissions: jsonb("permissions").default({}).$type<{
