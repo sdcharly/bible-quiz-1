@@ -15,7 +15,12 @@ import {
   BookmarkIcon,
 } from "@heroicons/react/24/solid";
 import { TimezoneSelector } from "@/components/ui/timezone-selector";
-import { getDefaultTimezone, formatDateInTimezone, isQuizTimeValid } from "@/lib/timezone";
+import { useTimezone } from "@/hooks/useTimezone";
+import { 
+  getDefaultTimezone, 
+  formatDateInTimezone, 
+  isQuizTimeValid
+} from "@/lib/timezone";
 
 interface Document {
   id: string;
@@ -56,6 +61,7 @@ function CreateQuizContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedDocId = searchParams.get("documentId");
+  const { timezone: userTimezone, getCurrentDateTime, toUTC, formatDate } = useTimezone();
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -77,35 +83,42 @@ function CreateQuizContent() {
     topics: [],
     books: [],
     chapters: [],
-    startTime: new Date().toISOString().slice(0, 16),
-    timezone: getDefaultTimezone(),
+    startTime: "", // Will be set in useEffect
+    timezone: userTimezone,
     shuffleQuestions: false,
   });
   
-  // Helper functions for date/time handling
-  const getCurrentDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
-  
-  const getCurrentTime = () => {
-    const now = new Date();
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  };
-  
-  const getDateFromStartTime = () => {
-    return config.startTime ? config.startTime.split('T')[0] : getCurrentDate();
-  };
-  
-  const getTimeFromStartTime = () => {
-    return config.startTime ? config.startTime.split('T')[1] : getCurrentTime();
-  };
+  // Initialize startTime with user's timezone
+  useEffect(() => {
+    if (!config.startTime) {
+      const currentTimeInUserTz = getCurrentDateTime();
+      setConfig(prev => ({ 
+        ...prev, 
+        startTime: currentTimeInUserTz,
+        timezone: userTimezone 
+      }));
+    }
+  }, [config.startTime, getCurrentDateTime, userTimezone]);
   
   const updateDateTime = (date: string, time: string) => {
     const newDateTime = `${date}T${time}`;
     setConfig({ ...config, startTime: newDateTime });
+  };
+  
+  const getDateFromStartTime = () => {
+    if (!config.startTime) {
+      const currentTimeInUserTz = getCurrentDateTime();
+      return currentTimeInUserTz.split('T')[0];
+    }
+    return config.startTime.split('T')[0];
+  };
+  
+  const getTimeFromStartTime = () => {
+    if (!config.startTime) {
+      const currentTimeInUserTz = getCurrentDateTime();
+      return currentTimeInUserTz.split('T')[1];
+    }
+    return config.startTime.split('T')[1];
   };
   
   const [selectedBook, setSelectedBook] = useState<string>("");
@@ -245,13 +258,21 @@ function CreateQuizContent() {
     setGenerationMessage("Initializing quiz generation...");
     
     try {
+      // Convert startTime from user's timezone to UTC for backend storage
+      const startTimeUTC = toUTC(config.startTime);
+      
+      const configForBackend = {
+        ...config,
+        startTime: startTimeUTC.toISOString(), // Send as UTC ISO string
+      };
+      
       // Call async quiz generation endpoint
       const response = await fetch("/api/educator/quiz/create-async", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(config),
+        body: JSON.stringify(configForBackend),
       });
 
       if (response.ok) {
@@ -485,6 +506,10 @@ function CreateQuizContent() {
                   <TimezoneSelector
                     value={config.timezone}
                     onChange={(timezone) => setConfig({ ...config, timezone })}
+                    onTimezoneChange={(timezone, currentTimeInTz) => {
+                      // When timezone changes, update timezone (startTime stays the same for user convenience)
+                      setConfig({ ...config, timezone });
+                    }}
                     showLabel={true}
                     className=""
                   />
@@ -520,16 +545,15 @@ function CreateQuizContent() {
                     </span>
                   </div>
                   <div className="font-body text-amber-700 dark:text-amber-400">
-                    📅 {formatDateInTimezone(config.startTime, config.timezone)}
+                    📅 {config.startTime ? formatDate(toUTC(config.startTime).toISOString()) : 'No time selected'}
                   </div>
                   <div className="text-xs text-amber-600 dark:text-amber-500">
-                    ⏱️ Duration: {config.duration} minutes • Ends at {formatDateInTimezone(
-                      new Date(new Date(config.startTime).getTime() + config.duration * 60000),
-                      config.timezone,
+                    ⏱️ Duration: {config.duration} minutes • Ends at {config.startTime ? formatDate(
+                      new Date(toUTC(config.startTime).getTime() + config.duration * 60000).toISOString(),
                       { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }
-                    )}
+                    ) : 'TBD'}
                   </div>
-                  {!isQuizTimeValid(config.startTime, config.timezone) && (
+                  {config.startTime && !isQuizTimeValid(config.startTime, userTimezone) && (
                     <div className="text-xs text-red-600 dark:text-red-400 font-medium">
                       ⚠️ Quiz time should be at least 5 minutes in the future
                     </div>
@@ -777,7 +801,16 @@ function CreateQuizContent() {
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={loading || !config.title || config.documentIds.length === 0 || !selectedBook || !chapterInput || config.bloomsLevels.length === 0}
+                disabled={
+                  loading || 
+                  !config.title || 
+                  config.documentIds.length === 0 || 
+                  !selectedBook || 
+                  !chapterInput || 
+                  config.bloomsLevels.length === 0 ||
+                  !config.startTime ||
+                  !isQuizTimeValid(config.startTime, userTimezone)
+                }
                 size="sm"
               >
                 {loading ? (

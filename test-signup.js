@@ -10,7 +10,7 @@ const testSignup = async () => {
       },
       body: JSON.stringify({
         email: 'testuser@example.com',
-        password: 'TestPassword123!',
+        password: process.env.TEST_PASSWORD || 'TestPassword123!',
         name: 'Test User',
       }),
     });

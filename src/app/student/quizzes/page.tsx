@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { formatDateInTimezone, getTimezoneInfo } from "@/lib/timezone";
+import { useTimezone } from "@/hooks/useTimezone";
 import { 
   BookOpen, 
   Clock, 
@@ -39,6 +39,7 @@ export default function StudentQuizzesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const { formatDate, getRelativeTime, isQuizAvailable } = useTimezone();
 
   useEffect(() => {
     fetchQuizzes();
@@ -90,19 +91,22 @@ export default function StudentQuizzesPage() {
     router.push(`/student/quiz/${quizId}`);
   };
 
-  const isQuizAvailable = (startTime: string) => {
-    return new Date(startTime) <= new Date();
-  };
-
-  const formatDate = (dateString: string, timezone?: string) => {
-    return formatDateInTimezone(dateString, timezone || 'Asia/Kolkata', {
+  const formatQuizTime = (utcDateString: string) => {
+    // Format the UTC time from database in user's timezone
+    return formatDate(utcDateString, {
       year: 'numeric',
-      month: 'short',
+      month: 'short', 
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
       timeZoneName: 'short'
     });
+  };
+
+  const getQuizStatus = (utcStartTime: string) => {
+    const available = isQuizAvailable(utcStartTime);
+    const relativeTime = getRelativeTime(utcStartTime);
+    return { available, text: relativeTime };
   };
 
   const filteredQuizzes = quizzes.filter(quiz => {
@@ -230,7 +234,12 @@ export default function StudentQuizzesPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      <span>Starts: {formatDate(quiz.startTime, quiz.timezone)}</span>
+                      <div className="flex flex-col">
+                        <span>Starts: {formatQuizTime(quiz.startTime)}</span>
+                        <span className="text-xs text-gray-400">
+                          {getQuizStatus(quiz.startTime).text}
+                        </span>
+                      </div>
                     </div>
                   </div>
 

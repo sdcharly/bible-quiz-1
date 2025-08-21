@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDateInTimezone, getTimezoneInfo } from "@/lib/timezone";
+import { useTimezone } from "@/hooks/useTimezone";
 import {
   ArrowLeft,
   Plus,
@@ -44,6 +44,7 @@ export default function EducatorQuizzesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const { formatDate, getRelativeTime, isQuizAvailable } = useTimezone();
 
   useEffect(() => {
     fetchQuizzes();
@@ -336,7 +337,7 @@ export default function EducatorQuizzesPage() {
                         )}
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {formatDateInTimezone(quiz.startTime, quiz.timezone || 'Asia/Kolkata', {
+                          {formatDate(quiz.startTime, {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric',
@@ -344,6 +345,9 @@ export default function EducatorQuizzesPage() {
                             minute: '2-digit',
                             timeZoneName: 'short'
                           })}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {getRelativeTime(quiz.startTime)}
                         </span>
                       </div>
                     </div>

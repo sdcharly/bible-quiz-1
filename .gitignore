@@ -45,3 +45,39 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Scripts with credentials - prevent accidental commits
+scripts/*
+!scripts/README.md
+
+# Test files that may contain credentials
+test-*.js
+test-*.ts
+*test*.js
+*test*.ts
+
+# Database dumps and backups
+*.sql.bak
+*.db.bak
+backup/
+dumps/
+
+# Log files that might contain sensitive data
+logs/
+*.log
+
+# IDE and editor files that might store sensitive data
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+Thumbs.db
+.DS_Store?
+._*
+
+# Temporary files
+temp/
+tmp/
+*.tmp

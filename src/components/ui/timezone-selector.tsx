@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ChevronDownIcon, GlobeAltIcon } from "@heroicons/react/24/outline";
-import { TIMEZONE_OPTIONS, getDefaultTimezone, getBrowserTimezone } from "@/lib/timezone";
+import { TIMEZONE_OPTIONS, getDefaultTimezone, getBrowserTimezone, getCurrentTimeInUserTimezone } from "@/lib/timezone";
 
 interface TimezoneSelectorProps {
   value?: string;
@@ -10,6 +10,7 @@ interface TimezoneSelectorProps {
   disabled?: boolean;
   className?: string;
   showLabel?: boolean;
+  onTimezoneChange?: (timezone: string, currentTimeInTz: string) => void; // New prop to notify parent of timezone change
 }
 
 export function TimezoneSelector({ 
@@ -17,7 +18,8 @@ export function TimezoneSelector({
   onChange, 
   disabled = false, 
   className = "", 
-  showLabel = true 
+  showLabel = true,
+  onTimezoneChange
 }: TimezoneSelectorProps) {
   const [selectedTimezone, setSelectedTimezone] = useState(value || "Asia/Kolkata");
   const [isOpen, setIsOpen] = useState(false);
@@ -40,6 +42,12 @@ export function TimezoneSelector({
     setSelectedTimezone(timezone);
     onChange(timezone);
     setIsOpen(false);
+    
+    // Notify parent component of timezone change with current time in new timezone
+    if (onTimezoneChange) {
+      const currentTimeInNewTz = getCurrentTimeInUserTimezone(timezone);
+      onTimezoneChange(timezone, currentTimeInNewTz);
+    }
   };
 
   const selectedOption = TIMEZONE_OPTIONS.find(tz => tz.value === selectedTimezone) || TIMEZONE_OPTIONS[0];

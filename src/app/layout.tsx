@@ -1,4 +1,5 @@
 import { ThemeProvider } from "@/components/theme-provider";
+import { UserProvider } from "@/contexts/UserContext";
 import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
@@ -41,9 +42,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SiteHeader />
-          {children}
-          <SiteFooter />
+          <UserProvider>
+            <SiteHeader />
+            {children}
+            <SiteFooter />
+          </UserProvider>
         </ThemeProvider>
       </body>
     </html>

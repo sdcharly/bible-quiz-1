@@ -61,11 +61,30 @@ export async function POST(req: NextRequest) {
       books = [],
       chapters = [],
       questionCount = 10,
-      startTime = new Date().toISOString(),
-      timezone = "Asia/Kolkata",
+      startTime = new Date().toISOString(), // This should now be UTC from frontend
+      timezone = "Asia/Kolkata", // User's timezone for reference
       duration = 30,
       shuffleQuestions = false,
     } = body;
+
+    // Validate that startTime is a valid date
+    const startTimeDate = new Date(startTime);
+    if (isNaN(startTimeDate.getTime())) {
+      return NextResponse.json(
+        { error: "Invalid start time provided" },
+        { status: 400 }
+      );
+    }
+
+    // Ensure startTime is in the future (with 5 minute buffer)
+    const now = new Date();
+    const minStartTime = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+    if (startTimeDate < minStartTime) {
+      return NextResponse.json(
+        { error: "Quiz start time must be at least 5 minutes in the future" },
+        { status: 400 }
+      );
+    }
 
     const quizId = crypto.randomUUID();
 
