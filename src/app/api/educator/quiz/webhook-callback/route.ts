@@ -8,10 +8,22 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { jobId, status, questionsData, error } = body;
+    
+    console.log(`[QUIZ CREATE CALLBACK] Received callback for job: ${jobId}`);
 
     if (!jobId) {
       return NextResponse.json(
         { error: "Job ID is required" },
+        { status: 400 }
+      );
+    }
+    
+    // Safety check: Don't process replacement jobs here
+    if (jobId.startsWith('replace-')) {
+      console.error(`[QUIZ CREATE CALLBACK] Wrong endpoint! This is a replacement job: ${jobId}`);
+      console.error(`Should be sent to /api/educator/quiz/webhook-callback-replace`);
+      return NextResponse.json(
+        { error: "Wrong callback endpoint - this is a replacement job. Use /api/educator/quiz/webhook-callback-replace" },
         { status: 400 }
       );
     }

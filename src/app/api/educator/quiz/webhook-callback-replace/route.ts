@@ -8,6 +8,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { jobId, status, questionsData, error } = body;
+    
+    console.log(`[REPLACE CALLBACK] Received callback for job: ${jobId}`);
 
     if (!jobId) {
       return NextResponse.json(
@@ -32,6 +34,15 @@ export async function POST(req: NextRequest) {
       console.error(`No questionId found in job payload for job: ${jobId}`);
       return NextResponse.json(
         { error: "Question ID to replace not found in job" },
+        { status: 400 }
+      );
+    }
+    
+    // Safety check: Verify this is a replacement job
+    if (!jobId.startsWith('replace-')) {
+      console.error(`Invalid job ID for replacement: ${jobId}`);
+      return NextResponse.json(
+        { error: "This endpoint is only for replacement jobs" },
         { status: 400 }
       );
     }
