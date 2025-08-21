@@ -437,146 +437,173 @@ export default function QuizManagePage() {
 
         {/* Bulk Enroll Students Modal */}
         <Dialog open={showBulkEnroll} onOpenChange={setShowBulkEnroll}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle>Assign Students to Quiz</DialogTitle>
-              <DialogDescription>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b">
+              <DialogTitle className="text-xl font-semibold">Assign Students to Quiz</DialogTitle>
+              <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
                 Select students to enroll in &quot;{quiz?.title}&quot;. Already enrolled students are marked and cannot be selected.
               </DialogDescription>
             </DialogHeader>
             
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 flex flex-col overflow-hidden">
               {/* Stats Bar */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-4">
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">
-                      Total Students: <strong>{enrollmentStats.total}</strong>
-                    </span>
+              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-b">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Total Students: <strong className="text-gray-900 dark:text-white">{enrollmentStats.total}</strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Already Enrolled: <strong className="text-green-600">{enrollmentStats.enrolled}</strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <UserX className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Available: <strong className="text-blue-600">{enrollmentStats.total - enrollmentStats.enrolled}</strong>
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4 text-green-500" />
-                    <span className="text-sm text-gray-600">
-                      Already Enrolled: <strong>{enrollmentStats.enrolled}</strong>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <UserX className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm text-gray-600">
-                      Available: <strong>{enrollmentStats.total - enrollmentStats.enrolled}</strong>
-                    </span>
-                  </div>
+                  <Badge 
+                    variant={selectedStudents.size > 0 ? "default" : "secondary"}
+                    className={selectedStudents.size > 0 ? "bg-orange-500 text-white" : ""}
+                  >
+                    {selectedStudents.size} selected
+                  </Badge>
                 </div>
-                <Badge variant={selectedStudents.size > 0 ? "default" : "secondary"}>
-                  {selectedStudents.size} selected
-                </Badge>
               </div>
 
               {/* Search and Actions */}
-              <div className="flex gap-2 mb-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Search students by name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="px-6 py-4 border-b">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search students by name or email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 h-10"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={selectAll}
+                      disabled={enrollmentStats.total === enrollmentStats.enrolled}
+                      className="whitespace-nowrap"
+                    >
+                      <CheckSquare className="h-4 w-4 mr-2" />
+                      Select All Available
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={deselectAll}
+                      className="whitespace-nowrap"
+                    >
+                      <Square className="h-4 w-4 mr-2" />
+                      Deselect All
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={selectAll}
-                  disabled={enrollmentStats.total === enrollmentStats.enrolled}
-                >
-                  <CheckSquare className="h-4 w-4 mr-2" />
-                  Select All Available
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={deselectAll}
-                >
-                  <Square className="h-4 w-4 mr-2" />
-                  Deselect All
-                </Button>
               </div>
 
               {/* Student List */}
-              <div className="space-y-2 max-h-[400px] overflow-y-auto border rounded-lg p-2">
+              <div className="flex-1 overflow-y-auto px-6 py-4">
                 {filteredStudents.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    {searchTerm ? "No students found matching your search" : "No students available"}
+                  <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                    <Users className="h-12 w-12 mb-3 text-gray-300" />
+                    <p className="text-base">
+                      {searchTerm ? "No students found matching your search" : "No students available"}
+                    </p>
                   </div>
                 ) : (
-                  filteredStudents.map((student) => (
-                    <div
-                      key={student.studentId}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                        student.isEnrolled
-                          ? "bg-gray-50 dark:bg-gray-800 opacity-60 cursor-not-allowed"
-                          : selectedStudents.has(student.studentId)
-                          ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300"
-                          : "hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                      }`}
-                      onClick={() => !student.isEnrolled && toggleStudent(student.studentId)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          checked={selectedStudents.has(student.studentId) || student.isEnrolled}
-                          disabled={student.isEnrolled}
-                          onCheckedChange={() => toggleStudent(student.studentId)}
-                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                        />
-                        <div>
-                          <div className="font-medium">{student.name}</div>
-                          <div className="text-sm text-gray-500">{student.email}</div>
+                  <div className="space-y-2">
+                    {filteredStudents.map((student) => (
+                      <div
+                        key={student.studentId}
+                        className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all ${
+                          student.isEnrolled
+                            ? "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 opacity-60 cursor-not-allowed"
+                            : selectedStudents.has(student.studentId)
+                            ? "bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-600"
+                            : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 cursor-pointer"
+                        }`}
+                        onClick={() => !student.isEnrolled && toggleStudent(student.studentId)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={selectedStudents.has(student.studentId) || student.isEnrolled}
+                            disabled={student.isEnrolled}
+                            onCheckedChange={() => toggleStudent(student.studentId)}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                            className="h-5 w-5"
+                          />
+                          <div>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {student.name}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {student.email}
+                            </div>
+                          </div>
                         </div>
+                        {student.isEnrolled && (
+                          <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Already Enrolled
+                          </Badge>
+                        )}
                       </div>
-                      {student.isEnrolled && (
-                        <Badge variant="secondary" className="bg-green-100 text-green-700">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Already Enrolled
-                        </Badge>
-                      )}
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
 
-            <DialogFooter className="flex justify-between items-center">
-              <Button
-                variant="outline"
-                onClick={handleEnrollAll}
-                disabled={enrolling || enrollmentStats.total === enrollmentStats.enrolled}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Enroll All Students
-              </Button>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowBulkEnroll(false)} disabled={enrolling}>
-                  Cancel
-                </Button>
+            <DialogFooter className="px-6 py-4 border-t bg-gray-50 dark:bg-gray-900">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
                 <Button
-                  onClick={handleBulkEnroll}
-                  disabled={enrolling || selectedStudents.size === 0}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  variant="outline"
+                  onClick={handleEnrollAll}
+                  disabled={enrolling || enrollmentStats.total === enrollmentStats.enrolled}
+                  className="w-full sm:w-auto"
                 >
-                  {enrolling ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Enrolling...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Enroll {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}
-                    </>
-                  )}
+                  <Users className="h-4 w-4 mr-2" />
+                  Enroll All Students
                 </Button>
+                <div className="flex gap-3 w-full sm:w-auto">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowBulkEnroll(false)} 
+                    disabled={enrolling}
+                    className="flex-1 sm:flex-initial"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleBulkEnroll}
+                    disabled={enrolling || selectedStudents.size === 0}
+                    className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {enrolling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Enrolling...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Enroll {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </DialogFooter>
           </DialogContent>
