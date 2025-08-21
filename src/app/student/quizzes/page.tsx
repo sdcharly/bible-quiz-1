@@ -64,12 +64,25 @@ export default function StudentQuizzesPage() {
         method: "POST",
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        // Refresh quizzes list
+        // Show success message (you can add a toast notification here if available)
+        if (data.alreadyEnrolled) {
+          console.log("Already enrolled in this quiz");
+        } else {
+          console.log("Successfully enrolled in quiz");
+        }
+        // Refresh quizzes list to update enrollment status
         fetchQuizzes();
+      } else {
+        // Handle error
+        console.error("Enrollment failed:", data.error || data.message);
+        alert(data.message || "Failed to enroll in quiz. Please try again.");
       }
     } catch (error) {
       console.error("Error enrolling in quiz:", error);
+      alert("An error occurred while enrolling. Please try again.");
     }
   };
 
