@@ -1,203 +1,480 @@
-# Scrolls of Wisdom - Biblical Knowledge Quest Platform
+# 📜 Scrolls of Wisdom - Biblical Knowledge Quest Platform
 
-A comprehensive biblical quiz platform with AI-powered question generation, document processing, and real-time assessments.
+A comprehensive biblical education platform featuring AI-powered quiz generation, advanced document processing, real-time assessments, and multi-role management system. Built with modern web technologies for educators and students to create, manage, and experience biblical learning journeys.
+
+![Next.js](https://img.shields.io/badge/Next.js-15.4.6-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4-green)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
+## 📑 Table of Contents
+
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Prerequisites](#-prerequisites)
+- [Quick Deploy](#-quick-deploy-to-vercel)
+- [Local Development](#-local-development)
+- [Production Deployment](#-production-deployment)
+- [Project Structure](#-project-structure)
+- [User Roles](#-user-roles)
+- [API Documentation](#-api-documentation)
+- [Database Schema](#-database-schema)
+- [Security](#-security)
+- [Scripts](#-scripts)
+- [Troubleshooting](#-troubleshooting)
+- [Contributing](#-contributing)
+- [Support](#-support)
+- [License](#-license)
+
+## ✨ Features
+
+### Core Features
+- **🤖 AI-Powered Quiz Generation** - Generate comprehensive biblical quizzes from uploaded documents using GPT-4
+- **📚 Advanced Document Processing** - Process PDFs, DOCX, TXT files with LightRAG for intelligent content extraction
+- **⏱️ Real-Time Quiz Sessions** - Timed quiz taking with auto-submission and progress tracking
+- **📊 Comprehensive Analytics** - Detailed performance metrics, attempt history, and topic-wise analysis
+- **🌍 Full Timezone Support** - Global timezone handling for scheduled quizzes
+- **📧 Email Notifications** - Automated notifications for quiz creation, enrollment, and results
+- **👥 Multi-Role System** - Educator, Student, and Super Admin roles with specific permissions
+- **🎨 Biblical Theme** - Custom UI with sacred design elements and biblical terminology
+
+### Educator Features
+- **Document Upload & Processing** - Batch upload biblical materials for quiz generation
+- **Quiz Management** - Create, edit, delete, and schedule quizzes
+- **Student Management** - Enroll students, track progress, send invitations
+- **Question Bank** - AI-generated questions with difficulty levels and topics
+- **Detailed Analytics** - Class performance, individual student tracking
+- **Approval System** - Educator verification and approval workflow
+
+### Student Features
+- **Quiz Enrollment** - Join quizzes via invite codes or educator enrollment
+- **Practice Mode** - Attempt quizzes multiple times for learning
+- **Progress Tracking** - View scores, attempt history, and improvement trends
+- **Instant Feedback** - Detailed explanations for correct/incorrect answers
+- **Dashboard** - Personalized view of enrolled quizzes and upcoming sessions
+
+### Super Admin Features
+- **Complete System Control** - Manage all users, quizzes, and system settings
+- **Educator Approval** - Review and approve educator registrations
+- **Activity Monitoring** - Track all system activities and user actions
+- **Batch Operations** - Bulk user management and quiz operations
+- **System Settings** - Configure global platform settings
+- **Security Controls** - Manage access permissions and security policies
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **Framework:** Next.js 15.4.6 (App Router)
+- **Language:** TypeScript 5.0
+- **Styling:** Tailwind CSS 3.4 + Custom Theming
+- **UI Components:** Radix UI + Custom Components
+- **Icons:** Heroicons, Lucide React, Phosphor Icons
+- **Forms:** React Hook Form + Zod Validation
+- **State Management:** React Context + Hooks
+
+### Backend
+- **Runtime:** Node.js 20+
+- **API Routes:** Next.js API Routes
+- **Database:** PostgreSQL 16 with Drizzle ORM
+- **Authentication:** Better Auth with JWT
+- **AI Integration:** OpenAI GPT-4 API
+- **Document Processing:** LightRAG API
+- **Email:** Nodemailer with SMTP
+- **File Storage:** Vercel Blob Storage (optional)
+
+### DevOps & Tools
+- **Deployment:** Vercel
+- **Database Hosting:** Neon / Supabase / Railway
+- **Version Control:** Git
+- **Package Manager:** npm
+- **Build Tool:** Next.js with Turbopack
+- **Linting:** ESLint
+- **Type Checking:** TypeScript
+
+## 📋 Prerequisites
+
+Before getting started, ensure you have:
+
+1. **Node.js 20+** - [Download](https://nodejs.org/)
+2. **PostgreSQL Database** - Recommended providers:
+   - [Neon](https://neon.tech) (Best for Vercel)
+   - [Supabase](https://supabase.com)
+   - [Railway](https://railway.app)
+3. **OpenAI API Key** - [Get from OpenAI](https://platform.openai.com)
+4. **Google OAuth Credentials** - [Google Cloud Console](https://console.cloud.google.com)
+5. **LightRAG API Access** - Contact provider for access
+6. **SMTP Email Service** - Options:
+   - Gmail with App Password
+   - SendGrid
+   - Mailgun
+   - Custom SMTP
 
 ## 🚀 Quick Deploy to Vercel
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/sdcharly/bible-quiz-1)
 
-## 📋 Prerequisites
+Click the button above and follow the deployment wizard. You'll need to provide all environment variables during setup.
 
-Before deploying, you'll need:
+## 💻 Local Development
 
-1. **PostgreSQL Database** (Recommended: [Neon](https://neon.tech) or [Supabase](https://supabase.com))
-2. **OpenAI API Key** from [OpenAI Platform](https://platform.openai.com)
-3. **Google OAuth Credentials** from [Google Cloud Console](https://console.cloud.google.com)
-4. **LightRAG API** access
-5. **SMTP Email Service** (Gmail, SendGrid, etc.)
+### 1. Clone the Repository
+```bash
+git clone https://github.com/sdcharly/bible-quiz-1.git
+cd bible-quiz-1
+```
 
-## 🛠️ Local Development
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/sdcharly/bible-quiz-1.git
-   cd bible-quiz-1
-   ```
+### 3. Set Up Environment Variables
+```bash
+cp .env.example .env.local
+```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+Edit `.env.local` with your values:
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env.local
-   # Edit .env.local with your values
-   ```
+```env
+# Database
+POSTGRES_URL=postgresql://user:password@localhost:5432/bible_quiz
 
-4. **Set up the database**
-   ```bash
-   npm run db:push
-   ```
+# Authentication
+BETTER_AUTH_SECRET=your-32-character-secret-key
 
-5. **Run the development server**
-   ```bash
-   npm run dev
-   ```
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 
-6. **Open the app**
-   ```
-   http://localhost:3000
-   ```
+# OpenAI
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-4o-mini
 
-## 🚀 Production Deployment on Vercel
+# LightRAG
+LIGHTRAG_API_URL=your-lightrag-url
+LIGHTRAG_API_KEY=your-lightrag-api-key
 
-### Step 1: Prepare Your Database
+# Quiz Generation
+QUIZ_GENERATION_WEBHOOK_URL=http://localhost:3000/api/educator/quiz/webhook-callback
 
-1. Create a PostgreSQL database (Neon recommended for Vercel)
-2. Copy the connection string (should look like: `postgres://user:pass@host/database?sslmode=require`)
+# Email
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+EMAIL_FROM="Scrolls of Wisdom <noreply@example.com>"
 
-### Step 2: Deploy to Vercel
+# Super Admin
+SUPER_ADMIN_EMAIL=admin@example.com
+SUPER_ADMIN_PASSWORD=SecurePassword123!
+SUPER_ADMIN_SECRET_KEY=another-32-character-secret
+SUPER_ADMIN_2FA_ENABLED=false
 
-1. **Fork/Clone this repository** to your GitHub account
+# Application
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
-2. **Import to Vercel**
-   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
-   - Click "New Project"
-   - Import your GitHub repository
+### 4. Set Up Database
+```bash
+# Generate database schema
+npm run db:generate
 
-3. **Configure Environment Variables**
-   
-   Add the following environment variables in Vercel:
+# Push schema to database
+npm run db:push
 
-   **Required Variables:**
-   ```
-   # Database
-   POSTGRES_URL=your_postgresql_connection_string
+# Run migrations
+npm run db:migrate
+```
 
-   # Authentication
-   BETTER_AUTH_SECRET=generate_random_32_char_string
+### 5. Run Development Server
+```bash
+npm run dev
+```
 
-   # Google OAuth
-   GOOGLE_CLIENT_ID=your_google_client_id
-   GOOGLE_CLIENT_SECRET=your_google_client_secret
+### 6. Access the Application
+- Main App: http://localhost:3000
+- Database Studio: `npm run db:studio` (opens at http://localhost:3333)
 
-   # OpenAI
-   OPENAI_API_KEY=your_openai_api_key
-   OPENAI_MODEL=gpt-4o-mini
+## 🚢 Production Deployment
 
-   # LightRAG
-   LIGHTRAG_API_URL=your_lightrag_url
-   LIGHTRAG_API_KEY=your_lightrag_key
+### Vercel Deployment (Recommended)
 
-   # Quiz Generation Webhook
-   QUIZ_GENERATION_WEBHOOK_URL=your_webhook_url
+#### Step 1: Prepare Database
+1. Create a PostgreSQL database on Neon/Supabase
+2. Copy the connection string with SSL mode
 
-   # Email (SMTP)
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_SECURE=false
-   SMTP_USER=your_email@gmail.com
-   SMTP_PASS=your_app_password
-   EMAIL_FROM=Scrolls of Wisdom <noreply@yourdomain.com>
+#### Step 2: Fork Repository
+Fork this repository to your GitHub account
 
-   # Application URL (update after deployment)
-   NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
-   ```
+#### Step 3: Import to Vercel
+1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+2. Click "New Project"
+3. Import your forked repository
 
-4. **Deploy**
-   - Click "Deploy"
-   - Wait for the build to complete
+#### Step 4: Configure Environment Variables
+Add all variables from `.env.example` in Vercel's Environment Variables section
 
-### Step 3: Post-Deployment Setup
+#### Step 5: Deploy
+Click "Deploy" and wait for the build to complete
 
-1. **Update OAuth Redirect URLs**
-   - Go to Google Cloud Console
-   - Add your production URL to authorized redirect URIs:
-     - `https://your-app.vercel.app/api/auth/callback/google`
+#### Step 6: Post-Deployment
+1. Update Google OAuth redirect URLs with your production URL
+2. Update `NEXT_PUBLIC_APP_URL` in Vercel
+3. Run database migrations if needed
 
-2. **Run Database Migrations**
-   - The migrations run automatically during build
-   - If needed, you can run manually:
-     ```bash
-     npm run db:migrate
-     ```
+### Manual Deployment
 
-3. **Update NEXT_PUBLIC_APP_URL**
-   - Go to Vercel Dashboard → Settings → Environment Variables
-   - Update `NEXT_PUBLIC_APP_URL` with your actual Vercel URL
-   - Redeploy for changes to take effect
+For other platforms, ensure you:
+1. Set all environment variables
+2. Run `npm run build`
+3. Run `npm run db:migrate`
+4. Start with `npm start`
 
-## 🔧 Environment Variables Reference
+## 📁 Project Structure
 
-See `.env.example` for a complete list of environment variables and their descriptions.
+```
+bible-quiz-1/
+├── src/
+│   ├── app/                  # Next.js App Router pages
+│   │   ├── api/              # API routes
+│   │   ├── auth/             # Authentication pages
+│   │   ├── admin/            # Super admin dashboard
+│   │   ├── educator/         # Educator dashboard
+│   │   ├── student/          # Student dashboard
+│   │   └── page.tsx          # Home page
+│   ├── components/           # React components
+│   │   ├── ui/              # Base UI components
+│   │   ├── educator/        # Educator-specific components
+│   │   └── student/         # Student-specific components
+│   ├── lib/                 # Utility functions
+│   │   ├── auth.ts          # Authentication utilities
+│   │   ├── db.ts            # Database connection
+│   │   └── ai.ts            # AI integration
+│   ├── db/                  # Database schema
+│   │   └── schema.ts        # Drizzle ORM schema
+│   └── styles/              # Global styles
+├── public/                  # Static assets
+├── drizzle/                 # Database migrations
+├── scripts/                 # Utility scripts
+└── config files            # Various configuration files
+```
 
-### Required Variables:
-- `POSTGRES_URL` - PostgreSQL connection string
-- `BETTER_AUTH_SECRET` - Authentication secret key
-- `OPENAI_API_KEY` - OpenAI API key for AI features
-- `LIGHTRAG_API_URL` - LightRAG service URL
-- `LIGHTRAG_API_KEY` - LightRAG API key
-- `QUIZ_GENERATION_WEBHOOK_URL` - Webhook for quiz generation
-- `SMTP_*` - Email configuration
+## 👥 User Roles
 
-### Optional Variables:
-- `GOOGLE_CLIENT_ID` - For Google OAuth
-- `GOOGLE_CLIENT_SECRET` - For Google OAuth
-- `BLOB_READ_WRITE_TOKEN` - For file storage (if using Vercel Blob)
+### Student
+- Take quizzes
+- View results and progress
+- Join educator classrooms
+- Practice with multiple attempts
 
-## 📦 Tech Stack
+### Educator
+- Create and manage quizzes
+- Upload documents for AI processing
+- Manage student enrollments
+- View detailed analytics
+- Schedule quiz sessions
 
-- **Framework:** Next.js 15 with App Router
-- **Database:** PostgreSQL with Drizzle ORM
-- **Authentication:** Better Auth
-- **Styling:** Tailwind CSS
-- **AI:** OpenAI GPT-4
-- **Document Processing:** LightRAG
-- **Deployment:** Vercel
+### Super Admin
+- Full system access
+- Approve educator registrations
+- Manage all users
+- Monitor system activity
+- Configure platform settings
+- Access hidden via subtle link on homepage (✝ symbol in footer)
 
-## 🔒 Security Features
+## 📚 API Documentation
 
-- Secure authentication with Better Auth
-- Environment variable validation
-- Security headers via middleware
-- CSRF protection
-- SQL injection prevention via Drizzle ORM
-- XSS protection
+### Authentication Endpoints
+- `POST /api/auth/signup` - User registration
+- `POST /api/auth/signin` - User login
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/session` - Get current session
 
-## 📱 Features
+### Quiz Management
+- `GET /api/educator/quiz` - List educator's quizzes
+- `POST /api/educator/quiz/create` - Create new quiz
+- `PUT /api/educator/quiz/[id]` - Update quiz
+- `DELETE /api/educator/quiz/[id]` - Delete quiz
 
-- **AI-Powered Quiz Generation** - Generate quizzes from uploaded documents
-- **Biblical Document Processing** - Process various biblical texts
-- **Real-time Quiz Taking** - Students can take quizzes in real-time
-- **Comprehensive Analytics** - Track student performance
-- **Timezone Support** - Full timezone support for global users
-- **Email Notifications** - Automated email notifications
-- **Role-Based Access** - Separate educator and student dashboards
+### Student Operations
+- `GET /api/student/quizzes` - Get enrolled quizzes
+- `POST /api/student/quiz/[id]/attempt` - Submit quiz attempt
+- `GET /api/student/results/[id]` - Get attempt results
+
+### Admin Operations
+- `GET /api/admin/users` - List all users
+- `PUT /api/admin/educators/[id]/approve` - Approve educator
+- `GET /api/admin/activity` - Get activity logs
+- `POST /api/admin/settings` - Update system settings
+
+## 🗄️ Database Schema
+
+### Core Tables
+- `user` - User accounts and profiles
+- `account` - OAuth account links
+- `session` - Active user sessions
+- `quizzes` - Quiz definitions
+- `questions` - Quiz questions
+- `quiz_attempts` - Student attempts
+- `question_responses` - Individual answers
+- `enrollments` - Student-quiz enrollments
+- `documents` - Uploaded documents
+- `educator_students` - Educator-student relationships
+- `invitations` - Quiz invitation codes
+- `activity_logs` - System activity tracking
+- `admin_settings` - Global platform settings
+
+## 🔒 Security
+
+### Implemented Security Measures
+- **Authentication:** JWT-based with Better Auth
+- **Password Security:** Bcrypt hashing with salt
+- **SQL Injection Prevention:** Parameterized queries via Drizzle ORM
+- **XSS Protection:** React's built-in escaping
+- **CSRF Protection:** Token-based verification
+- **Environment Variables:** Secure secret management
+- **HTTPS Only:** Enforced in production
+- **Rate Limiting:** API endpoint protection
+- **Input Validation:** Zod schema validation
+- **File Upload Security:** Type and size restrictions
+
+### Security Best Practices
+1. Use strong, unique passwords
+2. Enable 2FA for super admin (when available)
+3. Regularly rotate API keys
+4. Keep dependencies updated
+5. Monitor activity logs
+6. Use environment-specific secrets
+7. Implement proper CORS policies
+8. Regular security audits
+
+## 📝 Scripts
+
+### Development
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run type-check` - TypeScript type checking
+
+### Database
+- `npm run db:generate` - Generate migrations from schema
+- `npm run db:migrate` - Run pending migrations
+- `npm run db:push` - Push schema to database
+- `npm run db:studio` - Open Drizzle Studio
+- `npm run db:reset` - Reset database (CAUTION: Drops all data)
+
+### Utilities
+- `npm run cleanup:quizzes` - Clean up orphaned quiz data
+- `npm run vercel-build` - Vercel-specific build command
 
 ## 🐛 Troubleshooting
 
-### Database Connection Issues
-- Ensure your PostgreSQL URL includes `?sslmode=require` for production
-- Check if your database allows connections from Vercel IPs
+### Common Issues
 
-### Authentication Issues
-- Regenerate `BETTER_AUTH_SECRET` if authentication fails
-- Ensure Google OAuth redirect URLs are correctly configured
+#### Database Connection Failed
+```
+Error: Can't reach database server
+```
+**Solution:**
+- Check POSTGRES_URL format
+- Ensure SSL mode is enabled: `?sslmode=require`
+- Verify database is accessible from your network
 
-### Build Failures
-- Check all required environment variables are set
-- Run `npm run type-check` locally to catch TypeScript errors
-- Ensure database migrations are up to date
+#### Authentication Issues
+```
+Error: Invalid authentication token
+```
+**Solution:**
+- Regenerate BETTER_AUTH_SECRET
+- Clear browser cookies
+- Check session expiry settings
 
-## 📝 License
+#### Google OAuth Not Working
+```
+Error: Redirect URI mismatch
+```
+**Solution:**
+- Add correct redirect URLs in Google Console:
+  - Development: `http://localhost:3000/api/auth/callback/google`
+  - Production: `https://your-domain.com/api/auth/callback/google`
 
-MIT
+#### Build Failures
+```
+Error: Type errors during build
+```
+**Solution:**
+- Run `npm run type-check` locally
+- Fix TypeScript errors
+- Ensure all environment variables are set
 
-## 🤝 Support
+#### Email Not Sending
+```
+Error: Failed to send email
+```
+**Solution:**
+- For Gmail: Use App Password, not regular password
+- Check SMTP settings
+- Verify firewall allows SMTP connections
 
-For issues or questions, please open an issue on GitHub or contact support.
+#### Quiz Generation Timeout
+```
+Error: Quiz generation timed out
+```
+**Solution:**
+- Check OpenAI API key validity
+- Verify LightRAG API is accessible
+- Increase timeout settings if needed
+
+### Getting Help
+1. Check the error logs in Vercel dashboard
+2. Run `npm run db:studio` to inspect database
+3. Enable debug mode with `DEBUG=*` environment variable
+4. Open an issue on GitHub with error details
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+### Development Guidelines
+- Follow existing code style
+- Add tests for new features
+- Update documentation
+- Ensure all tests pass
+- Keep commits atomic and descriptive
+
+## 📞 Support
+
+### Resources
+- **Documentation:** This README
+- **Issues:** [GitHub Issues](https://github.com/sdcharly/bible-quiz-1/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/sdcharly/bible-quiz-1/discussions)
+- **Email:** support@scrollsofwisdom.com
+
+### Commercial Support
+For enterprise support, custom features, or consulting, contact us at enterprise@scrollsofwisdom.com
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- OpenAI for GPT-4 API
+- Vercel for hosting platform
+- Next.js team for the framework
+- All contributors and users
 
 ---
 
-Built with ❤️ for biblical education
+**Built with ❤️ for Biblical Education**
+
+*"The fear of the Lord is the beginning of wisdom, and knowledge of the Holy One is understanding." - Proverbs 9:10*

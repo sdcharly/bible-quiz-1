@@ -294,6 +294,28 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
+      {/* Footer with subtle admin link */}
+      <footer className="px-6 py-8 sm:px-12 lg:px-24 bg-amber-50/50 dark:bg-gray-900/50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center text-sm text-gray-500 dark:text-gray-600">
+            <p className="mb-2">
+              "The fear of the Lord is the beginning of wisdom" - Proverbs 9:10
+            </p>
+            <div className="flex justify-center items-center gap-4 mt-4">
+              <span>© 2024 Scrolls of Wisdom</span>
+              <span className="text-amber-300/40 dark:text-amber-800/40">•</span>
+              <Link 
+                href="/auth/super-admin-login" 
+                className="text-amber-400/50 dark:text-amber-700/50 hover:text-amber-500/70 dark:hover:text-amber-600/70 transition-colors duration-200"
+                title="Shepherd's Gate"
+              >
+                ✝
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -18,7 +18,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { QuestionValidationDisplay } from "@/components/question-validation-display";
 import { ValidationSummary } from "@/components/validation-summary";
 import { QuestionValidationResult } from "@/lib/question-validator";
 import {
@@ -664,15 +663,6 @@ export default function QuizReviewPage() {
             </CardContent>
           </Card>
 
-          {/* Validation Summary */}
-          {validationSummary && (
-            <ValidationSummary
-              summary={validationSummary}
-              onRevalidateAll={() => validateAllQuestions()}
-              isRevalidating={validating}
-            />
-          )}
-
           {/* Progress Bar */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
@@ -888,18 +878,6 @@ export default function QuizReviewPage() {
                 )}
               </div>
 
-              {/* Question Validation */}
-              {validationResults[currentQuestion.id] && (
-                <div className="mt-6 pt-6 border-t">
-                  <QuestionValidationDisplay
-                    validation={validationResults[currentQuestion.id]}
-                    questionId={currentQuestion.id}
-                    questionText={currentQuestion.questionText}
-                    onRevalidate={() => validateSingleQuestion(currentQuestion.id)}
-                    compact={false}
-                  />
-                </div>
-              )}
 
               {/* Metadata */}
               <div className="mt-6 pt-6 border-t">
@@ -995,6 +973,15 @@ export default function QuizReviewPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Validation Summary - Moved here for better focus */}
+        {validationSummary && (
+          <ValidationSummary
+            summary={validationSummary}
+            onRevalidateAll={() => validateAllQuestions()}
+            isRevalidating={validating}
+          />
         )}
 
         {/* Navigation Controls */}
