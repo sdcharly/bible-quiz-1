@@ -4,7 +4,7 @@ A comprehensive biblical quiz platform with AI-powered question generation, docu
 
 ## 🚀 Quick Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/simplequiz)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/sdcharly/bible-quiz-1)
 
 ## 📋 Prerequisites
 
@@ -20,8 +20,8 @@ Before deploying, you'll need:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/simplequiz.git
-   cd simplequiz
+   git clone https://github.com/sdcharly/bible-quiz-1.git
+   cd bible-quiz-1
    ```
 
 2. **Install dependencies**
