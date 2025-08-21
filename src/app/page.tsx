@@ -304,14 +304,6 @@ export default function HomePage() {
             </p>
             <div className="flex justify-center items-center gap-4 mt-4">
               <span>© 2024 Scrolls of Wisdom</span>
-              <span className="text-amber-300/40 dark:text-amber-800/40">•</span>
-              <Link 
-                href="/auth/super-admin-login" 
-                className="text-amber-400/50 dark:text-amber-700/50 hover:text-amber-500/70 dark:hover:text-amber-600/70 transition-colors duration-200"
-                title="Shepherd's Gate"
-              >
-                ✝
-              </Link>
             </div>
           </div>
         </div>

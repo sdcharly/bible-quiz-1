@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { quizzes, documents } from "@/lib/schema";
-import { inArray, eq } from "drizzle-orm";
+import { inArray, eq, and, gte } from "drizzle-orm";
 import * as crypto from "crypto";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -87,6 +87,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check for duplicate quiz creation (same title within last 5 minutes)
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    const recentDuplicates = await db
+      .select()
+      .from(quizzes)
+      .where(
+        and(
+          eq(quizzes.educatorId, educatorId),
+          eq(quizzes.title, title),
+          gte(quizzes.createdAt, fiveMinutesAgo)
+        )
+      );
+    
+    if (recentDuplicates.length > 0) {
+      console.log(`[CREATE-ASYNC] Duplicate quiz creation attempt blocked: "${title}" by educator ${educatorId}`);
+      return NextResponse.json(
+        { 
+          error: "A quiz with this title was created recently. Please wait a moment or use a different title.",
+          existingQuizId: recentDuplicates[0].id
+        },
+        { status: 409 } // Conflict status
+      );
+    }
+
     const quizId = crypto.randomUUID();
     const jobId = crypto.randomUUID();
 
@@ -142,7 +166,7 @@ export async function POST(req: NextRequest) {
     
     const webhookPayload = {
       jobId,  // Important: Include jobId for callback
-      callbackUrl,  // Important: n8n will POST results here
+      callbackUrl,  // Important: backend service will POST results here
       documentIds,
       documentMetadata,
       questionCount,
@@ -168,7 +192,7 @@ export async function POST(req: NextRequest) {
       console.log("Job exists in store:", !!jobStore.get(jobId));
       
       // Call the webhook with a shorter timeout (10 seconds)
-      // We expect n8n to respond immediately with "processing" status
+      // We expect the service to respond immediately with "processing" status
       try {
         const webhookResponse = await fetch(process.env.QUIZ_GENERATION_WEBHOOK_URL, {
           method: "POST",
@@ -207,13 +231,13 @@ export async function POST(req: NextRequest) {
         jobStore.update(jobId, {
           status: 'processing',
           progress: 10,
-          message: 'Quiz generation started by n8n workflow'
+          message: 'Biblical quiz generation in progress...'
         });
 
         console.log("Webhook acknowledged, processing in background");
         
         // Log the expected callback for debugging
-        console.log(`[CREATE-ASYNC] n8n should callback to: ${callbackUrl}`);
+        console.log(`[CREATE-ASYNC] Service should callback to: ${callbackUrl}`);
         console.log(`[CREATE-ASYNC] with jobId: ${jobId}`);
       } catch (fetchError) {
         console.error("Failed to reach webhook:", fetchError);
@@ -222,7 +246,7 @@ export async function POST(req: NextRequest) {
         jobStore.update(jobId, {
           status: 'failed',
           error: 'Failed to reach quiz generation service',
-          message: 'Could not connect to n8n webhook'
+          message: 'Could not connect to quiz generation service'
         });
 
         return NextResponse.json({

@@ -68,23 +68,33 @@ export function SiteHeader() {
     <header className="border-b bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm shadow-sm">
       <div className="container mx-auto px-6 py-4">
         <div className="flex justify-between items-center">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg blur-sm group-hover:blur-md transition-all duration-300 opacity-70"></div>
-              <div className="relative bg-gradient-to-br from-amber-500 to-orange-600 p-2 rounded-lg shadow-lg">
-                <BookOpenSolid className="h-7 w-7 text-white" />
+          {/* Logo with subtle admin link */}
+          <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg blur-sm group-hover:blur-md transition-all duration-300 opacity-70"></div>
+                <div className="relative bg-gradient-to-br from-amber-500 to-orange-600 p-2 rounded-lg shadow-lg">
+                  <BookOpenSolid className="h-7 w-7 text-white" />
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 bg-clip-text text-transparent group-hover:from-amber-500 group-hover:to-orange-500 transition-all duration-300">
-                Scrolls of Wisdom
-              </span>
-              <span className="text-xs font-medium text-amber-600 dark:text-amber-400 -mt-1">
-                Biblical Knowledge Quest
-              </span>
-            </div>
-          </Link>
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 bg-clip-text text-transparent group-hover:from-amber-500 group-hover:to-orange-500 transition-all duration-300">
+                  Scrolls of Wisdom
+                </span>
+                <span className="text-xs font-medium text-amber-600 dark:text-amber-400 -mt-1">
+                  Biblical Knowledge Quest
+                </span>
+              </div>
+            </Link>
+            {/* Subtle admin access - small cross icon */}
+            <Link
+              href="/admin/login"
+              className="text-amber-400/40 hover:text-amber-600 transition-all duration-300 px-1"
+              title="Admin Portal"
+            >
+              <span className="text-sm font-light">✝</span>
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">

@@ -143,13 +143,13 @@ export async function PUT(
         jobStore.update(jobId, {
           status: 'processing',
           progress: 10,
-          message: 'Generating replacement question...'
+          message: 'Creating new biblical study question...'
         });
 
         console.log("Webhook acknowledged for replacement, processing in background");
         
         // Log the expected callback for debugging
-        console.log(`[REPLACE-ASYNC] n8n should callback to: ${callbackUrl}`);
+        console.log(`[REPLACE-ASYNC] Service should callback to: ${callbackUrl}`);
         console.log(`[REPLACE-ASYNC] with jobId: ${jobId}`);
       } catch (fetchError) {
         console.error("Failed to reach webhook:", fetchError);
@@ -158,7 +158,7 @@ export async function PUT(
         jobStore.update(jobId, {
           status: 'failed',
           error: 'Failed to reach question generation service',
-          message: 'Could not connect to n8n webhook'
+          message: 'Could not connect to question generation service'
         });
 
         return NextResponse.json({

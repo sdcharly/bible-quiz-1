@@ -186,6 +186,16 @@ export async function POST(req: NextRequest) {
       });
       
       console.log(`Job ${jobId} completed: ${statusMessage}`);
+      
+      // Return success response for completed quiz generation
+      return NextResponse.json({
+        success: true,
+        jobId,
+        quizId,
+        message: statusMessage,
+        questionsGenerated: insertedQuestions.length,
+        questionsFailed: failedQuestions
+      });
     } else if (status === 'error' || error) {
       // Handle error case
       jobStore.update(jobId, {
@@ -197,9 +207,9 @@ export async function POST(req: NextRequest) {
       
       console.error(`Job ${jobId} failed:`, error);
     } else {
-      // Update progress (n8n might send progress updates)
+      // Update progress (backend service might send progress updates)
       const progress = body.progress || 50;
-      const message = body.message || 'Processing quiz generation...';
+      const message = body.message || 'Crafting biblical knowledge questions...';
       
       jobStore.update(jobId, {
         status: 'processing',

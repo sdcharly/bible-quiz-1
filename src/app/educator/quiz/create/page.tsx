@@ -70,6 +70,7 @@ function CreateQuizContent() {
   const [jobId, setJobId] = useState<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isCompletingRef = useRef(false);
+  const isSubmittingRef = useRef(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [config, setConfig] = useState<QuizConfig>({
     title: "",
@@ -159,7 +160,7 @@ function CreateQuizContent() {
   };
 
   const pollJobStatus = async (jobId: string, quizId: string) => {
-    const maxAttempts = 180; // Poll for up to 3 minutes
+    const maxAttempts = 1800; // Poll for up to 30 minutes (suitable for AI workflows)
     let attempts = 0;
     
     // Clear any existing interval
@@ -187,12 +188,30 @@ function CreateQuizContent() {
         
         if (response.ok) {
           const status = await response.json();
+          console.log(`[POLL-QUIZ] Job ${jobId} status:`, status.status, `progress:`, status.progress);
           
-          // Update progress UI
-          setGenerationProgress(status.progress || 0);
-          setGenerationMessage(status.message || "Processing...");
+          // Update progress UI with time-aware messages for AI workflows
+          const elapsedSeconds = attempts;
+          let progressMessage = status.message || "Processing...";
+          
+          // Add encouraging messages for long-running AI workflows
+          if (elapsedSeconds > 900 && status.status === 'processing') { // 15+ minutes
+            progressMessage = "Comprehensive biblical analysis underway... AI is creating deep, thoughtful questions across multiple topics.";
+          } else if (elapsedSeconds > 600 && status.status === 'processing') { // 10+ minutes
+            progressMessage = "Advanced scriptural processing continues... Quality biblical questions are being crafted with care.";
+          } else if (elapsedSeconds > 300 && status.status === 'processing') { // 5+ minutes
+            progressMessage = "AI is deeply analyzing your biblical documents to create meaningful assessment questions...";
+          } else if (elapsedSeconds > 120 && status.status === 'processing') { // 2+ minutes
+            progressMessage = "Complex theological processing in progress... Creating questions that test true understanding.";
+          } else if (elapsedSeconds > 60 && status.status === 'processing') {
+            progressMessage = "AI is carefully studying your documents to generate thoughtful biblical questions...";
+          }
+          
+          setGenerationProgress(status.progress || Math.min(5 + Math.floor(attempts / 10), 90));
+          setGenerationMessage(progressMessage);
           
           if (status.status === 'completed') {
+            console.log(`[POLL-QUIZ] Quiz generation job ${jobId} completed!`);
             // Mark as completing to prevent race conditions
             isCompletingRef.current = true;
             
@@ -206,7 +225,7 @@ function CreateQuizContent() {
             setJobId(null);
             
             setGenerationProgress(100);
-            setGenerationMessage("Quiz generated successfully! Redirecting...");
+            setGenerationMessage("Biblical quiz created successfully! Redirecting...");
             
             // Wait a moment to show success message
             setTimeout(() => {
@@ -218,6 +237,7 @@ function CreateQuizContent() {
               pollIntervalRef.current = null;
             }
             setLoading(false);
+            isSubmittingRef.current = false;
             setGenerationProgress(0);
             alert(status.error || "Quiz generation failed. Please try again.");
           } else if (attempts >= maxAttempts) {
@@ -226,6 +246,7 @@ function CreateQuizContent() {
               pollIntervalRef.current = null;
             }
             setLoading(false);
+            isSubmittingRef.current = false;
             setGenerationProgress(0);
             alert("Quiz generation is taking longer than expected. You can check back later or try again.");
           }
@@ -237,6 +258,7 @@ function CreateQuizContent() {
               pollIntervalRef.current = null;
             }
             setLoading(false);
+            isSubmittingRef.current = false;
             setGenerationProgress(0);
             alert("Quiz generation job expired. Please try again.");
           }
@@ -252,6 +274,7 @@ function CreateQuizContent() {
               pollIntervalRef.current = null;
             }
             setLoading(false);
+            isSubmittingRef.current = false;
             setGenerationProgress(0);
             alert("Failed to check quiz generation status. Please try again.");
           }
@@ -261,9 +284,17 @@ function CreateQuizContent() {
   };
 
   const handleSubmit = async () => {
+    // Prevent multiple submissions using both state and ref
+    if (loading || isSubmittingRef.current) {
+      console.log("Quiz creation already in progress, ignoring duplicate submission");
+      return;
+    }
+    
+    // Set both state and ref to prevent race conditions
+    isSubmittingRef.current = true;
     setLoading(true);
     setGenerationProgress(0);
-    setGenerationMessage("Initializing quiz generation...");
+    setGenerationMessage("Preparing biblical knowledge assessment...");
     
     try {
       // Convert startTime from user's timezone to UTC for backend storage
@@ -289,7 +320,7 @@ function CreateQuizContent() {
         if (data.jobId) {
           setJobId(data.jobId);
           setGenerationProgress(5);
-          setGenerationMessage("Quiz creation started. Generating questions...");
+          setGenerationMessage("Beginning to craft biblical study questions...");
           
           // Start polling for status
           pollJobStatus(data.jobId, data.quizId);
@@ -301,11 +332,13 @@ function CreateQuizContent() {
         const errorData = await response.json().catch(() => ({}));
         alert(errorData.error || "Failed to create quiz. Please try again.");
         setLoading(false);
+        isSubmittingRef.current = false;
       }
     } catch (error) {
       console.error("Error creating quiz:", error);
       alert("Failed to create quiz. Please try again.");
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -379,7 +412,7 @@ function CreateQuizContent() {
                   {generationMessage}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
-                  Please keep this page open. This may take 20-30 seconds...
+                  Please keep this page open. AI analysis may take 5-15 minutes for complex biblical content...
                 </p>
               </div>
               
@@ -398,7 +431,7 @@ function CreateQuizContent() {
               {/* Fun facts to keep user engaged */}
               <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                 <p className="text-xs text-amber-800 dark:text-amber-200">
-                  💡 Did you know? AI is analyzing your documents and creating unique questions tailored to your selected topics and difficulty level!
+                  💡 Did you know? Your biblical documents are being carefully analyzed to create thoughtful questions that test understanding of scripture and theological concepts!
                 </p>
               </div>
             </div>

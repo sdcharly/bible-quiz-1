@@ -217,6 +217,14 @@ export async function POST(req: NextRequest) {
         
         console.log(`Replacement job ${jobId} completed successfully`);
         
+        // Return success response for completed replacement
+        return NextResponse.json({
+          success: true,
+          jobId,
+          message: "Question replaced successfully",
+          questionId: questionIdToReplace
+        });
+        
       } catch (dbError) {
         console.error(`Database error for replacement job ${jobId}:`, dbError);
         
@@ -264,9 +272,9 @@ export async function POST(req: NextRequest) {
       
       console.error(`Replacement job ${jobId} failed:`, error);
     } else {
-      // Update progress (n8n might send progress updates)
+      // Update progress (backend service might send progress updates)
       const progress = body.progress || 50;
-      const message = body.message || 'Generating replacement question...';
+      const message = body.message || 'Creating new biblical study question...';
       
       jobStore.update(jobId, {
         status: 'processing',

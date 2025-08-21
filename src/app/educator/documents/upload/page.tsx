@@ -70,8 +70,8 @@ export default function DocumentUploadPage() {
         alert(`${file.name} is not a supported file type. Please upload PDF, DOCX, DOC, or TXT files.`);
         return false;
       }
-      if (file.size > 50 * 1024 * 1024) { // 50MB limit (updated to match backend)
-        alert(`${file.name} is too large. Maximum file size is 50MB.`);
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit to protect server resources
+        alert(`${file.name} is too large. Maximum file size is 2MB to protect server resources. Please use a smaller file or split large documents.`);
         return false;
       }
       if (file.size === 0) {
@@ -253,7 +253,8 @@ export default function DocumentUploadPage() {
             Drop files here or click to browse
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Supported formats: PDF, DOCX, DOC, TXT (Max 50MB per file)
+            Supported formats: PDF, DOCX, DOC, TXT<br/>
+            <span className="text-xs">Max 2MB per file • PDF files max 10 pages • To protect server resources</span>
           </p>
           <input
             type="file"

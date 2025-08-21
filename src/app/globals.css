@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import modal fixes for cross-browser compatibility */
+@import '../styles/modal-fixes.css';
+
 :root {
   --radius: 0.75rem;
   /* Light theme - Friendly & Approachable */

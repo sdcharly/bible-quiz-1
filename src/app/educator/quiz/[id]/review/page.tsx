@@ -299,7 +299,7 @@ export default function QuizReviewPage() {
   };
 
   const pollReplaceJobStatus = async (jobId: string, questionId: string) => {
-    const maxAttempts = 120; // Poll for up to 2 minutes (120 seconds)
+    const maxAttempts = 1200; // Poll for up to 20 minutes (suitable for AI question generation)
     let attempts = 0;
     
     // Clear any existing interval
@@ -328,22 +328,30 @@ export default function QuizReviewPage() {
         
         if (response.ok) {
           const status = await response.json();
+          console.log(`[POLL] Job ${jobId} status:`, status.status, `progress:`, status.progress);
           
           // Update progress UI with time-aware messages
           const elapsedSeconds = attempts;
           let progressMessage = status.message || "Generating replacement question...";
           
-          // Add time-based encouragement messages
-          if (elapsedSeconds > 60 && status.status === 'processing') {
-            progressMessage = "Still working on it... Complex questions take time to craft perfectly.";
+          // Add time-based encouragement messages for AI workflows
+          if (elapsedSeconds > 600 && status.status === 'processing') { // 10+ minutes
+            progressMessage = "Deep theological analysis in progress... AI is ensuring biblical accuracy and depth.";
+          } else if (elapsedSeconds > 300 && status.status === 'processing') { // 5+ minutes
+            progressMessage = "Analyzing scripture context and crafting meaningful questions... Please be patient.";
+          } else if (elapsedSeconds > 120 && status.status === 'processing') { // 2+ minutes
+            progressMessage = "AI is carefully studying your biblical texts to create the perfect question...";
+          } else if (elapsedSeconds > 60 && status.status === 'processing') {
+            progressMessage = "Still working on it... Complex theological questions take time to craft perfectly.";
           } else if (elapsedSeconds > 30 && status.status === 'processing') {
-            progressMessage = "AI is carefully crafting your question... Almost there!";
+            progressMessage = "AI is carefully analyzing biblical content for your question...";
           }
           
           setReplaceProgress(status.progress || Math.min(5 + attempts, 90));
           setReplaceMessage(progressMessage);
           
           if (status.status === 'completed') {
+            console.log(`[POLL] Replacement job ${jobId} completed!`);
             // Mark as completing to prevent race conditions
             isCompletingRef.current = true;
             

@@ -16,7 +16,7 @@ export interface QuizGenerationJob {
 
 class QuizGenerationJobStore {
   private jobs: Map<string, QuizGenerationJob> = new Map();
-  private readonly JOB_EXPIRY_MS = 60 * 60 * 1000; // 60 minutes (extended for slow n8n processing)
+  private readonly JOB_EXPIRY_MS = 60 * 60 * 1000; // 60 minutes (extended for thorough biblical content processing)
 
   create(jobId: string, quizId: string, webhookPayload: Record<string, unknown>): QuizGenerationJob {
     const job: QuizGenerationJob = {
@@ -24,7 +24,7 @@ class QuizGenerationJobStore {
       quizId,
       status: 'pending',
       progress: 0,
-      message: 'Initializing quiz generation...',
+      message: 'Preparing biblical knowledge assessment...',
       createdAt: new Date(),
       updatedAt: new Date(),
       webhookPayload

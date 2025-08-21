@@ -569,8 +569,9 @@ export class LightRAGService {
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
     
     // File validation rules
-    const maxSizeBytes = 50 * 1024 * 1024; // 50MB limit
+    const maxSizeBytes = 2 * 1024 * 1024; // 2MB limit to protect server resources
     const minSizeBytes = 100; // 100 bytes minimum
+    const maxPages = 10; // Maximum 10 pages for PDFs
     
     // Supported file types (based on common document processing capabilities)
     const supportedTypes = {
@@ -587,7 +588,7 @@ export class LightRAGService {
     
     // Size validation
     if (file.size > maxSizeBytes) {
-      errors.push(`File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds maximum limit of 50MB`);
+      errors.push(`File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds maximum limit of 2MB. Please use a smaller file to protect server resources.`);
     }
     
     if (file.size < minSizeBytes) {
@@ -616,6 +617,15 @@ export class LightRAGService {
     // Empty file check
     if (file.size === 0) {
       errors.push('File appears to be empty');
+    }
+
+    // Page count warning for PDFs (can't check actual pages without parsing)
+    if (extension === 'pdf') {
+      // Rough estimate: average PDF page is ~100KB
+      const estimatedPages = Math.ceil(file.size / (100 * 1024));
+      if (estimatedPages > maxPages) {
+        warnings.push(`File may exceed the ${maxPages} page limit (estimated ${estimatedPages} pages based on file size). Consider splitting large documents.`);
+      }
     }
 
     return {

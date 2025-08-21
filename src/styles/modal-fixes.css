@@ -1,0 +1,91 @@
+/* Modal fixes for cross-browser compatibility */
+
+/* Ensure dialogs don't overflow viewport on any browser */
+[data-slot="dialog-content"] {
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem); /* Dynamic viewport height for mobile browsers */
+}
+
+/* Fix for Safari's flexbox issues */
+@supports (-webkit-appearance: none) {
+  [data-slot="dialog-content"] {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  [data-slot="dialog-content"] > * {
+    flex-shrink: 0;
+  }
+  
+  [data-slot="dialog-content"] .flex-1 {
+    flex-shrink: 1;
+    min-height: 0;
+  }
+}
+
+/* Ensure footer buttons are always visible */
+[data-slot="dialog-footer"] {
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+/* Fix for Firefox scrollbar issues */
+@-moz-document url-prefix() {
+  .overflow-y-auto {
+    scrollbar-width: thin;
+  }
+}
+
+/* Ensure proper stacking context */
+[data-radix-portal] {
+  isolation: isolate;
+}
+
+/* Mobile-specific fixes */
+@media (max-width: 640px) {
+  [data-slot="dialog-content"] {
+    position: fixed;
+    top: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    transform: none;
+    max-width: none;
+    max-height: none;
+    height: calc(100vh - 2rem);
+    height: calc(100dvh - 2rem);
+  }
+  
+  /* Ensure buttons are tap-friendly on mobile */
+  [data-slot="dialog-footer"] button {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Prevent body scroll when modal is open */
+body:has([data-slot="dialog-overlay"]) {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* Smooth scrolling for modal content */
+[data-slot="dialog-content"] .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Ensure proper button spacing */
+[data-slot="dialog-footer"] {
+  gap: 0.5rem;
+}
+
+/* Fix for Edge legacy */
+@supports (-ms-ime-align: auto) {
+  [data-slot="dialog-content"] {
+    display: -ms-flexbox;
+    -ms-flex-direction: column;
+  }
+}

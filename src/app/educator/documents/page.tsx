@@ -184,6 +184,17 @@ export default function DocumentsPage() {
           </Link>
         </div>
 
+        {/* File size and page limit warning */}
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-6">
+          <div className="flex items-start">
+            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 mr-2 flex-shrink-0" />
+            <div className="text-sm text-amber-800 dark:text-amber-200">
+              <strong>Resource Protection:</strong> Files are limited to <strong>2MB max</strong> and PDFs should be <strong>10 pages or less</strong> to protect server resources. 
+              Split larger documents into smaller sections before uploading.
+            </div>
+          </div>
+        </div>
+
         {/* Search and Filter Bar */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="flex-1 relative">

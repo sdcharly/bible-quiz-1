@@ -404,17 +404,17 @@ export default function QuizManagePage() {
 
         {/* Minimalistic Bulk Enroll Students Modal */}
         <Dialog open={showBulkEnroll} onOpenChange={setShowBulkEnroll}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-2xl w-[95vw] max-w-[95vw] h-[90vh] sm:h-[85vh] max-h-[90vh] p-0 flex flex-col overflow-hidden">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
               <DialogTitle>Assign Students to Quiz</DialogTitle>
               <DialogDescription>
                 Select students to enroll in &quot;{quiz?.title}&quot;. {selectedStudents.size} selected.
               </DialogDescription>
             </DialogHeader>
             
-            <div className="flex-1 flex flex-col gap-4">
+            <div className="flex-1 flex flex-col px-6 py-4 min-h-0 overflow-hidden">
               {/* Simple Search */}
-              <div className="relative">
+              <div className="relative mb-4 shrink-0">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   type="text"
@@ -426,23 +426,23 @@ export default function QuizManagePage() {
               </div>
 
               {/* Student List - Clean and Simple */}
-              <div className="flex-1 overflow-y-auto min-h-64">
+              <div className="flex-1 overflow-y-auto min-h-0 mb-4 border rounded-lg">
                 {filteredStudents.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-gray-500">
                     <Users className="h-8 w-8 mb-2 text-gray-300" />
                     <p>{searchTerm ? "No students found" : "No students available"}</p>
                   </div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="p-2 space-y-1">
                     {filteredStudents.map((student) => (
                       <div
                         key={student.studentId}
                         className={`flex items-center gap-3 p-3 rounded-md transition-colors ${
                           student.isEnrolled
-                            ? "bg-gray-50 opacity-50 cursor-not-allowed"
+                            ? "bg-gray-50 dark:bg-gray-800 opacity-50 cursor-not-allowed"
                             : selectedStudents.has(student.studentId)
-                            ? "bg-blue-50 border border-blue-200"
-                            : "hover:bg-gray-50 cursor-pointer"
+                            ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
                         }`}
                         onClick={() => !student.isEnrolled && toggleStudent(student.studentId)}
                       >
@@ -451,13 +451,14 @@ export default function QuizManagePage() {
                           disabled={student.isEnrolled}
                           onCheckedChange={() => toggleStudent(student.studentId)}
                           onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                          className="shrink-0"
                         />
-                        <div className="flex-1">
-                          <div className="font-medium">{student.name}</div>
-                          <div className="text-sm text-gray-500">{student.email}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{student.name}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{student.email}</div>
                         </div>
                         {student.isEnrolled && (
-                          <span className="text-xs text-green-600 font-medium">Enrolled</span>
+                          <span className="text-xs text-green-600 dark:text-green-400 font-medium shrink-0">Enrolled</span>
                         )}
                       </div>
                     ))}
@@ -466,31 +467,32 @@ export default function QuizManagePage() {
               </div>
 
               {/* Quick Actions */}
-              <div className="flex gap-2 text-sm">
+              <div className="flex gap-2 text-sm shrink-0">
                 <button
                   onClick={selectAll}
                   disabled={enrollmentStats.total === enrollmentStats.enrolled}
-                  className="text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+                  className="text-blue-600 hover:text-blue-700 disabled:text-gray-400 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   Select All
                 </button>
-                <span className="text-gray-300">|</span>
+                <span className="text-gray-300 dark:text-gray-600">|</span>
                 <button
                   onClick={deselectAll}
-                  className="text-blue-600 hover:text-blue-700"
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   Clear Selection
                 </button>
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="px-6 py-4 border-t shrink-0 bg-gray-50 dark:bg-gray-900/50">
               <Button variant="outline" onClick={() => setShowBulkEnroll(false)}>
                 Cancel
               </Button>
               <Button
                 onClick={handleBulkEnroll}
                 disabled={enrolling || selectedStudents.size === 0}
+                className="min-w-[120px]"
               >
                 {enrolling ? (
                   <>
@@ -498,7 +500,7 @@ export default function QuizManagePage() {
                     Enrolling...
                   </>
                 ) : (
-                  `Enroll ${selectedStudents.size} Student${selectedStudents.size !== 1 ? "s" : ""}`
+                  `Assign ${selectedStudents.size} Student${selectedStudents.size !== 1 ? "s" : ""}`
                 )}
               </Button>
             </DialogFooter>
