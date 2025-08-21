@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
     const { jobId, status, questionsData, error } = body;
     
     console.log(`[QUIZ CREATE CALLBACK] Received callback for job: ${jobId}`);
+    console.log(`[QUIZ CREATE CALLBACK] Status: ${status}, Error: ${error || 'none'}, Questions: ${questionsData?.length || 0}`);
 
     if (!jobId) {
       return NextResponse.json(
@@ -32,6 +33,18 @@ export async function POST(req: NextRequest) {
     const job = jobStore.get(jobId);
     if (!job) {
       console.error(`Job not found: ${jobId}`);
+      
+      // If this is an error callback and job doesn't exist, log it but don't fail
+      if (status === 'error' || error) {
+        console.error(`Received error callback for non-existent job ${jobId}: ${error}`);
+        return NextResponse.json({
+          success: false,
+          jobId,
+          message: "Error callback received for unknown job",
+          error: error || "Unknown error"
+        });
+      }
+      
       return NextResponse.json(
         { error: "Job not found or expired" },
         { status: 404 }

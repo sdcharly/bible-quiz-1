@@ -156,14 +156,16 @@ export async function POST(req: NextRequest) {
       quizDescription: description,
     };
 
-    // Create job in store
-    jobStore.create(jobId, quizId, webhookPayload);
+    // Create job in store BEFORE calling webhook
+    const job = jobStore.create(jobId, quizId, webhookPayload);
+    console.log(`[CREATE-ASYNC] Created job ${jobId} for quiz ${quizId}`);
 
     // Check if webhook is configured
     if (process.env.QUIZ_GENERATION_WEBHOOK_URL) {
       console.log("Calling webhook with async pattern:", process.env.QUIZ_GENERATION_WEBHOOK_URL);
       console.log("Callback URL:", callbackUrl);
       console.log("Job ID:", jobId);
+      console.log("Job exists in store:", !!jobStore.get(jobId));
       
       // Call the webhook with a shorter timeout (10 seconds)
       // We expect n8n to respond immediately with "processing" status
@@ -177,6 +179,8 @@ export async function POST(req: NextRequest) {
           signal: AbortSignal.timeout(10000), // 10 second timeout for immediate response
         });
 
+        console.log(`[CREATE-ASYNC] Webhook response status: ${webhookResponse.status}`);
+
         if (!webhookResponse.ok) {
           const errorText = await webhookResponse.text();
           console.error("Webhook failed to acknowledge:", {
@@ -187,7 +191,7 @@ export async function POST(req: NextRequest) {
           // Update job as failed
           jobStore.update(jobId, {
             status: 'failed',
-            error: `Webhook failed: ${webhookResponse.status}`,
+            error: `Webhook failed: ${webhookResponse.status} - ${errorText}`,
             message: 'Failed to start quiz generation'
           });
 
@@ -207,6 +211,10 @@ export async function POST(req: NextRequest) {
         });
 
         console.log("Webhook acknowledged, processing in background");
+        
+        // Log the expected callback for debugging
+        console.log(`[CREATE-ASYNC] n8n should callback to: ${callbackUrl}`);
+        console.log(`[CREATE-ASYNC] with jobId: ${jobId}`);
       } catch (fetchError) {
         console.error("Failed to reach webhook:", fetchError);
         

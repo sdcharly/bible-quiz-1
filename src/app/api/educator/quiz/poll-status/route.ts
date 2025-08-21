@@ -33,11 +33,19 @@ export async function GET(req: NextRequest) {
     const job = jobStore.get(jobId);
 
     if (!job) {
+      console.log(`[POLL-STATUS] Job not found: ${jobId}`);
       return NextResponse.json(
-        { error: "Job not found or expired" },
+        { 
+          error: "Job not found or expired",
+          jobId,
+          status: 'unknown',
+          message: 'Job may have expired or failed to initialize. Please try creating the quiz again.'
+        },
         { status: 404 }
       );
     }
+    
+    console.log(`[POLL-STATUS] Job ${jobId} status: ${job.status}, progress: ${job.progress}`);
 
     // Return job status (without sensitive webhook payload)
     return NextResponse.json({

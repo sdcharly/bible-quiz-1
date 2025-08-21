@@ -91,17 +91,19 @@ export async function PUT(
       isReplacement: true // Flag to indicate this is a replacement request
     };
 
-    // Create job in store (reusing the same job store)
-    jobStore.create(jobId, quizId, {
+    // Create job in store BEFORE calling webhook (reusing the same job store)
+    const job = jobStore.create(jobId, quizId, {
       ...webhookPayload,
       questionIdToReplace: questionId
     });
+    console.log(`[REPLACE-ASYNC] Created job ${jobId} for question ${questionId} in quiz ${quizId}`);
 
     // Check if webhook is configured
     if (process.env.QUIZ_GENERATION_WEBHOOK_URL) {
       console.log("Calling webhook for question replacement with async pattern");
       console.log("Job ID:", jobId);
       console.log("Question ID to replace:", questionId);
+      console.log("Job exists in store:", !!jobStore.get(jobId));
       
       try {
         // Call webhook with short timeout - expecting immediate response
@@ -114,6 +116,8 @@ export async function PUT(
           signal: AbortSignal.timeout(10000), // 10 second timeout for immediate response
         });
 
+        console.log(`[REPLACE-ASYNC] Webhook response status: ${webhookResponse.status}`);
+
         if (!webhookResponse.ok) {
           const errorText = await webhookResponse.text();
           console.error("Webhook failed to acknowledge:", {
@@ -124,7 +128,7 @@ export async function PUT(
           // Update job as failed
           jobStore.update(jobId, {
             status: 'failed',
-            error: `Webhook failed: ${webhookResponse.status}`,
+            error: `Webhook failed: ${webhookResponse.status} - ${errorText}`,
             message: 'Failed to start question replacement'
           });
 
@@ -143,6 +147,10 @@ export async function PUT(
         });
 
         console.log("Webhook acknowledged for replacement, processing in background");
+        
+        // Log the expected callback for debugging
+        console.log(`[REPLACE-ASYNC] n8n should callback to: ${callbackUrl}`);
+        console.log(`[REPLACE-ASYNC] with jobId: ${jobId}`);
       } catch (fetchError) {
         console.error("Failed to reach webhook:", fetchError);
         

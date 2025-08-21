@@ -88,7 +88,7 @@ function CreateQuizContent() {
     shuffleQuestions: false,
   });
   
-  // Initialize startTime with user's timezone - only run once on mount
+  // Initialize startTime with user's timezone
   useEffect(() => {
     if (!config.startTime && userTimezone) {
       const currentTimeInUserTz = getCurrentDateTime();
@@ -98,10 +98,14 @@ function CreateQuizContent() {
         timezone: userTimezone 
       }));
     }
-  }, []); // Empty dependency array - only run on mount
+  }, [userTimezone, getCurrentDateTime, config.startTime]); // Proper dependencies
   
   const updateDateTime = (date: string, time: string) => {
-    const newDateTime = `${date}T${time}`;
+    // Ensure time has seconds if missing
+    const timeWithSeconds = time.includes(':') && time.split(':').length === 2 
+      ? `${time}:00` 
+      : time;
+    const newDateTime = `${date}T${timeWithSeconds}`;
     setConfig({ ...config, startTime: newDateTime });
   };
   
@@ -116,9 +120,13 @@ function CreateQuizContent() {
   const getTimeFromStartTime = () => {
     if (!config.startTime) {
       const currentTimeInUserTz = getCurrentDateTime();
-      return currentTimeInUserTz.split('T')[1];
+      const time = currentTimeInUserTz.split('T')[1];
+      // HTML time input only accepts HH:MM format
+      return time ? time.substring(0, 5) : '';
     }
-    return config.startTime.split('T')[1];
+    const time = config.startTime.split('T')[1];
+    // HTML time input only accepts HH:MM format
+    return time ? time.substring(0, 5) : '';
   };
   
   const [selectedBook, setSelectedBook] = useState<string>("");
@@ -506,7 +514,7 @@ function CreateQuizContent() {
                   <TimezoneSelector
                     value={config.timezone}
                     onChange={(timezone) => setConfig({ ...config, timezone })}
-                    onTimezoneChange={(timezone, currentTimeInTz) => {
+                    onTimezoneChange={(timezone) => {
                       // When timezone changes, update timezone (startTime stays the same for user convenience)
                       setConfig({ ...config, timezone });
                     }}
@@ -545,13 +553,21 @@ function CreateQuizContent() {
                     </span>
                   </div>
                   <div className="font-body text-amber-700 dark:text-amber-400">
-                    📅 {config.startTime ? formatDate(toUTC(config.startTime).toISOString()) : 'No time selected'}
+                    📅 {config.startTime ? (() => {
+                      const utcDate = toUTC(config.startTime);
+                      return isNaN(utcDate.getTime()) ? 'Invalid time' : formatDate(utcDate);
+                    })() : 'No time selected'}
                   </div>
                   <div className="text-xs text-amber-600 dark:text-amber-500">
-                    ⏱️ Duration: {config.duration} minutes • Ends at {config.startTime ? formatDate(
-                      new Date(toUTC(config.startTime).getTime() + config.duration * 60000).toISOString(),
-                      { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }
-                    ) : 'TBD'}
+                    ⏱️ Duration: {config.duration} minutes • Ends at {config.startTime ? (() => {
+                      const utcDate = toUTC(config.startTime);
+                      if (isNaN(utcDate.getTime())) return 'Invalid time';
+                      const endDate = new Date(utcDate.getTime() + config.duration * 60000);
+                      return isNaN(endDate.getTime()) ? 'Invalid time' : formatDate(
+                        endDate,
+                        { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }
+                      );
+                    })() : 'TBD'}
                   </div>
                   {config.startTime && !isQuizTimeValid(config.startTime, userTimezone) && (
                     <div className="text-xs text-red-600 dark:text-red-400 font-medium">
@@ -800,31 +816,31 @@ function CreateQuizContent() {
               </Button>
             ) : (
               <Button
-                onClick={handleSubmit}
-                disabled={
-                  loading || 
-                  !config.title || 
-                  config.documentIds.length === 0 || 
-                  !selectedBook || 
-                  !chapterInput || 
-                  config.bloomsLevels.length === 0 ||
-                  !config.startTime ||
-                  !isQuizTimeValid(config.startTime, userTimezone)
-                }
-                size="sm"
-              >
-                {loading ? (
-                  <>
-                    <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <BookmarkIcon className="h-4 w-4 mr-2" />
-                    Create Quiz
-                  </>
-                )}
-              </Button>
+                  onClick={handleSubmit}
+                  disabled={
+                    loading || 
+                    !config.title || 
+                    config.documentIds.length === 0 || 
+                    !selectedBook || 
+                    !chapterInput || 
+                    config.bloomsLevels.length === 0 ||
+                    !config.startTime ||
+                    !isQuizTimeValid(config.startTime, userTimezone)
+                  }
+                  size="sm"
+                >
+                  {loading ? (
+                    <>
+                      <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <BookmarkIcon className="h-4 w-4 mr-2" />
+                      Create Quiz
+                    </>
+                  )}
+                </Button>
             )}
           </div>
         </div>
