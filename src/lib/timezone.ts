@@ -66,13 +66,35 @@ export function getDefaultTimezone(): string {
 export function getCurrentTimeInUserTimezone(timezone: string): string {
   try {
     const now = new Date();
-    // Convert to user's timezone and format for datetime-local input
-    const tzTime = new Date(now.toLocaleString('sv-SE', { timeZone: timezone }));
-    return tzTime.toISOString().slice(0, 16);
-  } catch {
+    
+    // Format the date in the user's timezone
+    // Using sv-SE locale because it gives YYYY-MM-DD format
+    const dateStr = now.toLocaleDateString('sv-SE', { 
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    
+    const timeStr = now.toLocaleTimeString('sv-SE', {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    
+    // Combine date and time in datetime-local format
+    return `${dateStr}T${timeStr}`;
+  } catch (error) {
+    console.warn('Error formatting time in timezone:', timezone, error);
     // Fallback to current local time
     const now = new Date();
-    return now.toISOString().slice(0, 16);
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 }
 
@@ -161,13 +183,19 @@ function getTimezoneOffsetMinutes(timezone: string, date: Date): number {
 export function convertUTCToUserTimezone(utcDateTime: Date | string, userTimezone: string): Date {
   const utcDate = typeof utcDateTime === 'string' ? new Date(utcDateTime) : utcDateTime;
   
+  // Check if the date is valid
+  if (isNaN(utcDate.getTime())) {
+    console.warn('Invalid date provided to convertUTCToUserTimezone:', utcDateTime);
+    return new Date(); // Return current date as fallback
+  }
+  
   try {
-    // Use built-in timezone conversion
-    const tzString = utcDate.toLocaleString('sv-SE', { timeZone: userTimezone });
-    return new Date(tzString);
-  } catch {
+    // We'll keep the original date object but use it for timezone-aware operations
+    // The Date object itself remains in UTC internally
+    return utcDate;
+  } catch (error) {
     // Fallback: return UTC time (better than wrong timezone)
-    console.warn(`Invalid timezone: ${userTimezone}, returning UTC`);
+    console.warn(`Error in timezone conversion: ${userTimezone}`, error);
     return utcDate;
   }
 }
@@ -176,8 +204,35 @@ export function convertUTCToUserTimezone(utcDateTime: Date | string, userTimezon
  * Convert UTC datetime to datetime-local input format in user's timezone
  */
 export function convertUTCToDateTimeLocal(utcDateTime: Date | string, userTimezone: string): string {
-  const localDate = convertUTCToUserTimezone(utcDateTime, userTimezone);
-  return localDate.toISOString().slice(0, 16);
+  try {
+    const utcDate = typeof utcDateTime === 'string' ? new Date(utcDateTime) : utcDateTime;
+    
+    // Check if the date is valid
+    if (isNaN(utcDate.getTime())) {
+      console.warn('Invalid date provided to convertUTCToDateTimeLocal:', utcDateTime);
+      return getCurrentTimeInUserTimezone(userTimezone);
+    }
+    
+    // Format the date in the user's timezone
+    const dateStr = utcDate.toLocaleDateString('sv-SE', { 
+      timeZone: userTimezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    
+    const timeStr = utcDate.toLocaleTimeString('sv-SE', {
+      timeZone: userTimezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    
+    return `${dateStr}T${timeStr}`;
+  } catch (error) {
+    console.warn('Error converting to datetime-local:', error);
+    return getCurrentTimeInUserTimezone(userTimezone);
+  }
 }
 
 /**
