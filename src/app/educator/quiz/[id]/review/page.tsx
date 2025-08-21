@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -116,9 +116,18 @@ export default function QuizReviewPage() {
     overallValid: boolean;
   } | null>(null);
   const [validating, setValidating] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasShownTimeoutAlert = useRef(false);
 
   useEffect(() => {
     fetchQuizDetails();
+    
+    // Cleanup interval on unmount
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
   }, [quizId]);
 
   const fetchQuizDetails = async () => {
@@ -292,7 +301,15 @@ export default function QuizReviewPage() {
     const maxAttempts = 120; // Poll for up to 2 minutes (120 seconds)
     let attempts = 0;
     
-    const pollInterval = setInterval(async () => {
+    // Clear any existing interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+    
+    // Reset the timeout alert flag
+    hasShownTimeoutAlert.current = false;
+    
+    pollIntervalRef.current = setInterval(async () => {
       attempts++;
       
       try {
@@ -316,7 +333,10 @@ export default function QuizReviewPage() {
           setReplaceMessage(progressMessage);
           
           if (status.status === 'completed') {
-            clearInterval(pollInterval);
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             setReplaceProgress(100);
             setReplaceMessage("Question replaced successfully!");
             
@@ -331,22 +351,36 @@ export default function QuizReviewPage() {
               setReplaceMessage("");
             }, 1500);
           } else if (status.status === 'failed') {
-            clearInterval(pollInterval);
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             setReplacingQuestion(null);
             setReplaceJobId(null);
             setReplaceProgress(0);
             alert(status.error || "Failed to replace question. Please try again.");
           } else if (attempts >= maxAttempts) {
-            clearInterval(pollInterval);
+            // Stop polling and show alert only once
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             setReplacingQuestion(null);
             setReplaceJobId(null);
             setReplaceProgress(0);
             setReplaceMessage("");
-            // Don't show error - the job might still complete
-            alert("Question generation is taking longer than usual. The question will be updated once ready. You can continue working and check back later.");
+            
+            // Show alert only if we haven't shown it already
+            if (!hasShownTimeoutAlert.current) {
+              hasShownTimeoutAlert.current = true;
+              alert("Question generation is taking longer than usual. The question will be updated once ready. You can continue working and check back later.");
+            }
           }
         } else if (response.status === 404) {
-          clearInterval(pollInterval);
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
           setReplacingQuestion(null);
           setReplaceJobId(null);
           setReplaceProgress(0);
@@ -355,11 +389,20 @@ export default function QuizReviewPage() {
       } catch (error) {
         console.error("Error polling replacement status:", error);
         if (attempts >= maxAttempts) {
-          clearInterval(pollInterval);
+          // Stop polling and clean up
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
           setReplacingQuestion(null);
           setReplaceJobId(null);
           setReplaceProgress(0);
-          alert("Failed to check replacement status. Please try again.");
+          
+          // Show alert only if we haven't shown the timeout alert
+          if (!hasShownTimeoutAlert.current) {
+            hasShownTimeoutAlert.current = true;
+            alert("Failed to check replacement status. Please try again.");
+          }
         }
       }
     }, 1000); // Poll every second
@@ -1108,22 +1151,42 @@ export default function QuizReviewPage() {
                   </p>
                 </div>
                 
-                {/* Allow background work after 30 seconds */}
-                {replaceProgress > 30 && (
+                {/* Action buttons */}
+                <div className="flex gap-2 justify-center mt-4">
+                  {replaceProgress > 30 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Keep polling but hide the modal
+                        setReplacingQuestion(null);
+                        setReplaceProgress(0);
+                        setReplaceMessage("");
+                        alert("Question generation continues in background. The page will refresh when ready.");
+                      }}
+                    >
+                      Continue in Background
+                    </Button>
+                  )}
                   <Button
-                    variant="outline"
+                    variant="destructive"
                     size="sm"
-                    className="mt-4"
                     onClick={() => {
+                      // Stop polling completely
+                      if (pollIntervalRef.current) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                      }
                       setReplacingQuestion(null);
+                      setReplaceJobId(null);
                       setReplaceProgress(0);
                       setReplaceMessage("");
-                      alert("Question generation continues in background. The page will refresh when ready.");
+                      hasShownTimeoutAlert.current = false;
                     }}
                   >
-                    Continue Working
+                    Cancel Generation
                   </Button>
-                )}
+                </div>
               </div>
             </div>
           </div>

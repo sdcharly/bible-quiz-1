@@ -53,64 +53,110 @@ export async function POST(req: NextRequest) {
         [key: string]: unknown;
       };
       
+      const insertedQuestions = [];
+      let failedQuestions = 0;
+      
       for (let i = 0; i < questionsData.length; i++) {
         const q = questionsData[i];
         
-        // Convert options to array format if needed
-        let optionsArray = [];
-        if (q.options) {
-          if (Array.isArray(q.options)) {
-            optionsArray = q.options;
-          } else if (typeof q.options === 'object') {
-            optionsArray = Object.entries(q.options).map(([key, value]) => ({
-              id: key.toLowerCase(),
-              text: value as string
-            }));
+        try {
+          // Convert options to array format if needed
+          let optionsArray = [];
+          if (q.options) {
+            if (Array.isArray(q.options)) {
+              optionsArray = q.options;
+            } else if (typeof q.options === 'object') {
+              optionsArray = Object.entries(q.options).map(([key, value]) => ({
+                id: key.toLowerCase(),
+                text: String(value).substring(0, 1000) // Limit option text length
+              }));
+            }
           }
-        }
-        
-        // Parse biblical reference
-        let parsedBook = q.book || (webhookPayload.books && webhookPayload.books[0]);
-        let parsedChapter = q.chapter || (webhookPayload.chapters && webhookPayload.chapters[0]);
-        
-        if (q.biblical_reference) {
-          const refParts = q.biblical_reference.trim().split(/\s+/);
-          if (refParts[0] && /^\d+$/.test(refParts[0]) && refParts[1]) {
-            parsedBook = `${refParts[0]} ${refParts[1]}`;
-            parsedChapter = refParts[2]?.replace(/\(.*\)/, '').trim() || '';
-          } else {
-            parsedBook = refParts[0];
-            const remainingParts = refParts.slice(1).join(' ');
-            parsedChapter = remainingParts.replace(/\(.*\)/, '').trim();
+          
+          // Parse biblical reference
+          let parsedBook = q.book || (webhookPayload.books && webhookPayload.books[0]) || '';
+          let parsedChapter = q.chapter || (webhookPayload.chapters && webhookPayload.chapters[0]) || '';
+          
+          if (q.biblical_reference) {
+            const refParts = q.biblical_reference.trim().split(/\s+/);
+            if (refParts[0] && /^\d+$/.test(refParts[0]) && refParts[1]) {
+              parsedBook = `${refParts[0]} ${refParts[1]}`;
+              parsedChapter = refParts[2]?.replace(/\(.*\)/, '').trim() || '';
+            } else {
+              parsedBook = refParts[0];
+              const remainingParts = refParts.slice(1).join(' ');
+              parsedChapter = remainingParts.replace(/\(.*\)/, '').trim();
+            }
           }
+          
+          // Prepare and validate data
+          const questionText = (q.question || q.questionText || '').substring(0, 5000);
+          const explanationText = (q.explanation || '').substring(0, 5000);
+          const correctAnswerValue = (q.correct_answer?.toLowerCase() || q.correctAnswer?.toLowerCase() || '').substring(0, 10);
+          
+          // Skip invalid questions
+          if (!questionText || !optionsArray.length || !correctAnswerValue) {
+            console.warn(`Skipping invalid question ${i + 1} for job ${jobId}:`, {
+              hasQuestionText: !!questionText,
+              optionsLength: optionsArray.length,
+              hasCorrectAnswer: !!correctAnswerValue
+            });
+            failedQuestions++;
+            continue;
+          }
+          
+          await db.insert(questions).values({
+            id: crypto.randomUUID(),
+            quizId,
+            questionText,
+            options: optionsArray,
+            correctAnswer: correctAnswerValue,
+            explanation: explanationText,
+            difficulty: q.difficulty || webhookPayload.difficulty || 'intermediate',
+            bloomsLevel: q.bloomsLevel || webhookPayload.bloomsLevel?.[0] || 'knowledge',
+            topic: (q.topic || q.question_type || '').substring(0, 255),
+            book: parsedBook.substring(0, 255),
+            chapter: parsedChapter.substring(0, 255),
+            orderIndex: q.id || i,
+            createdAt: new Date(),
+          });
+          
+          insertedQuestions.push(q);
+        } catch (insertError) {
+          console.error(`Failed to insert question ${i + 1} for job ${jobId}:`, insertError);
+          failedQuestions++;
         }
-        
-        await db.insert(questions).values({
-          id: crypto.randomUUID(),
-          quizId,
-          questionText: q.question || q.questionText,
-          options: optionsArray,
-          correctAnswer: q.correct_answer?.toLowerCase() || q.correctAnswer?.toLowerCase(),
-          explanation: q.explanation,
-          difficulty: q.difficulty || webhookPayload.difficulty,
-          bloomsLevel: q.bloomsLevel || webhookPayload.bloomsLevel?.[0],
-          topic: q.topic || q.question_type,
-          book: parsedBook,
-          chapter: parsedChapter,
-          orderIndex: q.id || i,
-          createdAt: new Date(),
-        });
       }
       
-      // Update job as completed
+      // Check if any questions were successfully inserted
+      if (insertedQuestions.length === 0) {
+        jobStore.update(jobId, {
+          status: 'failed',
+          progress: 0,
+          message: 'Failed to insert any questions into database',
+          error: `All ${questionsData.length} questions failed to insert`
+        });
+        
+        return NextResponse.json({
+          success: false,
+          error: "Failed to insert questions into database",
+          jobId
+        }, { status: 500 });
+      }
+      
+      // Update job as completed (or partially completed)
+      const statusMessage = failedQuestions > 0 
+        ? `Generated ${insertedQuestions.length} of ${questionsData.length} questions (${failedQuestions} failed)`
+        : `Successfully generated ${insertedQuestions.length} questions`;
+      
       jobStore.update(jobId, {
         status: 'completed',
         progress: 100,
-        message: `Successfully generated ${questionsData.length} questions`,
-        questionsData
+        message: statusMessage,
+        questionsData: insertedQuestions
       });
       
-      console.log(`Job ${jobId} completed successfully`);
+      console.log(`Job ${jobId} completed: ${statusMessage}`);
     } else if (status === 'error' || error) {
       // Handle error case
       jobStore.update(jobId, {

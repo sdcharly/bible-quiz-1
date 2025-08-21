@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Extract the questionId to replace from the job payload
-    const questionIdToReplace = (job.webhookPayload as any).questionIdToReplace;
+    const questionIdToReplace = (job.webhookPayload as { questionIdToReplace?: string }).questionIdToReplace;
     if (!questionIdToReplace) {
       console.error(`No questionId found in job payload for job: ${jobId}`);
       return NextResponse.json(
@@ -96,47 +96,92 @@ export async function POST(req: NextRequest) {
         mappedBloomsLevel = newQuestionData.bloomsLevel;
       }
       
-      // Update the question in database
-      const updatedQuestion = await db
-        .update(questions)
-        .set({
-          questionText: newQuestionData.question || newQuestionData.questionText,
-          options: optionsArray,
-          correctAnswer: newQuestionData.correct_answer?.toLowerCase() || newQuestionData.correctAnswer?.toLowerCase(),
-          explanation: newQuestionData.explanation,
-          difficulty: newQuestionData.difficulty || webhookPayload.difficulty || "intermediate",
-          bloomsLevel: mappedBloomsLevel as "knowledge" | "comprehension" | "application" | "analysis" | "synthesis" | "evaluation",
-          topic: newQuestionData.topic || newQuestionData.question_type,
-          book: parsedBook,
-          chapter: parsedChapter,
-        })
-        .where(eq(questions.id, questionIdToReplace))
-        .returning();
+      // Prepare update data with proper validation and sanitization
+      const questionText = (newQuestionData.question || newQuestionData.questionText || "").substring(0, 5000); // Limit length
+      const explanationText = (newQuestionData.explanation || "").substring(0, 5000); // Limit length
+      const correctAnswerValue = (newQuestionData.correct_answer?.toLowerCase() || newQuestionData.correctAnswer?.toLowerCase() || "").substring(0, 10);
       
-      if (!updatedQuestion.length) {
-        // Update job as failed
+      // Validate data before update
+      if (!questionText || !optionsArray.length || !correctAnswerValue) {
+        console.error(`Invalid question data for replacement job ${jobId}:`, {
+          hasQuestionText: !!questionText,
+          optionsLength: optionsArray.length,
+          hasCorrectAnswer: !!correctAnswerValue
+        });
+        
         jobStore.update(jobId, {
           status: 'failed',
-          error: 'Failed to update question in database',
-          message: 'Database update failed'
+          error: 'Invalid question data received',
+          message: 'Missing required fields in generated question'
         });
         
         return NextResponse.json({
           success: false,
-          error: "Failed to update question in database",
+          error: "Invalid question data received",
+          jobId
+        }, { status: 400 });
+      }
+      
+      try {
+        // Update the question in database
+        const updatedQuestion = await db
+          .update(questions)
+          .set({
+            questionText,
+            options: optionsArray,
+            correctAnswer: correctAnswerValue,
+            explanation: explanationText,
+            difficulty: newQuestionData.difficulty || webhookPayload.difficulty || "intermediate",
+            bloomsLevel: mappedBloomsLevel as "knowledge" | "comprehension" | "application" | "analysis" | "synthesis" | "evaluation",
+            topic: (newQuestionData.topic || newQuestionData.question_type || "").substring(0, 255),
+            book: (parsedBook || "").substring(0, 255),
+            chapter: (parsedChapter || "").substring(0, 255),
+          })
+          .where(eq(questions.id, questionIdToReplace))
+          .returning();
+        
+        if (!updatedQuestion.length) {
+          // Update job as failed
+          jobStore.update(jobId, {
+            status: 'failed',
+            error: 'Failed to update question in database - no rows affected',
+            message: 'Database update failed'
+          });
+          
+          return NextResponse.json({
+            success: false,
+            error: "Failed to update question in database - question may not exist",
+            jobId
+          }, { status: 500 });
+        }
+        
+        // Update job as completed
+        jobStore.update(jobId, {
+          status: 'completed',
+          progress: 100,
+          message: 'Question replaced successfully',
+          questionsData: [updatedQuestion[0]] // Store the updated question
+        });
+        
+        console.log(`Replacement job ${jobId} completed successfully`);
+        
+      } catch (dbError) {
+        console.error(`Database error for replacement job ${jobId}:`, dbError);
+        
+        // Update job as failed
+        jobStore.update(jobId, {
+          status: 'failed',
+          error: dbError instanceof Error ? dbError.message : 'Database update failed',
+          message: 'Failed to update question in database'
+        });
+        
+        return NextResponse.json({
+          success: false,
+          error: "Database update failed",
+          details: dbError instanceof Error ? dbError.message : "Unknown database error",
           jobId
         }, { status: 500 });
       }
-      
-      // Update job as completed
-      jobStore.update(jobId, {
-        status: 'completed',
-        progress: 100,
-        message: 'Question replaced successfully',
-        questionsData: [updatedQuestion[0]] // Store the updated question
-      });
-      
-      console.log(`Replacement job ${jobId} completed successfully`);
     } else if (status === 'error' || error) {
       // Handle error case
       jobStore.update(jobId, {
