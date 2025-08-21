@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useMemo } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { 
   formatDateInTimezone,
@@ -18,36 +19,62 @@ import {
 export function useTimezone() {
   const { timezone, setTimezone, isLoading } = useUserContext();
 
-  return {
+  // Memoize functions to prevent recreating on every render
+  const formatDate = useCallback(
+    (utcDate: Date | string, options?: Intl.DateTimeFormatOptions) => 
+      formatDateInTimezone(utcDate, timezone, options),
+    [timezone]
+  );
+
+  const toUserTimezone = useCallback(
+    (utcDate: Date | string) => 
+      convertUTCToUserTimezone(utcDate, timezone),
+    [timezone]
+  );
+
+  const toUTC = useCallback(
+    (dateTimeString: string) => 
+      convertUserTimezoneToUTC(dateTimeString, timezone),
+    [timezone]
+  );
+
+  const getCurrentDateTime = useCallback(
+    () => getCurrentTimeInUserTimezone(timezone),
+    [timezone]
+  );
+
+  const toDateTimeLocal = useCallback(
+    (utcDate: Date | string) => 
+      convertUTCToDateTimeLocal(utcDate, timezone),
+    [timezone]
+  );
+
+  const getRelativeTimeForUser = useCallback(
+    (utcDate: Date | string) => 
+      getRelativeTime(utcDate, timezone),
+    [timezone]
+  );
+
+  return useMemo(() => ({
     timezone,
     setTimezone,
     isLoading,
-    
-    // Format UTC date in user's timezone
-    formatDate: (utcDate: Date | string, options?: Intl.DateTimeFormatOptions) => 
-      formatDateInTimezone(utcDate, timezone, options),
-    
-    // Convert UTC to user's timezone Date object
-    toUserTimezone: (utcDate: Date | string) => 
-      convertUTCToUserTimezone(utcDate, timezone),
-    
-    // Convert user's timezone input to UTC for storage
-    toUTC: (dateTimeString: string) => 
-      convertUserTimezoneToUTC(dateTimeString, timezone),
-    
-    // Get current time in user's timezone for datetime-local inputs
-    getCurrentDateTime: () => 
-      getCurrentTimeInUserTimezone(timezone),
-    
-    // Convert UTC to datetime-local format in user's timezone
-    toDateTimeLocal: (utcDate: Date | string) => 
-      convertUTCToDateTimeLocal(utcDate, timezone),
-    
-    // Check if quiz is available (started)
+    formatDate,
+    toUserTimezone,
+    toUTC,
+    getCurrentDateTime,
+    toDateTimeLocal,
     isQuizAvailable,
-    
-    // Get relative time description
-    getRelativeTime: (utcDate: Date | string) => 
-      getRelativeTime(utcDate, timezone),
-  };
+    getRelativeTime: getRelativeTimeForUser,
+  }), [
+    timezone,
+    setTimezone,
+    isLoading,
+    formatDate,
+    toUserTimezone,
+    toUTC,
+    getCurrentDateTime,
+    toDateTimeLocal,
+    getRelativeTimeForUser
+  ]);
 }

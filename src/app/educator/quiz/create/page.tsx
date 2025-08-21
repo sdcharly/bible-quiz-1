@@ -88,9 +88,9 @@ function CreateQuizContent() {
     shuffleQuestions: false,
   });
   
-  // Initialize startTime with user's timezone
+  // Initialize startTime with user's timezone - only run once on mount
   useEffect(() => {
-    if (!config.startTime) {
+    if (!config.startTime && userTimezone) {
       const currentTimeInUserTz = getCurrentDateTime();
       setConfig(prev => ({ 
         ...prev, 
@@ -98,7 +98,7 @@ function CreateQuizContent() {
         timezone: userTimezone 
       }));
     }
-  }, [config.startTime, getCurrentDateTime, userTimezone]);
+  }, []); // Empty dependency array - only run on mount
   
   const updateDateTime = (date: string, time: string) => {
     const newDateTime = `${date}T${time}`;
