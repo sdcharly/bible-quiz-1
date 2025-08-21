@@ -1,10 +1,6 @@
-import { db } from "../lib/db";
-import { user } from "../lib/schema";
+import { db } from "../src/lib/db";
+import { user } from "../src/lib/schema";
 import { eq, and } from "drizzle-orm";
-import * as dotenv from "dotenv";
-
-// Load environment variables
-dotenv.config();
 
 async function fixStudentApprovalStatus() {
   console.log("Starting to fix student approval status...");

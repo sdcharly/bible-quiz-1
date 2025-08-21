@@ -21,8 +21,8 @@ if (fs.existsSync(envPath)) {
 
 // Now import database-related modules after env vars are loaded
 async function main() {
-  const { db } = await import("@/lib/db");
-  const { user } = await import("@/lib/schema");
+  const { db } = await import("../src/lib/db");
+  const { user } = await import("../src/lib/schema");
   const { eq } = await import("drizzle-orm");
   
   const email = "talmidhouse@gmail.com";
