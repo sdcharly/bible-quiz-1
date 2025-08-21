@@ -64,7 +64,7 @@ export function ValidationSummary({
   const status = getOverallStatus();
 
   return (
-    <div className={`border rounded-lg p-6 ${status.bgColor}`}>
+    <div className={`border rounded-lg p-6 mb-6 ${status.bgColor}`}>
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">

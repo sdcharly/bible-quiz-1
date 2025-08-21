@@ -601,13 +601,11 @@ export default function QuizReviewPage() {
 
           {/* Validation Summary */}
           {validationSummary && (
-            <div className="mb-6">
-              <ValidationSummary
-                summary={validationSummary}
-                onRevalidateAll={() => validateAllQuestions()}
-                isRevalidating={validating}
-              />
-            </div>
+            <ValidationSummary
+              summary={validationSummary}
+              onRevalidateAll={() => validateAllQuestions()}
+              isRevalidating={validating}
+            />
           )}
 
           {/* Progress Bar */}
@@ -947,12 +945,6 @@ export default function QuizReviewPage() {
             Previous
           </Button>
 
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-gray-400" />
-            <span className="text-sm text-gray-600">
-              {quiz.configuration.duration} min • {quiz.configuration.passingScore}% to pass
-            </span>
-          </div>
 
           <Button
             onClick={goToNextQuestion}

@@ -59,6 +59,9 @@ function CreateQuizContent() {
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationMessage, setGenerationMessage] = useState("");
+  const [jobId, setJobId] = useState<string | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [config, setConfig] = useState<QuizConfig>({
     title: "",
@@ -125,12 +128,71 @@ function CreateQuizContent() {
     }
   };
 
+  const pollJobStatus = async (jobId: string, quizId: string) => {
+    const maxAttempts = 60; // Poll for up to 60 seconds
+    let attempts = 0;
+    
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      
+      try {
+        const response = await fetch(`/api/educator/quiz/poll-status?jobId=${jobId}`);
+        
+        if (response.ok) {
+          const status = await response.json();
+          
+          // Update progress UI
+          setGenerationProgress(status.progress || 0);
+          setGenerationMessage(status.message || "Processing...");
+          
+          if (status.status === 'completed') {
+            clearInterval(pollInterval);
+            setGenerationProgress(100);
+            setGenerationMessage("Quiz generated successfully! Redirecting...");
+            
+            // Wait a moment to show success message
+            setTimeout(() => {
+              router.push(`/educator/quiz/${quizId}/review`);
+            }, 1500);
+          } else if (status.status === 'failed') {
+            clearInterval(pollInterval);
+            setLoading(false);
+            setGenerationProgress(0);
+            alert(status.error || "Quiz generation failed. Please try again.");
+          } else if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            setLoading(false);
+            setGenerationProgress(0);
+            alert("Quiz generation is taking longer than expected. You can check back later or try again.");
+          }
+        } else if (response.status === 404) {
+          // Job expired or not found
+          clearInterval(pollInterval);
+          setLoading(false);
+          setGenerationProgress(0);
+          alert("Quiz generation job expired. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error polling status:", error);
+        // Continue polling unless max attempts reached
+        if (attempts >= maxAttempts) {
+          clearInterval(pollInterval);
+          setLoading(false);
+          setGenerationProgress(0);
+          alert("Failed to check quiz generation status. Please try again.");
+        }
+      }
+    }, 1000); // Poll every second
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
+    setGenerationProgress(0);
+    setGenerationMessage("Initializing quiz generation...");
     
     try {
-      // Call quiz generation webhook
-      const response = await fetch("/api/educator/quiz/create", {
+      // Call async quiz generation endpoint
+      const response = await fetch("/api/educator/quiz/create-async", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -141,21 +203,25 @@ function CreateQuizContent() {
       if (response.ok) {
         const data = await response.json();
         
-        // If webhook timed out, show a message but still redirect
-        if (data.webhookTimedOut && data.message) {
-          alert(data.message);
+        if (data.jobId) {
+          setJobId(data.jobId);
+          setGenerationProgress(5);
+          setGenerationMessage("Quiz creation started. Generating questions...");
+          
+          // Start polling for status
+          pollJobStatus(data.jobId, data.quizId);
+        } else {
+          // Fallback to old behavior if no jobId
+          router.push(`/educator/quiz/${data.quizId}/review`);
         }
-        
-        // Redirect to the quiz review page where educator can review and edit the generated questions
-        router.push(`/educator/quiz/${data.quizId}/review`);
       } else {
         const errorData = await response.json().catch(() => ({}));
         alert(errorData.error || "Failed to create quiz. Please try again.");
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error creating quiz:", error);
       alert("Failed to create quiz. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -214,6 +280,49 @@ function CreateQuizContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Quiz Generation Progress Modal */}
+      {loading && generationProgress > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900 mb-4">
+                  <ArrowPathIcon className="h-8 w-8 text-amber-600 dark:text-amber-400 animate-spin" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  Generating Your Quiz
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {generationMessage}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
+                  Please keep this page open. This may take 20-30 seconds...
+                </p>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
+                <div 
+                  className="bg-amber-600 h-2.5 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${generationProgress}%` }}
+                ></div>
+              </div>
+              
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {generationProgress}% Complete
+              </p>
+              
+              {/* Fun facts to keep user engaged */}
+              <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                <p className="text-xs text-amber-800 dark:text-amber-200">
+                  💡 Did you know? AI is analyzing your documents and creating unique questions tailored to your selected topics and difficulty level!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
