@@ -129,7 +129,7 @@ function CreateQuizContent() {
   };
 
   const pollJobStatus = async (jobId: string, quizId: string) => {
-    const maxAttempts = 60; // Poll for up to 60 seconds
+    const maxAttempts = 180; // Poll for up to 3 minutes
     let attempts = 0;
     
     const pollInterval = setInterval(async () => {

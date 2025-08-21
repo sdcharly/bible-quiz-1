@@ -16,7 +16,7 @@ export interface QuizGenerationJob {
 
 class QuizGenerationJobStore {
   private jobs: Map<string, QuizGenerationJob> = new Map();
-  private readonly JOB_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes
+  private readonly JOB_EXPIRY_MS = 60 * 60 * 1000; // 60 minutes (extended for slow n8n processing)
 
   create(jobId: string, quizId: string, webhookPayload: Record<string, unknown>): QuizGenerationJob {
     const job: QuizGenerationJob = {

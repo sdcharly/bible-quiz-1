@@ -290,7 +290,7 @@ export default function QuizReviewPage() {
   };
 
   const pollReplaceJobStatus = async (jobId: string, questionId: string) => {
-    const maxAttempts = 30; // Poll for up to 30 seconds
+    const maxAttempts = 120; // Poll for up to 2 minutes (120 seconds)
     let attempts = 0;
     
     const pollInterval = setInterval(async () => {
@@ -302,9 +302,19 @@ export default function QuizReviewPage() {
         if (response.ok) {
           const status = await response.json();
           
-          // Update progress UI
-          setReplaceProgress(status.progress || 0);
-          setReplaceMessage(status.message || "Generating replacement question...");
+          // Update progress UI with time-aware messages
+          const elapsedSeconds = attempts;
+          let progressMessage = status.message || "Generating replacement question...";
+          
+          // Add time-based encouragement messages
+          if (elapsedSeconds > 60 && status.status === 'processing') {
+            progressMessage = "Still working on it... Complex questions take time to craft perfectly.";
+          } else if (elapsedSeconds > 30 && status.status === 'processing') {
+            progressMessage = "AI is carefully crafting your question... Almost there!";
+          }
+          
+          setReplaceProgress(status.progress || Math.min(5 + attempts, 90));
+          setReplaceMessage(progressMessage);
           
           if (status.status === 'completed') {
             clearInterval(pollInterval);
@@ -332,7 +342,9 @@ export default function QuizReviewPage() {
             setReplacingQuestion(null);
             setReplaceJobId(null);
             setReplaceProgress(0);
-            alert("Question replacement is taking longer than expected. Please try again.");
+            setReplaceMessage("");
+            // Don't show error - the job might still complete
+            alert("Question generation is taking longer than usual. The question will be updated once ready. You can continue working and check back later.");
           }
         } else if (response.status === 404) {
           clearInterval(pollInterval);
@@ -1108,6 +1120,23 @@ export default function QuizReviewPage() {
                     💡 Generating contextually relevant question for {replaceOptions.book || "selected book"} {replaceOptions.chapter ? `chapter ${replaceOptions.chapter}` : ""}
                   </p>
                 </div>
+                
+                {/* Allow background work after 30 seconds */}
+                {replaceProgress > 30 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => {
+                      setReplacingQuestion(null);
+                      setReplaceProgress(0);
+                      setReplaceMessage("");
+                      alert("Question generation continues in background. The page will refresh when ready.");
+                    }}
+                  >
+                    Continue Working
+                  </Button>
+                )}
               </div>
             </div>
           </div>
