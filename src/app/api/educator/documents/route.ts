@@ -7,17 +7,20 @@ import { auth } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
-    // Try to get session using Better Auth
+    // Get session using Better Auth
     const session = await auth.api.getSession({
       headers: await headers()
     });
     
-    // For development/testing, use default educator ID if no session
-    let educatorId = "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2";
-    
-    if (session?.user) {
-      educatorId = session.user.id;
+    // Require authenticated educator
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
     }
+    
+    const educatorId = session.user.id;
 
     // Fetch documents for the educator
     const userDocuments = await db

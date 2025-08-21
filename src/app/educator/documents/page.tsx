@@ -22,7 +22,7 @@ interface Document {
   filename: string;
   fileSize: number;
   mimeType: string;
-  status: "pending" | "processing" | "processed" | "failed";
+  status: "pending" | "processing" | "processed" | "failed" | "deleted";
   uploadDate: string;
   processedData?: {
     status?: string;
@@ -82,21 +82,29 @@ export default function DocumentsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Successfully deleted
-        setDocuments(documents.filter(doc => doc.id !== documentId));
+        // Successfully marked as deleted - refresh the list to show the updated status
+        await fetchDocuments();
         
         // Show detailed success message
         const details = data.details;
-        let successMessage = "Document deleted successfully.";
+        let successMessage = data.message || "Document marked as deleted.";
         
-        if (details?.lightragDeletion?.success) {
+        if (details?.hasQuizDependencies) {
+          successMessage += "\n\n⚠️ Note: This document is still being used by the following quizzes:\n";
+          if (details.affectedQuizzes && details.affectedQuizzes.length > 0) {
+            details.affectedQuizzes.forEach((quiz: { title?: string }) => {
+              successMessage += `• ${quiz.title || quiz}\n`;
+            });
+          }
+          successMessage += "\nThe document will remain grayed out but cannot be fully removed.";
+        } else if (details?.lightragDeletion?.success) {
           if (details.lightragDeletion.verified) {
-            successMessage += " ✅ Verified removal from LightRAG knowledge base.";
+            successMessage += "\n✅ Successfully removed from LightRAG knowledge base.";
           } else {
-            successMessage += " ⚠️ Removed from LightRAG but verification timed out.";
+            successMessage += "\n⚠️ Removed from LightRAG but verification timed out.";
           }
         } else if (details?.lightragDocumentId) {
-          successMessage += " ⚠️ Local deletion successful, but LightRAG removal may have failed.";
+          successMessage += "\n⚠️ Local deletion successful, but LightRAG removal may have failed.";
         }
 
         if (details?.warnings && details.warnings.length > 0) {
@@ -105,17 +113,12 @@ export default function DocumentsPage() {
 
         alert(successMessage);
         
-        console.log("Enhanced deletion completed:", details);
+        console.log("Document deletion/marking completed:", details);
         
       } else {
         // Handle specific error cases with better user feedback
         if (response.status === 429) {
           alert(`Cannot delete document: ${data.error}\n\nPlease wait ${data.retryAfter || 30} seconds and try again.`);
-        } else if (response.status === 409) {
-          const quizList = data.affectedQuizzes 
-            ? data.affectedQuizzes.map((q: { title: string }) => `• ${q.title}`).join('\n')
-            : '';
-          alert(`${data.error}\n\nAffected quizzes:\n${quizList}`);
         } else if (response.status === 403) {
           alert(`Access denied: ${data.error}\n\n${data.details || ''}`);
         } else if (response.status === 503) {
@@ -203,6 +206,7 @@ export default function DocumentsPage() {
             <option value="processing">Processing</option>
             <option value="pending">Pending</option>
             <option value="failed">Failed</option>
+            <option value="deleted">Deleted</option>
           </select>
         </div>
 
@@ -224,15 +228,25 @@ export default function DocumentsPage() {
             {filteredDocuments.map((doc) => (
               <div
                 key={doc.id}
-                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                className={`rounded-lg border p-4 transition-colors ${
+                  doc.status === "deleted" 
+                    ? "bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700 opacity-60" 
+                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                }`}
               >
                 <div className="space-y-4">
                   {/* Document Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                      <FileText className={`h-5 w-5 flex-shrink-0 ${
+                        doc.status === "deleted" ? "text-gray-300" : "text-gray-400"
+                      }`} />
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate" title={doc.filename}>
+                        <h3 className={`text-sm font-medium truncate ${
+                          doc.status === "deleted" 
+                            ? "text-gray-500 dark:text-gray-600 line-through" 
+                            : "text-gray-900 dark:text-white"
+                        }`} title={doc.filename}>
                           {doc.filename}
                         </h3>
                         <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -252,14 +266,16 @@ export default function DocumentsPage() {
                           Create Quiz
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(doc.id, doc.filename)}
-                        className="text-gray-400 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {doc.status !== "deleted" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(doc.id, doc.filename)}
+                          className="text-gray-400 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
 

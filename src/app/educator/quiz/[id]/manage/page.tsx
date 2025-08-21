@@ -1,24 +1,37 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateInTimezone } from "@/lib/timezone";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ArrowLeft,
   Users,
   UserPlus,
   CheckCircle,
   Clock,
-  Trophy,
   Search,
-  Mail,
   Calendar,
-  BarChart3,
   Eye,
   BookOpen,
+  UserCheck,
+  UserX,
+  CheckSquare,
+  Square,
+  Loader2,
 } from "lucide-react";
 
 interface QuizDetails {
@@ -43,21 +56,32 @@ interface EnrolledStudent {
   completedAt?: string;
 }
 
+interface AvailableStudent {
+  studentId: string;
+  name: string;
+  email: string;
+  phoneNumber: string | null;
+  isEnrolled: boolean;
+}
+
 export default function QuizManagePage() {
   const params = useParams();
-  const router = useRouter();
   const quizId = params.id as string;
   
   const [quiz, setQuiz] = useState<QuizDetails | null>(null);
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
+  const [availableStudents, setAvailableStudents] = useState<AvailableStudent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddStudent, setShowAddStudent] = useState(false);
-  const [studentEmail, setStudentEmail] = useState("");
-  const [addingStudent, setAddingStudent] = useState(false);
+  const [showBulkEnroll, setShowBulkEnroll] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollmentStats, setEnrollmentStats] = useState({ total: 0, enrolled: 0 });
 
   useEffect(() => {
     fetchQuizDetails();
     fetchEnrolledStudents();
+    fetchAvailableStudents();
   }, [quizId]);
 
   const fetchQuizDetails = async () => {
@@ -81,40 +105,111 @@ export default function QuizManagePage() {
       }
     } catch (error) {
       console.error("Error fetching enrolled students:", error);
+    }
+  };
+
+  const fetchAvailableStudents = async () => {
+    try {
+      const response = await fetch(`/api/educator/quiz/${quizId}/bulk-enroll`);
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableStudents(data.students || []);
+        setEnrollmentStats({ total: data.total, enrolled: data.enrolled });
+      }
+    } catch (error) {
+      console.error("Error fetching available students:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!studentEmail.trim()) return;
+  const handleBulkEnroll = async () => {
+    if (selectedStudents.size === 0) {
+      alert("Please select at least one student to enroll");
+      return;
+    }
 
-    setAddingStudent(true);
+    setEnrolling(true);
     try {
-      const response = await fetch(`/api/educator/quiz/${quizId}/enroll`, {
+      const response = await fetch(`/api/educator/quiz/${quizId}/bulk-enroll`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentEmail: studentEmail.trim() })
+        body: JSON.stringify({ studentIds: Array.from(selectedStudents) })
       });
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Student enrolled successfully!`);
-        setStudentEmail("");
-        setShowAddStudent(false);
-        fetchEnrolledStudents(); // Refresh the list
+        alert(`Successfully enrolled ${data.enrolledCount} student(s)!`);
+        setSelectedStudents(new Set());
+        setShowBulkEnroll(false);
+        fetchEnrolledStudents();
+        fetchAvailableStudents();
       } else {
         const error = await response.json();
-        alert(error.message || "Failed to enroll student");
+        alert(error.error || "Failed to enroll students");
       }
     } catch (error) {
-      console.error("Error enrolling student:", error);
-      alert("Error enrolling student");
+      console.error("Error enrolling students:", error);
+      alert("Error enrolling students");
     } finally {
-      setAddingStudent(false);
+      setEnrolling(false);
     }
   };
+
+  const handleEnrollAll = async () => {
+    if (!confirm("Are you sure you want to enroll ALL your students in this quiz?")) return;
+
+    setEnrolling(true);
+    try {
+      const response = await fetch(`/api/educator/quiz/${quizId}/bulk-enroll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enrollAll: true })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Successfully enrolled ${data.enrolledCount} student(s)!`);
+        setShowBulkEnroll(false);
+        fetchEnrolledStudents();
+        fetchAvailableStudents();
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to enroll students");
+      }
+    } catch (error) {
+      console.error("Error enrolling all students:", error);
+      alert("Error enrolling students");
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
+  const toggleStudent = (studentId: string) => {
+    const newSelected = new Set(selectedStudents);
+    if (newSelected.has(studentId)) {
+      newSelected.delete(studentId);
+    } else {
+      newSelected.add(studentId);
+    }
+    setSelectedStudents(newSelected);
+  };
+
+  const selectAll = () => {
+    const notEnrolled = availableStudents
+      .filter(s => !s.isEnrolled && s.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      .map(s => s.studentId);
+    setSelectedStudents(new Set(notEnrolled));
+  };
+
+  const deselectAll = () => {
+    setSelectedStudents(new Set());
+  };
+
+  const filteredStudents = availableStudents.filter(student =>
+    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const getStatusBadge = (status: string, score?: number) => {
     switch (status) {
@@ -177,11 +272,12 @@ export default function QuizManagePage() {
                 </Button>
               </Link>
               <Button 
-                onClick={() => setShowAddStudent(true)}
+                onClick={() => setShowBulkEnroll(true)}
                 size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
               >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Student
+                <Users className="h-4 w-4 mr-2" />
+                Assign Students
               </Button>
             </div>
           </div>
@@ -269,10 +365,10 @@ export default function QuizManagePage() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => setShowAddStudent(true)}
+                    onClick={() => setShowBulkEnroll(true)}
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Add Student
+                    Assign More
                   </Button>
                 </div>
               </CardHeader>
@@ -283,10 +379,10 @@ export default function QuizManagePage() {
                     <p className="text-gray-500">No students enrolled yet</p>
                     <Button 
                       className="mt-4" 
-                      onClick={() => setShowAddStudent(true)}
+                      onClick={() => setShowBulkEnroll(true)}
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
-                      Enroll First Student
+                      Assign Students
                     </Button>
                   </div>
                 ) : (
@@ -339,52 +435,152 @@ export default function QuizManagePage() {
           </div>
         </div>
 
-        {/* Add Student Modal */}
-        {showAddStudent && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
-              <h3 className="text-lg font-semibold mb-4">Add Student to Quiz</h3>
-              <form onSubmit={handleAddStudent}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
-                    Student Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={studentEmail}
-                    onChange={(e) => setStudentEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="student@example.com"
-                    required
+        {/* Bulk Enroll Students Modal */}
+        <Dialog open={showBulkEnroll} onOpenChange={setShowBulkEnroll}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Assign Students to Quiz</DialogTitle>
+              <DialogDescription>
+                Select students to enroll in "{quiz?.title}". Already enrolled students are marked and cannot be selected.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="flex-1 overflow-y-auto">
+              {/* Stats Bar */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-4">
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">
+                      Total Students: <strong>{enrollmentStats.total}</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4 text-green-500" />
+                    <span className="text-sm text-gray-600">
+                      Already Enrolled: <strong>{enrollmentStats.enrolled}</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <UserX className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm text-gray-600">
+                      Available: <strong>{enrollmentStats.total - enrollmentStats.enrolled}</strong>
+                    </span>
+                  </div>
+                </div>
+                <Badge variant={selectedStudents.size > 0 ? "default" : "secondary"}>
+                  {selectedStudents.size} selected
+                </Badge>
+              </div>
+
+              {/* Search and Actions */}
+              <div className="flex gap-2 mb-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search students by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    The student will be enrolled automatically if they have an account
-                  </p>
                 </div>
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddStudent(false);
-                      setStudentEmail("");
-                    }}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={addingStudent}
-                    className="flex-1"
-                  >
-                    {addingStudent ? "Adding..." : "Add Student"}
-                  </Button>
-                </div>
-              </form>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectAll}
+                  disabled={enrollmentStats.total === enrollmentStats.enrolled}
+                >
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Select All Available
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={deselectAll}
+                >
+                  <Square className="h-4 w-4 mr-2" />
+                  Deselect All
+                </Button>
+              </div>
+
+              {/* Student List */}
+              <div className="space-y-2 max-h-[400px] overflow-y-auto border rounded-lg p-2">
+                {filteredStudents.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    {searchTerm ? "No students found matching your search" : "No students available"}
+                  </div>
+                ) : (
+                  filteredStudents.map((student) => (
+                    <div
+                      key={student.studentId}
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                        student.isEnrolled
+                          ? "bg-gray-50 dark:bg-gray-800 opacity-60 cursor-not-allowed"
+                          : selectedStudents.has(student.studentId)
+                          ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                      }`}
+                      onClick={() => !student.isEnrolled && toggleStudent(student.studentId)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedStudents.has(student.studentId) || student.isEnrolled}
+                          disabled={student.isEnrolled}
+                          onCheckedChange={() => toggleStudent(student.studentId)}
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        />
+                        <div>
+                          <div className="font-medium">{student.name}</div>
+                          <div className="text-sm text-gray-500">{student.email}</div>
+                        </div>
+                      </div>
+                      {student.isEnrolled && (
+                        <Badge variant="secondary" className="bg-green-100 text-green-700">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Already Enrolled
+                        </Badge>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
-        )}
+
+            <DialogFooter className="flex justify-between items-center">
+              <Button
+                variant="outline"
+                onClick={handleEnrollAll}
+                disabled={enrolling || enrollmentStats.total === enrollmentStats.enrolled}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Enroll All Students
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowBulkEnroll(false)} disabled={enrolling}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleBulkEnroll}
+                  disabled={enrolling || selectedStudents.size === 0}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {enrolling ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enrolling...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Enroll {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

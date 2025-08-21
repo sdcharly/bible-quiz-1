@@ -2,11 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { educatorStudents, user, enrollments, quizAttempts } from "@/lib/schema";
 import { eq, and, count } from "drizzle-orm";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
-    // Use hardcoded educator ID for now
-    const educatorId = "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2";
+    // Get session
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    // Require authenticated educator
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+    
+    const educatorId = session.user.id;
 
     // Fetch all students under this educator
     const students = await db
@@ -68,6 +82,21 @@ export async function GET(req: NextRequest) {
 // Add a new student to educator's list
 export async function POST(req: NextRequest) {
   try {
+    // Get session
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    // Require authenticated educator
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+    
+    const educatorId = session.user.id;
+
     const { studentEmail } = await req.json();
     
     if (!studentEmail) {
@@ -76,8 +105,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const educatorId = "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2";
 
     // Find student by email
     const student = await db

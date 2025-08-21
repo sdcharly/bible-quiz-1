@@ -3,12 +3,35 @@ import { db } from "@/lib/db";
 import { educatorStudents, user } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import * as crypto from "crypto";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    // For initial setup, let's add the existing student to the educator
-    const educatorId = "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2";
-    const studentId = "UeqiVFam4rO2P9KbbnwqofioJxZoQdvf";
+    // Get session
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    // Require authenticated educator
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+    
+    const educatorId = session.user.id;
+    
+    // Get studentId from request body
+    const { studentId } = await req.json();
+    
+    if (!studentId) {
+      return NextResponse.json(
+        { error: "Student ID is required" },
+        { status: 400 }
+      );
+    }
 
     // Check if relationship already exists
     const existing = await db

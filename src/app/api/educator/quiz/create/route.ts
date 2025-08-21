@@ -1,12 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { quizzes, questions, documents } from "@/lib/schema";
-import { inArray } from "drizzle-orm";
+import { quizzes, questions, documents, user } from "@/lib/schema";
+import { inArray, eq } from "drizzle-orm";
 import * as crypto from "crypto";
 import { QuestionValidator, QuestionToValidate } from "@/lib/question-validator";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { checkEducatorPermission, checkEducatorLimits, getPermissionMessage } from "@/lib/permissions";
 
 export async function POST(req: NextRequest) {
   try {
+    // Get session
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    // Require authenticated educator
+    if (!session?.user || (session.user.role !== 'educator' && session.user.role !== 'pending_educator')) {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+    
+    const educatorId = session.user.id;
+
+    // Check if educator is approved and has permission to create quizzes
+    const canCreate = await checkEducatorPermission(educatorId, 'canPublishQuiz');
+    if (!canCreate) {
+      return NextResponse.json(
+        { error: getPermissionMessage('canPublishQuiz') },
+        { status: 403 }
+      );
+    }
+
+    // Check if educator has reached their quiz limit
+    const currentQuizCount = await db.select({ count: quizzes.id })
+      .from(quizzes)
+      .where(eq(quizzes.educatorId, educatorId));
+    
+    const quizLimitCheck = await checkEducatorLimits(educatorId, 'maxQuizzes', currentQuizCount.length);
+    if (!quizLimitCheck.allowed) {
+      return NextResponse.json(
+        { 
+          error: getPermissionMessage('maxQuizzes'),
+          currentCount: currentQuizCount.length,
+          limit: quizLimitCheck.limit 
+        },
+        { status: 403 }
+      );
+    }
     const body = await req.json();
     const {
       title,
@@ -245,7 +288,7 @@ export async function POST(req: NextRequest) {
     // Save quiz to database
     const newQuiz = await db.insert(quizzes).values({
       id: quizId,
-      educatorId: "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2", // Using your educator ID
+      educatorId: educatorId, // Use authenticated educator's ID
       title,
       description,
       documentIds,

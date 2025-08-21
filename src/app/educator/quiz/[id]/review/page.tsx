@@ -10,6 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loading } from "@/components/ui/loading";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { QuestionValidationDisplay } from "@/components/question-validation-display";
 import { ValidationSummary } from "@/components/validation-summary";
 import { QuestionValidationResult } from "@/lib/question-validator";
@@ -89,6 +97,13 @@ export default function QuizReviewPage() {
   const [showExplanation, setShowExplanation] = useState(false);
   const [viewMode, setViewMode] = useState<"single" | "grid">("single");
   const [replacingQuestion, setReplacingQuestion] = useState<string | null>(null);
+  const [showReplaceDialog, setShowReplaceDialog] = useState(false);
+  const [replaceOptions, setReplaceOptions] = useState({
+    difficulty: "medium",
+    book: "",
+    chapter: ""
+  });
+  const [questionToReplace, setQuestionToReplace] = useState<string | null>(null);
   const [validationResults, setValidationResults] = useState<Record<string, QuestionValidationResult>>({});
   const [validationSummary, setValidationSummary] = useState<{
     totalQuestions: number;
@@ -258,16 +273,30 @@ export default function QuizReviewPage() {
     setEditedQuestions(updatedEdited);
   };
 
-  const handleReplaceQuestion = async (questionId: string) => {
-    if (!confirm("Are you sure you want to replace this question with a newly generated one? This action cannot be undone.")) {
-      return;
+  const openReplaceDialog = (questionId: string) => {
+    const question = quiz?.questions.find(q => q.id === questionId);
+    if (question) {
+      setReplaceOptions({
+        difficulty: question.difficulty || "medium",
+        book: question.book || "",
+        chapter: question.chapter || ""
+      });
+      setQuestionToReplace(questionId);
+      setShowReplaceDialog(true);
     }
+  };
 
-    setReplacingQuestion(questionId);
+  const handleReplaceQuestion = async () => {
+    if (!questionToReplace) return;
+    
+    setShowReplaceDialog(false);
+    setReplacingQuestion(questionToReplace);
+    
     try {
-      const response = await fetch(`/api/educator/quiz/${quizId}/question/${questionId}/replace`, {
+      const response = await fetch(`/api/educator/quiz/${quizId}/question/${questionToReplace}/replace`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(replaceOptions)
       });
 
       if (response.ok) {
@@ -279,7 +308,7 @@ export default function QuizReviewPage() {
           return {
             ...prev,
             questions: prev.questions.map(q => 
-              q.id === questionId ? {
+              q.id === questionToReplace ? {
                 id: data.question.id,
                 questionText: data.question.questionText,
                 options: data.question.options,
@@ -296,11 +325,11 @@ export default function QuizReviewPage() {
         });
         
         // Clear any editing state for this question
-        if (editingQuestion === questionId) {
+        if (editingQuestion === questionToReplace) {
           setEditingQuestion(null);
         }
         const updatedEdited = { ...editedQuestions };
-        delete updatedEdited[questionId];
+        delete updatedEdited[questionToReplace];
         setEditedQuestions(updatedEdited);
         
       } else {
@@ -312,6 +341,7 @@ export default function QuizReviewPage() {
       alert("Error replacing question");
     } finally {
       setReplacingQuestion(null);
+      setQuestionToReplace(null);
     }
   };
 
@@ -684,7 +714,7 @@ export default function QuizReviewPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleReplaceQuestion(currentQuestion.id)}
+                        onClick={() => openReplaceDialog(currentQuestion.id)}
                         disabled={replacingQuestion === currentQuestion.id}
                         className="text-orange-600 border-orange-200 hover:bg-orange-50 hover:border-orange-300"
                       >
@@ -810,39 +840,33 @@ export default function QuizReviewPage() {
 
               {/* Metadata */}
               <div className="mt-6 pt-6 border-t">
-                {/* Biblical Reference Section - More prominent */}
-                {(displayQuestion.book || displayQuestion.chapter) && (
+                {/* Biblical Reference Edit Fields (Edit Mode Only) */}
+                {isEditing && (
                   <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <BookOpen className="h-5 w-5 text-amber-600" />
-                      <h3 className="font-semibold text-amber-900">Biblical Reference</h3>
+                      <h3 className="font-semibold text-amber-900">Edit Biblical Reference</h3>
                     </div>
-                    {isEditing ? (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-sm text-amber-700">Book</Label>
-                          <Input
-                            value={displayQuestion.book || ''}
-                            onChange={(e) => updateEditedQuestion(currentQuestion.id, "book", e.target.value)}
-                            placeholder="e.g., Genesis, Matthew"
-                            className="mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-sm text-amber-700">Chapter & Verse</Label>
-                          <Input
-                            value={displayQuestion.chapter || ''}
-                            onChange={(e) => updateEditedQuestion(currentQuestion.id, "chapter", e.target.value)}
-                            placeholder="e.g., 3:16, 6:6-8, 1:1-5"
-                            className="mt-1"
-                          />
-                        </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-sm text-amber-700">Book</Label>
+                        <Input
+                          value={displayQuestion.book || ''}
+                          onChange={(e) => updateEditedQuestion(currentQuestion.id, "book", e.target.value)}
+                          placeholder="e.g., Genesis, Matthew"
+                          className="mt-1"
+                        />
                       </div>
-                    ) : (
-                      <p className="text-lg font-medium text-amber-800">
-                        {displayQuestion.book} {displayQuestion.chapter || ''}
-                      </p>
-                    )}
+                      <div>
+                        <Label className="text-sm text-amber-700">Chapter & Verse</Label>
+                        <Input
+                          value={displayQuestion.chapter || ''}
+                          onChange={(e) => updateEditedQuestion(currentQuestion.id, "chapter", e.target.value)}
+                          placeholder="e.g., 3:16, 6:6-8, 1:1-5"
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
                 
@@ -940,6 +964,66 @@ export default function QuizReviewPage() {
             <ChevronRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
+
+        {/* Replace Question Dialog */}
+        <Dialog open={showReplaceDialog} onOpenChange={setShowReplaceDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Replace Question Options</DialogTitle>
+              <DialogDescription>
+                Customize the parameters for the replacement question. The new question will be generated based on these settings.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="difficulty">Difficulty Level</Label>
+                <select
+                  id="difficulty"
+                  value={replaceOptions.difficulty}
+                  onChange={(e) => setReplaceOptions(prev => ({ ...prev, difficulty: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="book">Biblical Book</Label>
+                <Input
+                  id="book"
+                  placeholder="e.g., Genesis, Matthew, Psalms"
+                  value={replaceOptions.book}
+                  onChange={(e) => setReplaceOptions(prev => ({ ...prev, book: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="chapter">Chapter & Verse (Optional)</Label>
+                <Input
+                  id="chapter"
+                  placeholder="e.g., 3:16, 1:1-5, 23"
+                  value={replaceOptions.chapter}
+                  onChange={(e) => setReplaceOptions(prev => ({ ...prev, chapter: e.target.value }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowReplaceDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleReplaceQuestion}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Replace Question
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </div>

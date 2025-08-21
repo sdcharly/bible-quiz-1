@@ -50,6 +50,20 @@
       "when": 1755693334298,
       "tag": "0006_absurd_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1755710467163,
+      "tag": "0007_yielding_blue_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1755714312516,
+      "tag": "0008_illegal_eternity",
+      "breakpoints": true
     }
   ]
 }

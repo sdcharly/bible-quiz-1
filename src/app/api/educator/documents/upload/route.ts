@@ -8,20 +8,20 @@ import { LightRAGService } from "@/lib/lightrag-service";
 
 export async function POST(req: NextRequest) {
   try {
-    // Try to get session using Better Auth
+    // Get session using Better Auth
     const session = await auth.api.getSession({
       headers: await headers()
     });
 
-    // For development/testing, we'll allow uploads with a hardcoded educator ID
-    // In production, you should properly validate the session
-    let educatorId = "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2"; // Default educator ID
-    
-    if (session?.user) {
-      educatorId = session.user.id;
-    } else {
-      console.warn("No session found, using default educator ID for testing");
+    // Require authenticated educator
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
     }
+    
+    const educatorId = session.user.id;
 
     // Get the file from form data
     const formData = await req.formData();

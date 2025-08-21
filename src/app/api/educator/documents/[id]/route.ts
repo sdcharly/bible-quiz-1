@@ -18,11 +18,15 @@ export async function DELETE(
       headers: await headers()
     });
 
-    let educatorId = "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2"; // Default for testing
-    
-    if (session?.user) {
-      educatorId = session.user.id;
+    // Require authenticated educator
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
     }
+    
+    const educatorId = session.user.id;
 
     // First, fetch the document to get its metadata
     const [document] = await db
@@ -114,33 +118,58 @@ export async function DELETE(
       console.log("Document never processed, safe to delete locally");
     }
 
-    // Check for active quizzes using this document before deletion
+    // Check for active quizzes using this document
+    let hasQuizDependencies = false;
+    let affectedQuizzes: { id: string; title: string; }[] = [];
     try {
-      const affectedQuizzes = await db
+      affectedQuizzes = await db
         .select({ id: quizzes.id, title: quizzes.title })
         .from(quizzes)
         .where(sql`${quizzes.documentIds} @> ${JSON.stringify([params.id])}`);
 
-      if (affectedQuizzes.length > 0) {
-        return NextResponse.json({
-          success: false,
-          error: `Cannot delete document: It is being used in ${affectedQuizzes.length} quiz(es). Please remove it from quizzes first.`,
-          affectedQuizzes: affectedQuizzes
-        }, { status: 409 });
+      hasQuizDependencies = affectedQuizzes.length > 0;
+      if (hasQuizDependencies) {
+        deletionWarnings.push(`Document is being used in ${affectedQuizzes.length} quiz(es)`);
       }
     } catch (quizCheckError) {
       console.warn("Could not check for quiz dependencies:", quizCheckError);
       deletionWarnings.push("Could not verify quiz dependencies");
     }
 
-    // Delete from local database
-    await db.delete(documents).where(eq(documents.id, params.id));
+    // Mark document as deleted regardless of dependencies
+    // This allows us to visually mark it as deleted even if it can't be fully removed
+    await db.update(documents)
+      .set({ 
+        status: "deleted",
+        updatedAt: new Date(),
+        processedData: {
+          ...processedData,
+          deletionInfo: {
+            deletedAt: new Date().toISOString(),
+            deletedBy: educatorId,
+            lightragDeleted: lightragResult?.success || false,
+            lightragVerified: lightragResult?.verified || false,
+            hasQuizDependencies: hasQuizDependencies,
+            affectedQuizzes: affectedQuizzes.map(q => q.title),
+            failureReason: hasQuizDependencies ? "Document in use by quizzes" : undefined
+          }
+        }
+      })
+      .where(eq(documents.id, params.id));
 
-    console.log(`Successfully deleted document ${params.id} from local database`);
+    console.log(`Successfully marked document ${params.id} as deleted`);
+
+    // Determine the appropriate message based on dependencies
+    let message = "Document marked as deleted";
+    if (hasQuizDependencies) {
+      message = `Document marked as deleted but is still in use by ${affectedQuizzes.length} quiz(es)`;
+    } else if (lightragResult?.success) {
+      message = "Document deleted successfully from all systems";
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Document deleted successfully",
+      message: message,
       details: {
         localDocumentId: params.id,
         lightragDocumentId: lightragDocumentId || null,
@@ -149,6 +178,8 @@ export async function DELETE(
           verified: lightragResult.verified,
           status: lightragResult.lightragStatus?.status
         } : null,
+        hasQuizDependencies: hasQuizDependencies,
+        affectedQuizzes: hasQuizDependencies ? affectedQuizzes : undefined,
         warnings: deletionWarnings.length > 0 ? deletionWarnings : undefined
       }
     });

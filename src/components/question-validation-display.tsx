@@ -144,52 +144,50 @@ export function QuestionValidationDisplay({
       {/* Expanded content */}
       {isExpanded && (
         <div className="space-y-4">
-          {/* Entity Status */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <div className="font-medium text-green-700 mb-1">
-                Valid Entities ({validation.validEntities.length})
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {validation.validEntities.length > 0 ? (
-                  validation.validEntities.slice(0, 5).map((entity) => (
-                    <Badge key={entity} variant="outline" className="text-xs text-green-700 border-green-300">
-                      {entity}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-gray-500 italic">None found</span>
-                )}
-                {validation.validEntities.length > 5 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{validation.validEntities.length - 5} more
-                  </Badge>
-                )}
-              </div>
+          {/* Entity Status - Only show if there are entities */}
+          {(validation.validEntities.length > 0 || validation.invalidEntities.length > 0) && (
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              {validation.validEntities.length > 0 && (
+                <div>
+                  <div className="font-medium text-green-700 mb-1">
+                    Valid Entities ({validation.validEntities.length})
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {validation.validEntities.slice(0, 3).map((entity) => (
+                      <Badge key={entity} variant="outline" className="text-xs text-green-700 border-green-300">
+                        {entity}
+                      </Badge>
+                    ))}
+                    {validation.validEntities.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{validation.validEntities.length - 3} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {validation.invalidEntities.length > 0 && (
+                <div>
+                  <div className="font-medium text-red-700 mb-1">
+                    Invalid Entities ({validation.invalidEntities.length})
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {validation.invalidEntities.slice(0, 3).map((entity) => (
+                      <Badge key={entity} variant="outline" className="text-xs text-red-700 border-red-300">
+                        {entity}
+                      </Badge>
+                    ))}
+                    {validation.invalidEntities.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{validation.invalidEntities.length - 3} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-            
-            <div>
-              <div className="font-medium text-red-700 mb-1">
-                Invalid Entities ({validation.invalidEntities.length})
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {validation.invalidEntities.length > 0 ? (
-                  validation.invalidEntities.slice(0, 5).map((entity) => (
-                    <Badge key={entity} variant="outline" className="text-xs text-red-700 border-red-300">
-                      {entity}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-gray-500 italic">None found</span>
-                )}
-                {validation.invalidEntities.length > 5 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{validation.invalidEntities.length - 5} more
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Issues */}
           {validation.issues.length > 0 && (
@@ -232,15 +230,6 @@ export function QuestionValidationDisplay({
             </div>
           )}
 
-          {/* Validation Score Breakdown */}
-          <div className="text-xs text-gray-500 pt-2 border-t">
-            <div className="flex justify-between items-center">
-              <span>Validation Score: {validation.score}/100</span>
-              <span className={validation.isValid ? "text-green-600" : "text-red-600"}>
-                {validation.isValid ? "✓ Approved" : "⚠ Needs Review"}
-              </span>
-            </div>
-          </div>
         </div>
       )}
     </div>

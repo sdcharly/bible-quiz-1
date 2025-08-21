@@ -23,6 +23,12 @@ interface ProcessingProgress {
   processingStarted?: string;
   processingCompleted?: string;
   lastChecked?: string;
+  deletionInfo?: {
+    deletedAt?: string;
+    hasQuizDependencies?: boolean;
+    affectedQuizzes?: string[];
+    failureReason?: string;
+  };
 }
 
 export function DocumentProcessingStatus({ 
@@ -59,6 +65,10 @@ export function DocumentProcessingStatus({
       
       if (data.success) {
         const newProgress = data.data;
+        // Extract deletion info if available
+        if (data.processedData?.deletionInfo) {
+          newProgress.deletionInfo = data.processedData.deletionInfo;
+        }
         setProgress(newProgress);
         
         // Notify parent component of status change
@@ -135,6 +145,13 @@ export function DocumentProcessingStatus({
             Failed
           </Badge>
         );
+      case "deleted":
+        return (
+          <Badge variant="secondary" className="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+            <CheckCircle className="w-3 h-3" />
+            Deletion completed
+          </Badge>
+        );
       default:
         return (
           <Badge variant="outline" className="flex items-center gap-1">
@@ -155,15 +172,17 @@ export function DocumentProcessingStatus({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {getStatusBadge()}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => fetchStatus(true)}
-            disabled={isRefreshing}
-            className="h-7 px-2"
-          >
-            <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </Button>
+          {progress.status !== "deleted" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => fetchStatus(true)}
+              disabled={isRefreshing}
+              className="h-7 px-2"
+            >
+              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -177,26 +196,38 @@ export function DocumentProcessingStatus({
         </div>
       )}
 
-      {progress.latestMessage && (
+      {(progress.latestMessage || progress.status === "deleted") && (
         <div className="text-sm text-muted-foreground p-2 bg-muted rounded-md">
           <div className="font-medium">Latest update:</div>
-          <div className="text-xs mt-1">{progress.latestMessage}</div>
+          <div className="text-xs mt-1">
+            {progress.status === "deleted" ? (
+              progress.deletionInfo?.hasQuizDependencies ? 
+                `Document marked as deleted but still in use by ${progress.deletionInfo.affectedQuizzes?.length || 0} quiz(es)` :
+                "Deletion completed: Document removed from all systems"
+            ) : progress.latestMessage}
+          </div>
         </div>
       )}
 
       <div className="text-xs text-muted-foreground space-y-1">
-        {progress.processingStarted && (
-          <div>Started: {formatTimestamp(progress.processingStarted)}</div>
-        )}
-        {progress.processingCompleted && (
-          <div>Completed: {formatTimestamp(progress.processingCompleted)}</div>
-        )}
-        {progress.lastChecked && (
-          <div>Last checked: {formatTimestamp(progress.lastChecked)}</div>
+        {progress.status === "deleted" ? (
+          <div>Completed: {formatTimestamp(progress.lastChecked)}</div>
+        ) : (
+          <>
+            {progress.processingStarted && (
+              <div>Started: {formatTimestamp(progress.processingStarted)}</div>
+            )}
+            {progress.processingCompleted && (
+              <div>Completed: {formatTimestamp(progress.processingCompleted)}</div>
+            )}
+            {progress.lastChecked && (
+              <div>Last checked: {formatTimestamp(progress.lastChecked)}</div>
+            )}
+          </>
         )}
       </div>
 
-      {progress.isComplete && (
+      {progress.isComplete && progress.status !== "deleted" && (
         <div className="text-sm text-green-600 font-medium flex items-center gap-1">
           <CheckCircle className="w-4 h-4" />
           Document is ready for quiz creation

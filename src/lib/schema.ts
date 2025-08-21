@@ -1,8 +1,9 @@
 import { pgTable, text, timestamp, boolean, integer, jsonb, pgEnum, real } from "drizzle-orm/pg-core";
 
-export const userRoleEnum = pgEnum("user_role", ["educator", "student"]);
+export const userRoleEnum = pgEnum("user_role", ["admin", "educator", "student", "pending_educator"]);
 export const quizStatusEnum = pgEnum("quiz_status", ["draft", "published", "completed", "archived"]);
-export const documentStatusEnum = pgEnum("document_status", ["pending", "processing", "processed", "failed"]);
+export const documentStatusEnum = pgEnum("document_status", ["pending", "processing", "processed", "failed", "deleted"]);
+export const approvalStatusEnum = pgEnum("approval_status", ["pending", "approved", "rejected", "suspended"]);
 export const enrollmentStatusEnum = pgEnum("enrollment_status", ["enrolled", "in_progress", "completed", "abandoned"]);
 export const difficultyEnum = pgEnum("difficulty", ["easy", "intermediate", "hard"]);
 export const bloomsLevelEnum = pgEnum("blooms_level", ["knowledge", "comprehension", "application", "analysis", "synthesis", "evaluation"]);
@@ -16,6 +17,21 @@ export const user = pgTable("user", {
   emailVerified: boolean("emailVerified"),
   image: text("image"),
   timezone: text("timezone").notNull().default("Asia/Kolkata"), // Default to IST for Indian users
+  approvalStatus: approvalStatusEnum("approval_status").notNull().default("pending"),
+  approvedBy: text("approved_by").references(() => user.id),
+  approvedAt: timestamp("approved_at"),
+  rejectionReason: text("rejection_reason"),
+  permissions: jsonb("permissions").default({}).$type<{
+    canPublishQuiz?: boolean;
+    canAddStudents?: boolean;
+    canEditQuiz?: boolean;
+    canDeleteQuiz?: boolean;
+    canViewAnalytics?: boolean;
+    canExportData?: boolean;
+    maxStudents?: number;
+    maxQuizzes?: number;
+    maxQuestionsPerQuiz?: number;
+  }>(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
@@ -181,4 +197,27 @@ export const invitations = pgTable("invitations", {
   expiresAt: timestamp("expires_at").notNull(),
   acceptedAt: timestamp("accepted_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Activity tracking for audit trail
+export const activityLogs = pgTable("activity_logs", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  actionType: text("action_type").notNull(), // login, logout, approve_educator, reject_educator, etc.
+  entityType: text("entity_type").notNull(), // user, quiz, document, etc.
+  entityId: text("entity_id"),
+  details: jsonb("details").$type<Record<string, unknown>>(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Admin settings for system configuration
+export const adminSettings = pgTable("admin_settings", {
+  id: text("id").primaryKey(),
+  settingKey: text("setting_key").notNull().unique(),
+  settingValue: jsonb("setting_value").notNull().$type<unknown>(),
+  description: text("description"),
+  updatedBy: text("updated_by").references(() => user.id),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

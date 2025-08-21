@@ -2,11 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { quizzes, enrollments } from "@/lib/schema";
 import { eq, count } from "drizzle-orm";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
-    // For now, using a hardcoded educator ID - in production, get from session
-    const educatorId = "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2"; // Your educator ID
+    // Get session
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    // Require authenticated educator
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+    
+    const educatorId = session.user.id;
 
     // Fetch all quizzes for this educator
     const educatorQuizzes = await db

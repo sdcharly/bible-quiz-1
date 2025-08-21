@@ -194,10 +194,22 @@ function CreateQuizContent() {
   ];
 
   const biblicalBooks = [
+    // Old Testament (39 books)
     "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
-    "Psalms", "Proverbs", "Ecclesiastes", "Isaiah", "Jeremiah",
+    "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel",
+    "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles", "Ezra",
+    "Nehemiah", "Esther", "Job", "Psalms", "Proverbs",
+    "Ecclesiastes", "Song of Solomon", "Isaiah", "Jeremiah", "Lamentations",
+    "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
+    "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk",
+    "Zephaniah", "Haggai", "Zechariah", "Malachi",
+    // New Testament (27 books)
     "Matthew", "Mark", "Luke", "John", "Acts",
-    "Romans", "Corinthians", "Galatians", "Ephesians", "Revelation"
+    "Romans", "1 Corinthians", "2 Corinthians", "Galatians", "Ephesians",
+    "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians", "1 Timothy",
+    "2 Timothy", "Titus", "Philemon", "Hebrews", "James",
+    "1 Peter", "2 Peter", "1 John", "2 John", "3 John",
+    "Jude", "Revelation"
   ];
 
   return (
@@ -449,9 +461,16 @@ function CreateQuizContent() {
                     required
                   >
                     <option value="">Select a book...</option>
-                    {biblicalBooks.map(book => (
-                      <option key={book} value={book}>{book}</option>
-                    ))}
+                    <optgroup label="Old Testament">
+                      {biblicalBooks.slice(0, 39).map(book => (
+                        <option key={book} value={book}>{book}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="New Testament">
+                      {biblicalBooks.slice(39).map(book => (
+                        <option key={book} value={book}>{book}</option>
+                      ))}
+                    </optgroup>
                   </select>
                 </div>
                 

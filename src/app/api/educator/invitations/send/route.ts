@@ -4,11 +4,28 @@ import { invitations, user, quizzes, educatorStudents } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import * as crypto from "crypto";
 import { sendEmail, emailTemplates } from "@/lib/email-service";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
+    // Get session
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    // Require authenticated educator
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+    
+    const actualEducatorId = session.user.id;
+    
     const body = await req.json();
-    const { emails, quizId, educatorId } = body;
+    const { emails, quizId } = body;
 
     if (!emails || !Array.isArray(emails) || emails.length === 0) {
       return NextResponse.json(
@@ -16,9 +33,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Use the hardcoded educator ID for now
-    const actualEducatorId = educatorId || "MMlI6NJuBNVBAEL7J4TyAX4ncO1ikns2";
 
     // Verify educator exists
     const educator = await db

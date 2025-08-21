@@ -11,6 +11,20 @@ export async function PUT(
   try {
     const params = await context.params;
     const { id: quizId, questionId } = params;
+    
+    // Get custom replacement options from request body
+    let customOptions = { difficulty: null, book: null, chapter: null };
+    try {
+      const body = await req.json();
+      customOptions = {
+        difficulty: body.difficulty || null,
+        book: body.book || null,
+        chapter: body.chapter || null
+      };
+    } catch (e) {
+      // If no body provided, continue with default behavior
+      console.log("No custom options provided, using quiz defaults");
+    }
 
     // Fetch quiz details to get configuration
     const quiz = await db
@@ -44,18 +58,25 @@ export async function PUT(
       try {
         console.log("Generating replacement question via webhook...");
         
+        // Use custom options if provided, otherwise fall back to quiz config
         const webhookPayload = {
           documentIds: quizData.documentIds,
           questionCount: 1, // Generate just one question
           topics: config.topics || [],
-          books: config.books || [],
-          chapters: config.chapters || [],
-          difficulty: config.difficulty || "intermediate",
+          books: customOptions.book ? [customOptions.book] : (config.books || []),
+          chapters: customOptions.chapter ? [customOptions.chapter] : (config.chapters || []),
+          difficulty: customOptions.difficulty || config.difficulty || "intermediate",
           bloomsLevel: config.bloomsLevels || ["knowledge", "comprehension"],
           timeLimit: quizData.duration,
           quizTitle: quizData.title,
           quizDescription: quizData.description,
         };
+        
+        console.log("Webhook payload with custom options:", {
+          books: webhookPayload.books,
+          chapters: webhookPayload.chapters,
+          difficulty: webhookPayload.difficulty
+        });
 
         const webhookResponse = await fetch(process.env.QUIZ_GENERATION_WEBHOOK_URL, {
           method: "POST",
@@ -96,10 +117,10 @@ export async function PUT(
 
     // Fallback to sample question if webhook failed
     if (!newQuestionData) {
-      console.log("Using fallback sample question");
+      console.log("Using fallback sample question with custom options");
       newQuestionData = generateSampleQuestion(
-        (config.books as string[])?.[0] || "Genesis", 
-        (config.difficulty as string) || "intermediate", 
+        customOptions.book || (config.books as string[])?.[0] || "Genesis", 
+        customOptions.difficulty || (config.difficulty as string) || "intermediate", 
         (config.bloomsLevels as string[])?.[0] || "knowledge"
       );
     }
@@ -124,9 +145,9 @@ export async function PUT(
       mappedBloomsLevel = newQuestionData.bloomsLevel;
     }
 
-    // Parse biblical reference more accurately
-    let parsedBook = newQuestionData.book || (config.books as string[])?.[0];
-    let parsedChapter = newQuestionData.chapter || (config.chapters as string[])?.[0];
+    // Parse biblical reference more accurately - prioritize custom options
+    let parsedBook = newQuestionData.book || customOptions.book || (config.books as string[])?.[0];
+    let parsedChapter = newQuestionData.chapter || customOptions.chapter || (config.chapters as string[])?.[0];
     
     if (newQuestionData.biblical_reference) {
       // Handle formats like "Proverbs 6:6-8 (NIV)" or "1 Corinthians 13:4-7"
@@ -153,7 +174,7 @@ export async function PUT(
         options: optionsArray,
         correctAnswer: newQuestionData.correct_answer?.toLowerCase() || newQuestionData.correctAnswer?.toLowerCase(),
         explanation: newQuestionData.explanation,
-        difficulty: newQuestionData.difficulty || config.difficulty || "intermediate",
+        difficulty: newQuestionData.difficulty || customOptions.difficulty || config.difficulty || "intermediate",
         bloomsLevel: mappedBloomsLevel as "knowledge" | "comprehension" | "application" | "analysis" | "synthesis" | "evaluation",
         topic: newQuestionData.topic || newQuestionData.question_type,
         book: parsedBook,
