@@ -64,11 +64,6 @@ function StudentSignUpForm() {
       return;
     }
 
-    if (!formData.phoneNumber) {
-      setError("Phone number is required for communication");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
@@ -203,21 +198,20 @@ function StudentSignUpForm() {
             </div>
             <div>
               <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Phone Number <span className="text-red-500">*</span>
+                Phone Number <span className="text-gray-500 text-xs">(optional)</span>
               </label>
               <input
                 id="phoneNumber"
                 name="phoneNumber"
                 type="tel"
                 autoComplete="tel"
-                required
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
                 placeholder="+1 (555) 123-4567"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Required for educator communication and quiz notifications
+                Optional: For receiving quiz reminders and notifications
               </p>
             </div>
             <div>

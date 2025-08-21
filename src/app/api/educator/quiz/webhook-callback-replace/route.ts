@@ -61,15 +61,30 @@ export async function POST(req: NextRequest) {
         [key: string]: unknown;
       };
       
+      // Helper function to clean strings and remove control characters
+      const cleanString = (str: unknown): string => {
+        if (!str) return "";
+        return String(str).replace(/[\x00-\x1F\x7F]/g, "").trim();
+      };
+      
       // Convert options to array format if needed
       let optionsArray = [];
       if (newQuestionData.options) {
         if (Array.isArray(newQuestionData.options)) {
-          optionsArray = newQuestionData.options;
+          optionsArray = newQuestionData.options.map((opt: unknown) => {
+            if (typeof opt === 'object' && opt !== null && 'text' in opt) {
+              const optObj = opt as { id?: string; text: unknown };
+              return {
+                id: optObj.id || '',
+                text: cleanString(optObj.text).substring(0, 500)
+              };
+            }
+            return opt;
+          });
         } else if (typeof newQuestionData.options === 'object') {
           optionsArray = Object.entries(newQuestionData.options).map(([key, value]) => ({
             id: key.toLowerCase(),
-            text: value as string
+            text: cleanString(value).substring(0, 500)
           }));
         }
       }
@@ -97,9 +112,9 @@ export async function POST(req: NextRequest) {
       }
       
       // Prepare update data with proper validation and sanitization
-      const questionText = (newQuestionData.question || newQuestionData.questionText || "").substring(0, 5000); // Limit length
-      const explanationText = (newQuestionData.explanation || "").substring(0, 5000); // Limit length
-      const correctAnswerValue = (newQuestionData.correct_answer?.toLowerCase() || newQuestionData.correctAnswer?.toLowerCase() || "").substring(0, 10);
+      const questionText = cleanString(newQuestionData.question || newQuestionData.questionText).substring(0, 2000); // Reasonable limit
+      const explanationText = cleanString(newQuestionData.explanation).substring(0, 2000); // Reasonable limit
+      const correctAnswerValue = cleanString(newQuestionData.correct_answer || newQuestionData.correctAnswer).toLowerCase().substring(0, 10);
       
       // Validate data before update
       if (!questionText || !optionsArray.length || !correctAnswerValue) {
@@ -122,7 +137,31 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
       
+      // Ensure difficulty is a valid enum value
+      const validDifficulties = ["easy", "intermediate", "hard"];
+      const difficulty = validDifficulties.includes(newQuestionData.difficulty) 
+        ? newQuestionData.difficulty 
+        : (validDifficulties.includes(webhookPayload.difficulty as string) 
+          ? webhookPayload.difficulty 
+          : "intermediate");
+          
+      // Ensure bloomsLevel is a valid enum value
+      const validBloomsLevels = ["knowledge", "comprehension", "application", "analysis", "synthesis", "evaluation"];
+      const bloomsLevel = validBloomsLevels.includes(mappedBloomsLevel) 
+        ? mappedBloomsLevel 
+        : "knowledge";
+      
       try {
+        console.log(`Updating question ${questionIdToReplace} with:`, {
+          questionTextLength: questionText.length,
+          optionsCount: optionsArray.length,
+          correctAnswer: correctAnswerValue,
+          difficulty,
+          bloomsLevel,
+          book: cleanString(parsedBook).substring(0, 100),
+          chapter: cleanString(parsedChapter).substring(0, 100)
+        });
+        
         // Update the question in database
         const updatedQuestion = await db
           .update(questions)
@@ -131,11 +170,11 @@ export async function POST(req: NextRequest) {
             options: optionsArray,
             correctAnswer: correctAnswerValue,
             explanation: explanationText,
-            difficulty: newQuestionData.difficulty || webhookPayload.difficulty || "intermediate",
-            bloomsLevel: mappedBloomsLevel as "knowledge" | "comprehension" | "application" | "analysis" | "synthesis" | "evaluation",
-            topic: (newQuestionData.topic || newQuestionData.question_type || "").substring(0, 255),
-            book: (parsedBook || "").substring(0, 255),
-            chapter: (parsedChapter || "").substring(0, 255),
+            difficulty: difficulty as "easy" | "intermediate" | "hard",
+            bloomsLevel: bloomsLevel as "knowledge" | "comprehension" | "application" | "analysis" | "synthesis" | "evaluation",
+            topic: cleanString(newQuestionData.topic || newQuestionData.question_type).substring(0, 100),
+            book: cleanString(parsedBook).substring(0, 100),
+            chapter: cleanString(parsedChapter).substring(0, 100),
           })
           .where(eq(questions.id, questionIdToReplace))
           .returning();
@@ -168,6 +207,20 @@ export async function POST(req: NextRequest) {
       } catch (dbError) {
         console.error(`Database error for replacement job ${jobId}:`, dbError);
         
+        // Log detailed error information
+        if (dbError instanceof Error) {
+          console.error("Error details:", {
+            message: dbError.message,
+            stack: dbError.stack,
+            name: dbError.name
+          });
+          
+          // If it's a Postgres error, log the query that failed
+          if ('code' in dbError) {
+            console.error("Database error code:", (dbError as any).code);
+          }
+        }
+        
         // Update job as failed
         jobStore.update(jobId, {
           status: 'failed',
@@ -175,10 +228,15 @@ export async function POST(req: NextRequest) {
           message: 'Failed to update question in database'
         });
         
+        // Provide more detailed error response
+        const errorDetails = dbError instanceof Error 
+          ? `Failed query: update "questions" set "question_text" = $1, "options" = $2, "correct_answer" = $3, "explanation" = $4, "difficulty" = $5, "blooms_level" = $6, "topic" = $7, "book" = $8, "chapter" = $9 where "questions"."id" = $10 returning "id", "quiz_id", "question_text", "options", "correct_answer", "explanation", "difficulty", "blooms_level", "topic", "book", "chapter", "order_index", "created_at"\nparams: ${questionText.substring(0, 100)}...,[options],${correctAnswerValue},${explanationText.substring(0, 100)}...,${difficulty},${bloomsLevel},${cleanString(newQuestionData.topic || newQuestionData.question_type).substring(0, 50)},${cleanString(parsedBook).substring(0, 50)},${cleanString(parsedChapter).substring(0, 50)},${questionIdToReplace}`
+          : "Unknown database error";
+        
         return NextResponse.json({
           success: false,
           error: "Database update failed",
-          details: dbError instanceof Error ? dbError.message : "Unknown database error",
+          details: errorDetails,
           jobId
         }, { status: 500 });
       }

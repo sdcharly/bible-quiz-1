@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { quizzes, questions, quizAttempts } from "@/lib/schema";
+import { quizzes, questions, quizAttempts, enrollments, educatorStudents } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -37,11 +37,72 @@ export async function POST(
       headers: await headers()
     });
 
-    // For testing, use a default student ID if no session
-    let studentId = "default-student-id";
+    // Require authenticated student
+    if (!session?.user || session.user.role !== 'student') {
+      return NextResponse.json(
+        { error: "Unauthorized - Student access required" },
+        { status: 401 }
+      );
+    }
     
-    if (session?.user) {
-      studentId = session.user.id;
+    const studentId = session.user.id;
+
+    // First, verify the quiz exists and get its educator
+    const [quiz] = await db
+      .select()
+      .from(quizzes)
+      .where(eq(quizzes.id, quizId));
+
+    if (!quiz) {
+      return NextResponse.json(
+        { error: "Quiz not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check if student is associated with the quiz's educator
+    const educatorRelation = await db
+      .select()
+      .from(educatorStudents)
+      .where(
+        and(
+          eq(educatorStudents.studentId, studentId),
+          eq(educatorStudents.educatorId, quiz.educatorId),
+          eq(educatorStudents.status, "active")
+        )
+      )
+      .limit(1);
+
+    if (educatorRelation.length === 0) {
+      return NextResponse.json(
+        { 
+          error: "Access denied",
+          message: "You are not enrolled with this quiz's educator"
+        },
+        { status: 403 }
+      );
+    }
+
+    // Check if student is enrolled in this specific quiz
+    const enrollment = await db
+      .select()
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.quizId, quizId),
+          eq(enrollments.studentId, studentId)
+        )
+      )
+      .limit(1);
+
+    if (enrollment.length === 0) {
+      return NextResponse.json(
+        { 
+          error: "Not enrolled",
+          message: "You must be enrolled in this quiz before you can take it. Please contact your educator."
+        },
+        { status: 403 }
+      );
     }
 
     // Check if student has already attempted this quiz
@@ -141,18 +202,7 @@ export async function POST(
       }
     }
 
-    // Fetch quiz details
-    const [quiz] = await db
-      .select()
-      .from(quizzes)
-      .where(eq(quizzes.id, quizId));
-
-    if (!quiz) {
-      return NextResponse.json(
-        { error: "Quiz not found" },
-        { status: 404 }
-      );
-    }
+    // Quiz details already fetched above
 
     // Check if quiz has started
     const now = new Date();

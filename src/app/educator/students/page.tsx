@@ -30,6 +30,12 @@ interface Student {
   completedQuizzes: number;
 }
 
+interface Quiz {
+  id: string;
+  title: string;
+  status: string;
+}
+
 export default function StudentManagementPage() {
   const router = useRouter();
   const [students, setStudents] = useState<Student[]>([]);
@@ -39,9 +45,12 @@ export default function StudentManagementPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [invitationLinks, setInvitationLinks] = useState<{email: string; token: string; invitationUrl: string; userExists: boolean}[]>([]);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStudents();
+    fetchQuizzes();
   }, []);
 
   const fetchStudents = async () => {
@@ -58,6 +67,18 @@ export default function StudentManagementPage() {
     }
   };
 
+  const fetchQuizzes = async () => {
+    try {
+      const response = await fetch("/api/educator/quizzes");
+      if (response.ok) {
+        const data = await response.json();
+        setQuizzes(data.quizzes?.filter((q: Quiz) => q.status === 'published') || []);
+      }
+    } catch (error) {
+      console.error("Error fetching quizzes:", error);
+    }
+  };
+
   const handleSendInvitations = async () => {
     if (!inviteEmails.trim()) return;
 
@@ -67,11 +88,16 @@ export default function StudentManagementPage() {
       .map(email => email.trim())
       .filter(email => email);
 
+    const requestBody: { emails: string[]; quizId?: string } = { emails };
+    if (selectedQuizId) {
+      requestBody.quizId = selectedQuizId;
+    }
+
     try {
       const response = await fetch("/api/educator/invitations/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emails }),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
@@ -271,6 +297,7 @@ export default function StudentManagementPage() {
                     setShowInviteModal(false);
                     setInviteEmails("");
                     setInvitationLinks([]);
+                    setSelectedQuizId(null);
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
@@ -279,15 +306,43 @@ export default function StudentManagementPage() {
               </div>
 
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Enter email addresses separated by commas or new lines
+                Enter email addresses separated by commas or new lines. Optionally assign them directly to a quiz.
               </p>
 
-              <textarea
-                value={inviteEmails}
-                onChange={(e) => setInviteEmails(e.target.value)}
-                placeholder="student1@example.com, student2@example.com"
-                className="w-full h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Select Quiz (Optional)
+                  </label>
+                  <select
+                    value={selectedQuizId || ""}
+                    onChange={(e) => setSelectedQuizId(e.target.value || null)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">No quiz - Just invite to class</option>
+                    {quizzes.map((quiz) => (
+                      <option key={quiz.id} value={quiz.id}>
+                        {quiz.title}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Students will be automatically enrolled in the selected quiz upon accepting the invitation
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Email Addresses
+                  </label>
+                  <textarea
+                    value={inviteEmails}
+                    onChange={(e) => setInviteEmails(e.target.value)}
+                    placeholder="student1@example.com, student2@example.com"
+                    className="w-full h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
 
               {invitationLinks.length > 0 && (
                 <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
@@ -318,6 +373,7 @@ export default function StudentManagementPage() {
                     setShowInviteModal(false);
                     setInviteEmails("");
                     setInvitationLinks([]);
+                    setSelectedQuizId(null);
                   }}
                 >
                   Cancel

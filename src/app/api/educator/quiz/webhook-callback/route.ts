@@ -53,6 +53,12 @@ export async function POST(req: NextRequest) {
         [key: string]: unknown;
       };
       
+      // Helper function to clean strings and remove control characters
+      const cleanString = (str: unknown): string => {
+        if (!str) return "";
+        return String(str).replace(/[\x00-\x1F\x7F]/g, "").trim();
+      };
+      
       const insertedQuestions = [];
       let failedQuestions = 0;
       
@@ -64,11 +70,20 @@ export async function POST(req: NextRequest) {
           let optionsArray = [];
           if (q.options) {
             if (Array.isArray(q.options)) {
-              optionsArray = q.options;
+              optionsArray = q.options.map((opt: unknown) => {
+                if (typeof opt === 'object' && opt !== null && 'text' in opt) {
+                  const optObj = opt as { id?: string; text: unknown };
+                  return {
+                    id: optObj.id || '',
+                    text: cleanString(optObj.text).substring(0, 500)
+                  };
+                }
+                return opt;
+              });
             } else if (typeof q.options === 'object') {
               optionsArray = Object.entries(q.options).map(([key, value]) => ({
                 id: key.toLowerCase(),
-                text: String(value).substring(0, 1000) // Limit option text length
+                text: cleanString(value).substring(0, 500) // Limit option text length with sanitization
               }));
             }
           }
@@ -89,10 +104,11 @@ export async function POST(req: NextRequest) {
             }
           }
           
-          // Prepare and validate data
-          const questionText = (q.question || q.questionText || '').substring(0, 5000);
-          const explanationText = (q.explanation || '').substring(0, 5000);
-          const correctAnswerValue = (q.correct_answer?.toLowerCase() || q.correctAnswer?.toLowerCase() || '').substring(0, 10);
+          // Prepare and validate data with proper sanitization
+          
+          const questionText = cleanString(q.question || q.questionText).substring(0, 2000);
+          const explanationText = cleanString(q.explanation).substring(0, 2000);
+          const correctAnswerValue = cleanString(q.correct_answer || q.correctAnswer).toLowerCase().substring(0, 10);
           
           // Skip invalid questions
           if (!questionText || !optionsArray.length || !correctAnswerValue) {
@@ -114,9 +130,9 @@ export async function POST(req: NextRequest) {
             explanation: explanationText,
             difficulty: q.difficulty || webhookPayload.difficulty || 'intermediate',
             bloomsLevel: q.bloomsLevel || webhookPayload.bloomsLevel?.[0] || 'knowledge',
-            topic: (q.topic || q.question_type || '').substring(0, 255),
-            book: parsedBook.substring(0, 255),
-            chapter: parsedChapter.substring(0, 255),
+            topic: cleanString(q.topic || q.question_type).substring(0, 100),
+            book: cleanString(parsedBook).substring(0, 100),
+            chapter: cleanString(parsedChapter).substring(0, 100),
             orderIndex: q.id || i,
             createdAt: new Date(),
           });

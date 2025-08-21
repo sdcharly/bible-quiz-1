@@ -1,18 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { quizzes, enrollments, quizAttempts } from "@/lib/schema";
-import { eq, and, ne } from "drizzle-orm";
+import { quizzes, enrollments, quizAttempts, educatorStudents } from "@/lib/schema";
+import { eq, and, ne, inArray } from "drizzle-orm";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
-    // For now, using a test student ID - in production, get from session
-    const studentId = "UeqiVFam4rO2P9KbbnwqofioJxZoQdvf"; // Your test student ID
+    // Get session
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    // Require authenticated student
+    if (!session?.user || session.user.role !== 'student') {
+      return NextResponse.json(
+        { error: "Unauthorized - Student access required" },
+        { status: 401 }
+      );
+    }
     
-    // Fetch all published quizzes (excluding archived)
-    const allQuizzes = await db
+    const studentId = session.user.id;
+    
+    // First, get all educators this student is associated with
+    const studentEducators = await db
+      .select({ educatorId: educatorStudents.educatorId })
+      .from(educatorStudents)
+      .where(
+        and(
+          eq(educatorStudents.studentId, studentId),
+          eq(educatorStudents.status, "active")
+        )
+      );
+
+    if (studentEducators.length === 0) {
+      // Student not associated with any educator yet
+      return NextResponse.json({
+        quizzes: [],
+        message: "You are not enrolled with any educator yet. Please accept an invitation from an educator first."
+      });
+    }
+
+    const educatorIds = studentEducators.map(se => se.educatorId);
+
+    // Fetch only published quizzes from associated educators
+    const educatorQuizzes = await db
       .select()
       .from(quizzes)
-      .where(eq(quizzes.status, "published"));
+      .where(
+        and(
+          eq(quizzes.status, "published"),
+          inArray(quizzes.educatorId, educatorIds)
+        )
+      );
 
     // Fetch student enrollments
     const studentEnrollments = await db
@@ -27,7 +67,7 @@ export async function GET(req: NextRequest) {
       .where(eq(quizAttempts.studentId, studentId));
 
     // Map quiz data with enrollment and attempt status
-    const quizzesWithStatus = allQuizzes.map(quiz => {
+    const quizzesWithStatus = educatorQuizzes.map(quiz => {
       const enrollment = studentEnrollments.find(e => e.quizId === quiz.id);
       const attempt = studentAttempts.find(a => a.quizId === quiz.id && a.status === "completed");
       
@@ -38,6 +78,7 @@ export async function GET(req: NextRequest) {
         totalQuestions: quiz.totalQuestions,
         duration: quiz.duration,
         startTime: quiz.startTime.toISOString(),
+        timezone: quiz.timezone,
         status: quiz.status,
         enrolled: !!enrollment,
         attempted: !!attempt,

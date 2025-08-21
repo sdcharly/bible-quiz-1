@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Update user profile with phone number, role, and timezone
-    const updates: { updatedAt: Date; phoneNumber?: string; role?: "educator" | "student"; timezone?: string } = {
+    const updates: { updatedAt: Date; phoneNumber?: string; role?: "educator" | "student"; timezone?: string; approvalStatus?: "pending" | "approved" | "rejected" | "suspended" } = {
       updatedAt: new Date(),
     };
     
@@ -40,6 +40,10 @@ export async function POST(req: NextRequest) {
     
     if (role !== undefined) {
       updates.role = role;
+      // Auto-approve students, only educators need approval
+      if (role === "student") {
+        updates.approvalStatus = "approved";
+      }
     }
     
     if (timezone !== undefined) {
