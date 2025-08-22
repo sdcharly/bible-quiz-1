@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { documents } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { logger } from "@/lib/logger";
+import { isDebugEnabled } from "@/lib/env-config";
 
 export async function GET(req: NextRequest) {
+  // Block if debug features are not enabled
+  if (!isDebugEnabled()) {
+    return NextResponse.json(
+      { error: "Debug endpoints are disabled" },
+      { status: 403 }
+    );
+  }
+  
   try {
     // Get all documents from local database
     const localDocuments = await db.select().from(documents);
@@ -25,7 +35,7 @@ export async function GET(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error fetching local documents:', error);
+    logger.error('Error fetching local documents:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -34,6 +44,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  // Block if debug features are not enabled
+  if (!isDebugEnabled()) {
+    return NextResponse.json(
+      { error: "Debug endpoints are disabled" },
+      { status: 403 }
+    );
+  }
+  
   try {
     const { searchParams } = new URL(req.url);
     const docId = searchParams.get('docId');
@@ -72,7 +90,7 @@ export async function DELETE(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error in forced local deletion:', error);
+    logger.error('Error in forced local deletion:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

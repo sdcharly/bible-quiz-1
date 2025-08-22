@@ -46,8 +46,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Scripts with credentials - prevent accidental commits (moved to ../scripts/)
-../scripts/*
+# Test scripts - for local development only
+scripts/tests/
+# Keep the README for documentation
+!scripts/README.md
 !../scripts/README.md
 
 # Test files that may contain credentials

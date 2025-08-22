@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { debugLogger } from "@/lib/debug-logger";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { logger } from "@/lib/logger";
+import { isDebugEnabled } from "@/lib/env-config";
 
 export async function GET(req: NextRequest) {
   try {
+    // Block if debug features are not enabled
+    if (!isDebugEnabled()) {
+      return NextResponse.json(
+        { error: "Debug endpoints are disabled" },
+        { status: 403 }
+      );
+    }
     // Get session - only allow educators to view logs
     const session = await auth.api.getSession({
       headers: await headers()
@@ -40,7 +49,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error fetching debug logs:", error);
+    logger.error("Error fetching debug logs:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch logs" },
       { status: 500 }

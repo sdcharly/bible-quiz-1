@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { LightRAGService } from "@/lib/lightrag-service";
 import { db } from "@/lib/db";
 import { documents } from "@/lib/schema";
+import { logger } from "@/lib/logger";
+import { isDebugEnabled } from "@/lib/env-config";
 
 export async function GET(req: NextRequest) {
+  // Block if debug features are not enabled
+  if (!isDebugEnabled()) {
+    return NextResponse.json(
+      { error: "Debug endpoints are disabled" },
+      { status: 403 }
+    );
+  }
+  
   try {
     const { searchParams } = new URL(req.url);
     const checkDocument = searchParams.get('checkDoc');
@@ -67,7 +77,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(response);
     
   } catch (error) {
-    console.error('Error fetching LightRAG documents:', error);
+    logger.error('Error fetching LightRAG documents:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -88,7 +98,7 @@ export async function DELETE(req: NextRequest) {
       }, { status: 400 });
     }
     
-    console.log(`Manual cleanup attempt for LightRAG document: ${docId}`);
+    logger.log(`Manual cleanup attempt for LightRAG document: ${docId}`);
     
     // Force delete from LightRAG
     const result = await LightRAGService.safeDeleteDocument(docId);
@@ -100,7 +110,7 @@ export async function DELETE(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error in manual cleanup:', error);
+    logger.error('Error in manual cleanup:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

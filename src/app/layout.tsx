@@ -24,6 +24,11 @@ export const metadata: Metadata = {
   title: "Scrolls of Wisdom - Biblical Knowledge Quest",
   description:
     "Embark on a divine journey through scripture with AI-powered wisdom quests. A sacred platform for guides and disciples to explore biblical knowledge and strengthen faith through engaging assessments.",
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon-16x16.png',
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({

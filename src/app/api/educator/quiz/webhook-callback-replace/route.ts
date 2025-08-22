@@ -4,14 +4,15 @@ import { db } from "@/lib/db";
 import { questions } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { debugLogger } from "@/lib/debug-logger";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { jobId, status, questionsData, error } = body;
     
-    console.log(`[REPLACE CALLBACK] Received callback for job: ${jobId}`);
-    console.log(`[REPLACE CALLBACK] Status: ${status}, Error: ${error || 'none'}, Questions: ${questionsData?.length || 0}`);
+    logger.log(`[REPLACE CALLBACK] Received callback for job: ${jobId}`);
+    logger.log(`[REPLACE CALLBACK] Status: ${status}, Error: ${error || 'none'}, Questions: ${questionsData?.length || 0}`);
     
     debugLogger.info("Replacement callback received", {
       jobId,
@@ -32,11 +33,11 @@ export async function POST(req: NextRequest) {
     // Get the job from store
     const job = jobStore.get(jobId);
     if (!job) {
-      console.error(`Replacement job not found: ${jobId}`);
+      logger.error(`Replacement job not found: ${jobId}`);
       
       // If this is an error callback and job doesn't exist, log it but don't fail
       if (status === 'error' || error) {
-        console.error(`Received error callback for non-existent replacement job ${jobId}: ${error}`);
+        logger.error(`Received error callback for non-existent replacement job ${jobId}: ${error}`);
         return NextResponse.json({
           success: false,
           jobId,
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     // Extract the questionId to replace from the job payload
     const questionIdToReplace = (job.webhookPayload as { questionIdToReplace?: string }).questionIdToReplace;
     if (!questionIdToReplace) {
-      console.error(`No questionId found in job payload for job: ${jobId}`);
+      logger.error(`No questionId found in job payload for job: ${jobId}`);
       return NextResponse.json(
         { error: "Question ID to replace not found in job" },
         { status: 400 }
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
     
     // Safety check: Verify this is a replacement job
     if (!jobId.startsWith('replace-')) {
-      console.error(`Invalid job ID for replacement: ${jobId}`);
+      logger.error(`Invalid job ID for replacement: ${jobId}`);
       return NextResponse.json(
         { error: "This endpoint is only for replacement jobs" },
         { status: 400 }
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
     // Update job status based on callback
     if (status === 'success' && questionsData && questionsData.length > 0) {
       // Process successful generation
-      console.log(`Received replacement question for job ${jobId}`);
+      logger.log(`Received replacement question for job ${jobId}`);
       
       const newQuestionData = questionsData[0]; // Take the first question
       const webhookPayload = job.webhookPayload as {
@@ -129,9 +130,52 @@ export async function POST(req: NextRequest) {
       }
       
       // Map blooms level
-      let mappedBloomsLevel = (webhookPayload.bloomsLevel && webhookPayload.bloomsLevel[0]) || "knowledge";
+      let mappedBloomsLevel = null;
+      
+      // If the question has a bloomsLevel that's valid, use it
       if (newQuestionData.bloomsLevel && ["knowledge", "comprehension", "application", "analysis", "synthesis", "evaluation"].includes(newQuestionData.bloomsLevel)) {
         mappedBloomsLevel = newQuestionData.bloomsLevel;
+      }
+      // Try to map question_type to bloomsLevel
+      else if (newQuestionData.question_type) {
+        const typeToBloomMap: Record<string, string> = {
+          'knowledge': 'knowledge',
+          'comprehension': 'comprehension',
+          'understanding': 'comprehension',
+          'application': 'application',
+          'apply': 'application',
+          'analysis': 'analysis',
+          'analyze': 'analysis',
+          'synthesis': 'synthesis',
+          'create': 'synthesis',
+          'evaluation': 'evaluation',
+          'evaluate': 'evaluation',
+          'critical thinking': 'analysis',
+          'recall': 'knowledge',
+          'interpretation': 'comprehension',
+          'explanation': 'comprehension',
+          'problem solving': 'application',
+          'comparison': 'analysis',
+          'judgment': 'evaluation'
+        };
+        
+        const normalizedType = newQuestionData.question_type.toLowerCase().trim();
+        if (typeToBloomMap[normalizedType]) {
+          mappedBloomsLevel = typeToBloomMap[normalizedType];
+        } else {
+          // Check if question_type contains any bloom keywords
+          for (const [key, value] of Object.entries(typeToBloomMap)) {
+            if (normalizedType.includes(key)) {
+              mappedBloomsLevel = value;
+              break;
+            }
+          }
+        }
+      }
+      
+      // Fallback to webhook payload or default
+      if (!mappedBloomsLevel) {
+        mappedBloomsLevel = (webhookPayload.bloomsLevel && webhookPayload.bloomsLevel[0]) || "knowledge";
       }
       
       // Prepare update data with proper validation and sanitization
@@ -141,7 +185,7 @@ export async function POST(req: NextRequest) {
       
       // Validate data before update
       if (!questionText || !optionsArray.length || !correctAnswerValue) {
-        console.error(`Invalid question data for replacement job ${jobId}:`, {
+        logger.error(`Invalid question data for replacement job ${jobId}:`, {
           hasQuestionText: !!questionText,
           optionsLength: optionsArray.length,
           hasCorrectAnswer: !!correctAnswerValue
@@ -175,7 +219,7 @@ export async function POST(req: NextRequest) {
         : "knowledge";
       
       try {
-        console.log(`Updating question ${questionIdToReplace} with:`, {
+        logger.log(`Updating question ${questionIdToReplace} with:`, {
           questionTextLength: questionText.length,
           optionsCount: optionsArray.length,
           correctAnswer: correctAnswerValue,
@@ -225,7 +269,7 @@ export async function POST(req: NextRequest) {
           questionsData: [updatedQuestion[0]] // Store the updated question
         });
         
-        console.log(`Replacement job ${jobId} completed successfully`);
+        logger.log(`Replacement job ${jobId} completed successfully`);
         debugLogger.info("Replacement job marked as completed", {
           jobId,
           updatedJob: !!updatedJob,
@@ -243,11 +287,11 @@ export async function POST(req: NextRequest) {
         });
         
       } catch (dbError) {
-        console.error(`Database error for replacement job ${jobId}:`, dbError);
+        logger.error(`Database error for replacement job ${jobId}:`, dbError);
         
         // Log detailed error information
         if (dbError instanceof Error) {
-          console.error("Error details:", {
+          logger.error("Error details:", {
             message: dbError.message,
             stack: dbError.stack,
             name: dbError.name
@@ -255,7 +299,7 @@ export async function POST(req: NextRequest) {
           
           // If it's a Postgres error, log the query that failed
           if ('code' in dbError) {
-            console.error("Database error code:", (dbError as { code: string }).code);
+            logger.error("Database error code:", (dbError as { code: string }).code);
           }
         }
         
@@ -287,7 +331,7 @@ export async function POST(req: NextRequest) {
         error: error || 'Unknown error occurred'
       });
       
-      console.error(`Replacement job ${jobId} failed:`, error);
+      logger.error(`Replacement job ${jobId} failed:`, error);
     } else {
       // Update progress (backend service might send progress updates)
       const progress = body.progress || 50;
@@ -299,7 +343,7 @@ export async function POST(req: NextRequest) {
         message
       });
       
-      console.log(`Replacement job ${jobId} progress update: ${progress}%`);
+      logger.log(`Replacement job ${jobId} progress update: ${progress}%`);
     }
 
     return NextResponse.json({
@@ -309,7 +353,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error in replacement webhook callback:", error);
+    logger.error("Error in replacement webhook callback:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to process callback" },
       { status: 500 }

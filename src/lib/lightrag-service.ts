@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { documents } from "./schema";
 import { eq } from "drizzle-orm";
+import { logger } from "./logger";
 
 const LIGHTRAG_API_KEY = process.env.LIGHTRAG_API_KEY || "";
 const LIGHTRAG_BASE_URL = process.env.LIGHTRAG_BASE_URL || "https://lightrag-6bki.onrender.com";
@@ -8,7 +9,7 @@ const LIGHTRAG_BASE_URL = process.env.LIGHTRAG_BASE_URL || "https://lightrag-6bk
 // Validation function to check if API key is configured
 function validateApiKey(): void {
   if (!LIGHTRAG_API_KEY) {
-    console.error("LIGHTRAG_API_KEY is not configured in environment variables");
+    logger.force("LIGHTRAG_API_KEY is not configured in environment variables");
     throw new Error("LightRAG API key is not configured. Please set LIGHTRAG_API_KEY environment variable.");
   }
 }
@@ -108,7 +109,7 @@ export class LightRAGService {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error checking LightRAG pipeline status:', error);
+      logger.error('Error checking LightRAG pipeline status:', error);
       throw error;
     }
   }
@@ -152,7 +153,7 @@ export class LightRAGService {
 
       return !status.busy; // Return true if processing is complete
     } catch (error) {
-      console.error(`Error updating document ${documentId} processing status:`, error);
+      logger.error(`Error updating document ${documentId} processing status:`, error);
       
       // Mark document as failed if there's an error
       await db.update(documents)
@@ -174,18 +175,18 @@ export class LightRAGService {
         const isComplete = await this.updateDocumentProcessingStatus(documentId);
         
         if (isComplete) {
-          console.log(`Document ${documentId} processing completed`);
+          logger.log(`Document ${documentId} processing completed`);
           return true;
         }
         
-        console.log(`Document ${documentId} still processing (attempt ${attempts + 1}/${maxAttempts})`);
+        logger.log(`Document ${documentId} still processing (attempt ${attempts + 1}/${maxAttempts}`);
         attempts++;
         
         if (attempts < maxAttempts) {
           await new Promise(resolve => setTimeout(resolve, intervalMs));
         }
       } catch (error) {
-        console.error(`Error polling document ${documentId} status:`, error);
+        logger.error(`Error polling document ${documentId} status:`, error);
         attempts++;
         
         if (attempts < maxAttempts) {
@@ -194,7 +195,7 @@ export class LightRAGService {
       }
     }
     
-    console.error(`Document ${documentId} processing timeout after ${maxAttempts} attempts`);
+    logger.error(`Document ${documentId} processing timeout after ${maxAttempts} attempts`);
     return false;
   }
 
@@ -237,7 +238,7 @@ export class LightRAGService {
         lastChecked: status?.lastChecked
       };
     } catch (error) {
-      console.error(`Error getting document ${documentId} processing progress:`, error);
+      logger.error(`Error getting document ${documentId} processing progress:`, error);
       throw error;
     }
   }
@@ -261,7 +262,7 @@ export class LightRAGService {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error(`Error checking entity "${entity}":`, error);
+      logger.error(`Error checking entity "${entity}":`, error);
       throw error;
     }
   }
@@ -290,7 +291,7 @@ export class LightRAGService {
 
       return results;
     } catch (error) {
-      console.error('Error checking multiple entities:', error);
+      logger.error('Error checking multiple entities:', error);
       throw error;
     }
   }
@@ -314,7 +315,7 @@ export class LightRAGService {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error getting subgraph:', error);
+      logger.error('Error getting subgraph:', error);
       throw error;
     }
   }
@@ -366,7 +367,7 @@ export class LightRAGService {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error(`Error deleting document "${documentId}":`, error);
+      logger.error(`Error deleting document "${documentId}":`, error);
       throw error;
     }
   }
@@ -393,7 +394,7 @@ export class LightRAGService {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error(`Error deleting documents ${documentIds.join(', ')}:`, error);
+      logger.error(`Error deleting documents ${documentIds.join(', ')}:`, error);
       throw error;
     }
   }
@@ -408,18 +409,18 @@ export class LightRAGService {
         
         // If pipeline is not busy and no processing is happening, deletion should be complete
         if (!status.busy && !status.request_pending) {
-          console.log(`Document ${documentId} deletion verified as complete`);
+          logger.log(`Document ${documentId} deletion verified as complete`);
           return true;
         }
         
-        console.log(`Deletion verification attempt ${attempts + 1}/${maxAttempts} - pipeline still processing`);
+        logger.log(`Deletion verification attempt ${attempts + 1}/${maxAttempts} - pipeline still processing`);
         attempts++;
         
         if (attempts < maxAttempts) {
           await new Promise(resolve => setTimeout(resolve, intervalMs));
         }
       } catch (error) {
-        console.error(`Error verifying document ${documentId} deletion:`, error);
+        logger.error(`Error verifying document ${documentId} deletion:`, error);
         attempts++;
         
         if (attempts < maxAttempts) {
@@ -428,7 +429,7 @@ export class LightRAGService {
       }
     }
     
-    console.warn(`Document ${documentId} deletion verification timeout after ${maxAttempts} attempts`);
+    logger.warn(`Document ${documentId} deletion verification timeout after ${maxAttempts} attempts`);
     return false;
   }
 
@@ -439,7 +440,7 @@ export class LightRAGService {
     error?: string;
   }> {
     try {
-      console.log(`Starting safe deletion of document: ${documentId}`);
+      logger.log(`Starting safe deletion of document: ${documentId}`);
       
       // Step 1: Check initial pipeline status
       const initialStatus = await this.checkPipelineStatus();
@@ -454,7 +455,7 @@ export class LightRAGService {
 
       // Step 2: Delete the document
       const deleteResponse = await this.deleteDocument(documentId, false);
-      console.log(`Delete response for ${documentId}:`, deleteResponse);
+      logger.log(`Delete response for ${documentId}:`, deleteResponse);
 
       // Step 3: Handle different deletion statuses
       if (deleteResponse.status === "not_allowed") {
@@ -489,7 +490,7 @@ export class LightRAGService {
       };
 
     } catch (error) {
-      console.error(`Safe deletion failed for document ${documentId}:`, error);
+      logger.error(`Safe deletion failed for document ${documentId}:`, error);
       return {
         success: false,
         lightragStatus: null,
@@ -514,7 +515,7 @@ export class LightRAGService {
       if (!response.ok) {
         if (response.status === 404) {
           // If endpoint doesn't exist, return empty array
-          console.warn('LightRAG documents list endpoint not available');
+          logger.warn('LightRAG documents list endpoint not available');
           return [];
         }
         throw new Error(`LightRAG list documents error: ${response.status} ${response.statusText}`);
@@ -542,11 +543,11 @@ export class LightRAGService {
       } else if (data.docs && Array.isArray(data.docs)) {
         return data.docs;
       } else {
-        console.warn('Unexpected response format from LightRAG documents list:', data);
+        logger.warn('Unexpected response format from LightRAG documents list:', data);
         return [];
       }
     } catch (error) {
-      console.error('Error listing LightRAG documents:', error);
+      logger.error('Error listing LightRAG documents:', error);
       // Return empty array instead of throwing to allow graceful handling
       return [];
     }
@@ -555,7 +556,7 @@ export class LightRAGService {
   static async clearAllDocuments(): Promise<ClearDocumentsResponse> {
     validateApiKey();
     try {
-      console.warn("Clearing ALL documents from LightRAG - this is irreversible!");
+      logger.warn("Clearing ALL documents from LightRAG - this is irreversible!");
       
       const response = await fetch(`${LIGHTRAG_BASE_URL}/documents`, {
         method: 'DELETE',
@@ -571,7 +572,7 @@ export class LightRAGService {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error clearing all documents:', error);
+      logger.error('Error clearing all documents:', error);
       throw error;
     }
   }
@@ -667,7 +668,7 @@ export class LightRAGService {
 
       // Log warnings if any
       if (validation.warnings.length > 0) {
-        console.warn('Upload warnings:', validation.warnings);
+        logger.warn('Upload warnings:', validation.warnings);
       }
 
       // Check if pipeline is busy before upload
@@ -676,7 +677,7 @@ export class LightRAGService {
         throw new Error('LightRAG is currently busy processing other documents. Please try again in a few moments.');
       }
 
-      console.log(`Uploading document: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+      logger.log(`Uploading document: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
 
       // Prepare FormData
       const formData = new FormData();
@@ -707,11 +708,11 @@ export class LightRAGService {
       }
 
       const data = await response.json();
-      console.log(`Upload response for ${file.name}:`, data);
+      logger.log(`Upload response for ${file.name}:`, data);
 
       return data;
     } catch (error) {
-      console.error(`Error uploading document "${file.name}":`, error);
+      logger.error(`Error uploading document "${file.name}":`, error);
       throw error;
     }
   }
@@ -744,7 +745,7 @@ export class LightRAGService {
         
         // Check if upload was successful
         if (uploadResponse.status === 'success' || uploadResponse.status === 'duplicated') {
-          console.log(`Upload successful after ${attempt} retries`);
+          logger.log(`Upload successful after ${attempt} retries`);
           return {
             success: true,
             uploadResponse,
@@ -755,7 +756,7 @@ export class LightRAGService {
           lastError = uploadResponse.message || 'Upload failed';
           break; // Don't retry on explicit failure
         } else if (uploadResponse.status === 'partial_success') {
-          console.warn('Upload partially successful:', uploadResponse.message);
+          logger.warn('Upload partially successful:', uploadResponse.message);
           return {
             success: true,
             uploadResponse,
@@ -772,7 +773,7 @@ export class LightRAGService {
         if (lastError.includes('busy') || lastError.includes('network') || lastError.includes('timeout')) {
           if (attempt < maxRetries) {
             const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
-            console.log(`Upload attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+            logger.log(`Upload attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             continue;
           }
@@ -805,7 +806,7 @@ export class LightRAGService {
     const successful: Array<{ file: File; response: UploadDocumentResponse; trackId?: string }> = [];
     const failed: Array<{ file: File; error: string }> = [];
 
-    console.log(`Starting batch upload of ${files.length} files`);
+    logger.log(`Starting batch upload of ${files.length} files`);
 
     // Process files sequentially to avoid overwhelming LightRAG
     for (const file of files) {

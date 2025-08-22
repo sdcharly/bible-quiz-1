@@ -46,8 +46,25 @@ export default function WebhookLogsPage() {
 
   useEffect(() => {
     if (autoRefresh) {
-      const interval = setInterval(fetchLogs, 2000);
-      return () => clearInterval(interval);
+      // Use progressive intervals: starts at 5s, increases to 30s over time
+      let currentInterval = 5000; // Start with 5 seconds
+      const maxInterval = 30000; // Max 30 seconds
+      let intervalId: NodeJS.Timeout;
+      
+      const scheduleFetch = () => {
+        intervalId = setTimeout(() => {
+          fetchLogs();
+          // Increase interval progressively (up to max)
+          currentInterval = Math.min(currentInterval * 1.5, maxInterval);
+          scheduleFetch();
+        }, currentInterval);
+      };
+      
+      scheduleFetch();
+      
+      return () => {
+        if (intervalId) clearTimeout(intervalId);
+      };
     }
   }, [autoRefresh]);
 
@@ -117,11 +134,11 @@ export default function WebhookLogsPage() {
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {log.message}
                       </p>
-                      {log.data && (
+                      {log.data ? (
                         <pre className="mt-2 text-xs bg-gray-100 dark:bg-gray-900 p-2 rounded overflow-x-auto">
                           {JSON.stringify(log.data, null, 2)}
                         </pre>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>

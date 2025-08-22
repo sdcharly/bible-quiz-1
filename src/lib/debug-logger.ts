@@ -1,7 +1,11 @@
 /**
  * Debug logger that stores logs in memory for debugging webhook issues
  * This helps debug issues in production where console.logs are hard to access
+ * OPTIMIZED: Only stores in memory when needed, uses environment-aware logging
  */
+
+import { logger } from './logger';
+import { ENV, isDebugEnabled } from './env-config';
 
 interface LogEntry {
   timestamp: string;
@@ -12,9 +16,13 @@ interface LogEntry {
 
 class DebugLogger {
   private logs: LogEntry[] = [];
-  private maxLogs = 100; // Keep last 100 logs in memory
+  private maxLogs = ENV.isDebugMode ? 100 : 20; // Reduce memory usage in production
+  private enabled = isDebugEnabled(); // Only enable when needed
 
   log(level: LogEntry['level'], message: string, data?: unknown) {
+    // Skip entirely if not enabled
+    if (!this.enabled) return;
+
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -22,15 +30,20 @@ class DebugLogger {
       data
     };
 
-    this.logs.push(entry);
-    
-    // Keep only last maxLogs entries
-    if (this.logs.length > this.maxLogs) {
-      this.logs.shift();
+    // Only store in memory if debug mode is explicitly enabled
+    if (ENV.isDebugMode) {
+      this.logs.push(entry);
+      
+      // Keep only last maxLogs entries
+      if (this.logs.length > this.maxLogs) {
+        this.logs.shift();
+      }
     }
 
-    // Also log to console for local development
-    console.log(`[${level.toUpperCase()}] ${message}`, data || '');
+    // Use environment-aware logger instead of console.log
+    if (ENV.isDevelopment) {
+      logger[level](`[WEBHOOK] ${message}`, data || '');
+    }
   }
 
   info(message: string, data?: unknown) {

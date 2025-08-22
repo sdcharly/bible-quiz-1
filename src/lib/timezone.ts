@@ -9,6 +9,8 @@
  * 5. Validation: Always compare in the same timezone
  */
 
+import { logger } from "@/lib/logger";
+
 // Comprehensive timezone options
 export const TIMEZONE_OPTIONS = [
   // Indian Timezones (Primary)
@@ -86,7 +88,7 @@ export function getCurrentTimeInUserTimezone(timezone: string): string {
     // Combine date and time in datetime-local format
     return `${dateStr}T${timeStr}`;
   } catch (error) {
-    console.warn('Error formatting time in timezone:', timezone, error);
+    logger.warn('Error formatting time in timezone:', timezone, error);
     // Fallback to current local time
     const now = new Date();
     const year = now.getFullYear();
@@ -113,14 +115,14 @@ export function formatDateInTimezone(
     
     // Double-check validity
     if (!dateObj || isNaN(dateObj.getTime())) {
-      console.warn('Invalid date in formatDateInTimezone, using current time');
+      logger.warn('Invalid date in formatDateInTimezone, using current time');
       const now = new Date(Date.now());
       return formatDateInTimezone(now, timezone, options);
     }
     
     // Validate timezone
     if (!isValidTimezone(timezone)) {
-      console.warn('Invalid timezone in formatDateInTimezone:', timezone);
+      logger.warn('Invalid timezone in formatDateInTimezone:', timezone);
       timezone = 'Asia/Kolkata';
     }
     
@@ -148,7 +150,7 @@ export function formatDateInTimezone(
       return formatted;
     } catch (formatError) {
       // Try with IST as fallback timezone
-      console.warn('Formatting with specified timezone failed, trying IST:', formatError);
+      logger.warn('Formatting with specified timezone failed, trying IST:', formatError);
       
       try {
         const formatted = new Intl.DateTimeFormat('en-IN', {
@@ -163,7 +165,7 @@ export function formatDateInTimezone(
         return formatted;
       } catch (istError) {
         // Ultimate fallback: use basic formatting
-        console.warn('IST formatting also failed, using basic format:', istError);
+        logger.warn('IST formatting also failed, using basic format:', istError);
         
         const year = dateObj.getFullYear();
         const month = dateObj.toLocaleString('en-IN', { month: 'long' });
@@ -175,7 +177,7 @@ export function formatDateInTimezone(
       }
     }
   } catch (error) {
-    console.error('Error in formatDateInTimezone:', error);
+    logger.error('Error in formatDateInTimezone:', error);
     // Return a safe fallback string
     return 'Date unavailable';
   }
@@ -190,13 +192,13 @@ export function convertUserTimezoneToUTC(dateTimeString: string, userTimezone: s
     
     // Validate input
     if (!dateTimeString || typeof dateTimeString !== 'string') {
-      console.warn('Invalid dateTimeString provided to convertUserTimezoneToUTC:', dateTimeString);
+      logger.warn('Invalid dateTimeString provided to convertUserTimezoneToUTC:', dateTimeString);
       return new Date(Date.now());
     }
     
     // Validate timezone
     if (!isValidTimezone(userTimezone)) {
-      console.warn('Invalid timezone provided:', userTimezone);
+      logger.warn('Invalid timezone provided:', userTimezone);
       userTimezone = 'Asia/Kolkata'; // Fallback to IST
     }
     
@@ -206,7 +208,7 @@ export function convertUserTimezoneToUTC(dateTimeString: string, userTimezone: s
     // Parse the input datetime-local string
     const [datePart, timePart] = dateTimeString.split('T');
     if (!datePart || !timePart) {
-      console.warn('Invalid datetime format:', dateTimeString);
+      logger.warn('Invalid datetime format:', dateTimeString);
       return new Date(Date.now());
     }
     
@@ -218,7 +220,7 @@ export function convertUserTimezoneToUTC(dateTimeString: string, userTimezone: s
     
     // Validate parsed values
     if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute)) {
-      console.warn('Invalid date/time values:', { year, month, day, hour, minute });
+      logger.warn('Invalid date/time values:', { year, month, day, hour, minute });
       return new Date(Date.now());
     }
     
@@ -250,13 +252,13 @@ export function convertUserTimezoneToUTC(dateTimeString: string, userTimezone: s
     
     // Validate the result
     if (isNaN(utcDate.getTime())) {
-      console.warn('Invalid UTC date calculated');
+      logger.warn('Invalid UTC date calculated');
       return new Date(Date.now());
     }
     
     return utcDate;
   } catch (error) {
-    console.error('Error converting user timezone to UTC:', error);
+    logger.error('Error converting user timezone to UTC:', error);
     return new Date(Date.now());
   }
 }
@@ -269,7 +271,7 @@ function getTimezoneOffsetMinutes(timezone: string, date: Date): number {
   try {
     // Validate the input date first
     if (!date || isNaN(date.getTime())) {
-      console.warn('Invalid date provided to getTimezoneOffsetMinutes');
+      logger.warn('Invalid date provided to getTimezoneOffsetMinutes');
       return 330; // IST fallback
     }
     
@@ -370,16 +372,16 @@ function getTimezoneOffsetMinutes(timezone: string, date: Date): number {
     };
     
     if (timezone in knownOffsets) {
-      console.warn(`Using fallback offset for ${timezone}, DST may not be accurate`);
+      logger.warn(`Using fallback offset for ${timezone}, DST may not be accurate`);
       return knownOffsets[timezone];
     }
     
     // Final fallback to IST
-    console.warn(`Unknown timezone ${timezone}, falling back to IST offset`);
+    logger.warn(`Unknown timezone ${timezone}, falling back to IST offset`);
     return 330; // IST offset
     
   } catch (error) {
-    console.error('Error calculating timezone offset:', error);
+    logger.error('Error calculating timezone offset:', error);
     // Fallback to IST offset (+330 minutes)
     return 330; // 5 hours 30 minutes
   }
@@ -397,7 +399,7 @@ export function convertUTCToUserTimezone(utcDateTime: Date | string, userTimezon
       // Sanitize the string input
       const trimmed = utcDateTime.trim();
       if (!trimmed) {
-        console.warn('Empty date string provided to convertUTCToUserTimezone');
+        logger.warn('Empty date string provided to convertUTCToUserTimezone');
         return new Date(Date.now());
       }
       
@@ -414,26 +416,26 @@ export function convertUTCToUserTimezone(utcDateTime: Date | string, userTimezon
         
         // Still invalid? Use current time
         if (isNaN(utcDate.getTime())) {
-          console.warn('Invalid date string provided to convertUTCToUserTimezone:', utcDateTime);
+          logger.warn('Invalid date string provided to convertUTCToUserTimezone:', utcDateTime);
           return new Date(Date.now());
         }
       }
     } else if (utcDateTime instanceof Date) {
       utcDate = utcDateTime;
     } else {
-      console.warn('Invalid date type provided to convertUTCToUserTimezone:', typeof utcDateTime);
+      logger.warn('Invalid date type provided to convertUTCToUserTimezone:', typeof utcDateTime);
       return new Date(Date.now());
     }
     
     // Final validation of the date object
     if (!utcDate || isNaN(utcDate.getTime())) {
-      console.warn('Invalid date provided to convertUTCToUserTimezone:', utcDateTime);
+      logger.warn('Invalid date provided to convertUTCToUserTimezone:', utcDateTime);
       return new Date(Date.now());
     }
     
     // Validate timezone
     if (!isValidTimezone(userTimezone)) {
-      console.warn('Invalid timezone in convertUTCToUserTimezone:', userTimezone);
+      logger.warn('Invalid timezone in convertUTCToUserTimezone:', userTimezone);
       userTimezone = 'Asia/Kolkata';
     }
     
@@ -441,7 +443,7 @@ export function convertUTCToUserTimezone(utcDateTime: Date | string, userTimezon
     // We return it as-is since display functions will handle timezone formatting
     return utcDate;
   } catch (error) {
-    console.error('Error in convertUTCToUserTimezone:', error);
+    logger.error('Error in convertUTCToUserTimezone:', error);
     // Always return a valid date
     return new Date(Date.now());
   }
@@ -458,13 +460,13 @@ export function convertUTCToDateTimeLocal(utcDateTime: Date | string, userTimezo
     
     // Double-check the date is valid (convertUTCToUserTimezone should guarantee this)
     if (!utcDate || isNaN(utcDate.getTime())) {
-      console.warn('Unexpected invalid date in convertUTCToDateTimeLocal');
+      logger.warn('Unexpected invalid date in convertUTCToDateTimeLocal');
       return getCurrentTimeInUserTimezone(userTimezone);
     }
     
     // Validate timezone
     if (!isValidTimezone(userTimezone)) {
-      console.warn('Invalid timezone in convertUTCToDateTimeLocal:', userTimezone);
+      logger.warn('Invalid timezone in convertUTCToDateTimeLocal:', userTimezone);
       userTimezone = 'Asia/Kolkata';
     }
     
@@ -488,7 +490,7 @@ export function convertUTCToDateTimeLocal(utcDateTime: Date | string, userTimezo
       });
     } catch (formatError) {
       // Fallback to manual formatting if locale formatting fails
-      console.warn('Locale formatting failed, using fallback:', formatError);
+      logger.warn('Locale formatting failed, using fallback:', formatError);
       
       // Use the browser's local time as fallback
       const localDate = new Date(utcDate.getTime());
@@ -503,13 +505,13 @@ export function convertUTCToDateTimeLocal(utcDateTime: Date | string, userTimezo
     
     // Validate the formatted strings
     if (!dateStr || !timeStr || dateStr === 'Invalid Date' || timeStr === 'Invalid Date') {
-      console.warn('Invalid formatted date/time strings');
+      logger.warn('Invalid formatted date/time strings');
       return getCurrentTimeInUserTimezone(userTimezone);
     }
     
     return `${dateStr}T${timeStr}`;
   } catch (error) {
-    console.error('Error converting to datetime-local:', error);
+    logger.error('Error converting to datetime-local:', error);
     // Always return a valid datetime-local string
     return getCurrentTimeInUserTimezone(userTimezone);
   }
@@ -561,7 +563,7 @@ export function isQuizTimeValid(dateTimeString: string, userTimezone: string): b
     
     return quizTimeUTC > minFutureTime;
   } catch (error) {
-    console.error('Error in isQuizTimeValid:', error);
+    logger.error('Error in isQuizTimeValid:', error);
     return false;
   }
 }
@@ -592,7 +594,7 @@ export function getRelativeTime(utcDateTime: Date | string, _userTimezone?: stri
     if (typeof utcDateTime === 'string') {
       const trimmed = utcDateTime.trim();
       if (!trimmed) {
-        console.warn('Empty date string in getRelativeTime');
+        logger.warn('Empty date string in getRelativeTime');
         return 'unknown';
       }
       
@@ -607,17 +609,17 @@ export function getRelativeTime(utcDateTime: Date | string, _userTimezone?: stri
       
       // Still invalid?
       if (isNaN(targetTime.getTime())) {
-        console.warn('Invalid date string in getRelativeTime:', utcDateTime);
+        logger.warn('Invalid date string in getRelativeTime:', utcDateTime);
         return 'unknown';
       }
     } else if (utcDateTime instanceof Date) {
       if (isNaN(utcDateTime.getTime())) {
-        console.warn('Invalid Date object in getRelativeTime');
+        logger.warn('Invalid Date object in getRelativeTime');
         return 'unknown';
       }
       targetTime = utcDateTime;
     } else {
-      console.warn('Invalid date type in getRelativeTime:', typeof utcDateTime);
+      logger.warn('Invalid date type in getRelativeTime:', typeof utcDateTime);
       return 'unknown';
     }
     
@@ -625,7 +627,7 @@ export function getRelativeTime(utcDateTime: Date | string, _userTimezone?: stri
     
     // Ensure both dates are valid
     if (isNaN(targetTime.getTime()) || isNaN(now.getTime())) {
-      console.warn('Invalid date in relative time calculation');
+      logger.warn('Invalid date in relative time calculation');
       return 'unknown';
     }
     
@@ -662,7 +664,7 @@ export function getRelativeTime(utcDateTime: Date | string, _userTimezone?: stri
       }
     }
   } catch (error) {
-    console.error('Error in getRelativeTime:', error);
+    logger.error('Error in getRelativeTime:', error);
     return 'unknown';
   }
 }

@@ -350,14 +350,55 @@ export async function POST(req: NextRequest) {
         
         // Map question_type to a valid bloomsLevel if needed
         let mappedBloomsLevel = null;
-        if (bloomsLevels && bloomsLevels.length > 0) {
-          // Use the first bloomsLevel from the request as default
-          mappedBloomsLevel = bloomsLevels[0];
-        }
         
         // If the question has a bloomsLevel that's valid, use it
         if (q.bloomsLevel && ["knowledge", "comprehension", "application", "analysis", "synthesis", "evaluation"].includes(q.bloomsLevel)) {
           mappedBloomsLevel = q.bloomsLevel;
+        } 
+        // Try to map question_type to bloomsLevel
+        else if (q.question_type) {
+          const typeToBloomMap: Record<string, string> = {
+            'knowledge': 'knowledge',
+            'comprehension': 'comprehension',
+            'understanding': 'comprehension',
+            'application': 'application',
+            'apply': 'application',
+            'analysis': 'analysis',
+            'analyze': 'analysis',
+            'synthesis': 'synthesis',
+            'create': 'synthesis',
+            'evaluation': 'evaluation',
+            'evaluate': 'evaluation',
+            'critical thinking': 'analysis',
+            'recall': 'knowledge',
+            'interpretation': 'comprehension',
+            'explanation': 'comprehension',
+            'problem solving': 'application',
+            'comparison': 'analysis',
+            'judgment': 'evaluation'
+          };
+          
+          const normalizedType = q.question_type.toLowerCase().trim();
+          if (typeToBloomMap[normalizedType]) {
+            mappedBloomsLevel = typeToBloomMap[normalizedType];
+          } else {
+            // Check if question_type contains any bloom keywords
+            for (const [key, value] of Object.entries(typeToBloomMap)) {
+              if (normalizedType.includes(key)) {
+                mappedBloomsLevel = value;
+                break;
+              }
+            }
+          }
+        }
+        
+        // Fallback to request bloomsLevels or default
+        if (!mappedBloomsLevel) {
+          if (bloomsLevels && bloomsLevels.length > 0) {
+            mappedBloomsLevel = bloomsLevels[0];
+          } else {
+            mappedBloomsLevel = 'knowledge';
+          }
         }
         
         // Parse biblical reference more accurately

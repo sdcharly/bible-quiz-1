@@ -4,15 +4,15 @@ import { db } from "@/lib/db";
 import { questions } from "@/lib/schema";
 import * as crypto from "crypto";
 import { debugLogger } from "@/lib/debug-logger";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { jobId, status, questionsData, error } = body;
     
-    console.log(`[QUIZ CREATE CALLBACK] Received callback for job: ${jobId}`);
-    console.log(`[QUIZ CREATE CALLBACK] Status: ${status}, Error: ${error || 'none'}, Questions: ${questionsData?.length || 0}`);
-    console.log(`[QUIZ CREATE CALLBACK] Full callback body:`, JSON.stringify(body, null, 2));
+    logger.log(`[QUIZ CREATE CALLBACK] Received callback for job: ${jobId}`);
+    logger.log(`[QUIZ CREATE CALLBACK] Status: ${status}, Error: ${error || 'none'}, Questions: ${questionsData?.length || 0}`);
     
     debugLogger.info("Webhook callback received", {
       jobId,
@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
     
     // Safety check: Don't process replacement jobs here
     if (jobId.startsWith('replace-')) {
-      console.error(`[QUIZ CREATE CALLBACK] Wrong endpoint! This is a replacement job: ${jobId}`);
-      console.error(`Should be sent to /api/educator/quiz/webhook-callback-replace`);
+      logger.error(`[QUIZ CREATE CALLBACK] Wrong endpoint! This is a replacement job: ${jobId}`);
+      logger.error(`Should be sent to /api/educator/quiz/webhook-callback-replace`);
       return NextResponse.json(
         { error: "Wrong callback endpoint - this is a replacement job. Use /api/educator/quiz/webhook-callback-replace" },
         { status: 400 }
@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
     // Get the job from store
     const job = jobStore.get(jobId);
     if (!job) {
-      console.error(`Job not found: ${jobId}`);
+      logger.error(`Job not found: ${jobId}`);
       
       // If this is an error callback and job doesn't exist, log it but don't fail
       if (status === 'error' || error) {
-        console.error(`Received error callback for non-existent job ${jobId}: ${error}`);
+        logger.error(`Received error callback for non-existent job ${jobId}: ${error}`);
         return NextResponse.json({
           success: false,
           jobId,
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     // Update job status based on callback
     if (status === 'success' && questionsData) {
       // Process successful generation
-      console.log(`Received ${questionsData.length} questions for job ${jobId}`);
+      logger.log(`Received ${questionsData.length} questions for job ${jobId}`);
       
       // Save questions to database
       const quizId = job.quizId;
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
           
           // Skip invalid questions
           if (!questionText || !optionsArray.length || !correctAnswerValue) {
-            console.warn(`Skipping invalid question ${i + 1} for job ${jobId}:`, {
+            logger.warn(`Skipping invalid question ${i + 1} for job ${jobId}:`, {
               hasQuestionText: !!questionText,
               optionsLength: optionsArray.length,
               hasCorrectAnswer: !!correctAnswerValue
@@ -152,7 +152,52 @@ export async function POST(req: NextRequest) {
             correctAnswer: correctAnswerValue,
             explanation: explanationText,
             difficulty: q.difficulty || webhookPayload.difficulty || 'intermediate',
-            bloomsLevel: q.bloomsLevel || webhookPayload.bloomsLevel?.[0] || 'knowledge',
+            // Map question_type to bloomsLevel if needed
+            bloomsLevel: (() => {
+              // If question has a valid bloomsLevel, use it
+              if (q.bloomsLevel && ["knowledge", "comprehension", "application", "analysis", "synthesis", "evaluation"].includes(q.bloomsLevel)) {
+                return q.bloomsLevel;
+              }
+              
+              // Try to map question_type to bloomsLevel
+              if (q.question_type) {
+                const typeToBloomMap: Record<string, string> = {
+                  'knowledge': 'knowledge',
+                  'comprehension': 'comprehension',
+                  'understanding': 'comprehension',
+                  'application': 'application',
+                  'apply': 'application',
+                  'analysis': 'analysis',
+                  'analyze': 'analysis',
+                  'synthesis': 'synthesis',
+                  'create': 'synthesis',
+                  'evaluation': 'evaluation',
+                  'evaluate': 'evaluation',
+                  'critical thinking': 'analysis',
+                  'recall': 'knowledge',
+                  'interpretation': 'comprehension',
+                  'explanation': 'comprehension',
+                  'problem solving': 'application',
+                  'comparison': 'analysis',
+                  'judgment': 'evaluation'
+                };
+                
+                const normalizedType = q.question_type.toLowerCase().trim();
+                if (typeToBloomMap[normalizedType]) {
+                  return typeToBloomMap[normalizedType];
+                }
+                
+                // Check if question_type contains any bloom keywords
+                for (const [key, value] of Object.entries(typeToBloomMap)) {
+                  if (normalizedType.includes(key)) {
+                    return value;
+                  }
+                }
+              }
+              
+              // Fallback to webhook payload or default
+              return webhookPayload.bloomsLevel?.[0] || 'knowledge';
+            })(),
             topic: cleanString(q.topic || q.question_type).substring(0, 100),
             book: cleanString(parsedBook).substring(0, 100),
             chapter: cleanString(parsedChapter).substring(0, 100),
@@ -162,7 +207,7 @@ export async function POST(req: NextRequest) {
           
           insertedQuestions.push(q);
         } catch (insertError) {
-          console.error(`Failed to insert question ${i + 1} for job ${jobId}:`, insertError);
+          logger.error(`Failed to insert question ${i + 1} for job ${jobId}:`, insertError);
           failedQuestions++;
         }
       }
@@ -195,7 +240,7 @@ export async function POST(req: NextRequest) {
         questionsData: insertedQuestions
       });
       
-      console.log(`Job ${jobId} completed: ${statusMessage}`);
+      logger.log(`Job ${jobId} completed: ${statusMessage}`);
       
       // Return success response for completed quiz generation
       return NextResponse.json({
@@ -215,7 +260,7 @@ export async function POST(req: NextRequest) {
         error: error || 'Unknown error occurred'
       });
       
-      console.error(`Job ${jobId} failed:`, error);
+      logger.error(`Job ${jobId} failed:`, error);
     } else {
       // Update progress (backend service might send progress updates)
       const progress = body.progress || 50;
@@ -227,7 +272,7 @@ export async function POST(req: NextRequest) {
         message
       });
       
-      console.log(`Job ${jobId} progress update: ${progress}%`);
+      logger.log(`Job ${jobId} progress update: ${progress}%`);
     }
 
     return NextResponse.json({
@@ -237,7 +282,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error in webhook callback:", error);
+    logger.error("Error in webhook callback:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to process callback" },
       { status: 500 }

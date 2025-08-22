@@ -245,7 +245,7 @@ export async function POST(req: NextRequest) {
           
           // Check if n8n is returning an immediate error
           const parsedResponse = responseData as Record<string, unknown>;
-          const errorMessage = parsedResponse?.error || parsedResponse?.message || responseText || `Webhook failed with status ${webhookResponse.status}`;
+          const errorMessage = String(parsedResponse?.error || parsedResponse?.message || responseText || `Webhook failed with status ${webhookResponse.status}`);
           
           // Update job as failed
           jobStore.update(jobId, {
