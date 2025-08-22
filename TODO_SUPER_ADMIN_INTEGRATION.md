@@ -334,6 +334,127 @@ This document tracks all pending integrations and improvements for the Super Adm
 
 ---
 
+## 12. CRITICAL SECURITY FIXES (URGENT - BEFORE PRODUCTION)
+
+### 12.1 Authentication & Session Security 🔴 🚨
+- [ ] **Hash admin passwords with bcrypt** - Replace plain text comparison in `/src/lib/admin-auth.ts:89-96`
+- [ ] **Remove hardcoded API key** - Move LIGHTRAG_API_KEY from `/src/lib/lightrag-service.ts:5` to env
+- [ ] **Remove dev auth bypass** - Fix `/src/lib/auth-helpers.ts:17-47` development mode bypass
+- [ ] **Add JSON parsing validation** - Wrap all JSON.parse() in try-catch with validation
+- [ ] **Implement real password reset** - Replace fake implementation in forgot-password
+- [ ] **Add 2FA for admin accounts** - Implement TOTP/SMS despite config existing
+- [ ] **Fix session management** - Restrict admin cookie paths, extend timeout
+- [ ] **Implement session regeneration** - Regenerate session ID after login
+- [ ] **Add concurrent session limits** - Detect and limit multiple logins
+
+### 12.2 Rate Limiting & DDoS Protection 🔴 🚨
+- [ ] **Implement rate limiting on ALL endpoints** - Use express-rate-limit
+- [ ] **Add brute force protection** - Account lockout after failed attempts
+- [ ] **Implement CAPTCHA** - After 3 failed login attempts
+- [ ] **Add request size limits** - Prevent large payload attacks
+- [ ] **Configure API throttling** - Different limits per endpoint type
+
+### 12.3 Input Validation & Sanitization 🔴 🚨
+- [ ] **Add comprehensive input validation** - Use Joi or Zod schemas
+- [ ] **Sanitize all user inputs** - Prevent XSS with DOMPurify
+- [ ] **Validate file uploads server-side** - Type, size, content validation
+- [ ] **Add SQL injection prevention** - Though ORM helps, add extra validation
+- [ ] **Implement CSRF protection** - Add tokens to all state-changing requests
+- [ ] **URL parameter sanitization** - Prevent injection through URLs
+
+### 12.4 Data Security 🔴 🚨
+- [ ] **Encrypt sensitive data at rest** - User PII, quiz answers
+- [ ] **Remove sensitive data from logs** - No passwords, tokens, PII
+- [ ] **Implement secure token generation** - Replace Math.random() usage
+- [ ] **Add database SSL/TLS** - Enforce encrypted connections
+- [ ] **Create API response DTOs** - Don't expose raw database objects
+- [ ] **Implement field-level encryption** - For highly sensitive data
+
+### 12.5 File Upload Security 🔴 🚨
+- [ ] **Enforce file size limits** - Server-side validation
+- [ ] **Implement virus scanning** - ClamAV or cloud service
+- [ ] **Store files outside webroot** - Prevent direct access
+- [ ] **Generate random filenames** - Prevent enumeration
+- [ ] **Add file type validation** - Magic number checking
+- [ ] **Implement upload quotas** - Per user limits
+
+### 12.6 API Security Hardening 🔴
+- [ ] **Add API versioning** - Prevent breaking changes
+- [ ] **Implement API keys for external access** - If needed
+- [ ] **Add request signing** - For sensitive operations
+- [ ] **Implement timeout on all operations** - Prevent hanging
+- [ ] **Add circuit breakers** - For external service calls
+- [ ] **Remove stack traces in production** - Custom error messages
+
+### 12.7 Security Headers & Middleware 🔴
+- [ ] **Configure all security headers** - CSP, HSTS, X-Frame-Options, etc.
+- [ ] **Implement security middleware** - For all routes
+- [ ] **Add CORS validation** - Strict origin checking
+- [ ] **Configure cookie security** - Secure, HttpOnly, SameSite
+- [ ] **Add referrer policy** - Control information leakage
+
+### 12.8 Monitoring & Logging 🔴
+- [ ] **Implement security event logging** - Failed logins, permission denials
+- [ ] **Add intrusion detection** - Unusual patterns alert
+- [ ] **Create audit trail** - All admin actions logged
+- [ ] **Implement log rotation** - Prevent disk filling
+- [ ] **Add real-time alerting** - Security events notification
+- [ ] **Create security dashboard** - Monitor threats
+
+### 12.9 Compliance & Privacy 🔴
+- [ ] **Implement GDPR compliance** - Right to delete, export
+- [ ] **Add cookie consent** - Legal requirement
+- [ ] **Create privacy controls** - User data preferences
+- [ ] **Implement data retention policies** - Auto-delete old data
+- [ ] **Add terms acceptance tracking** - Legal protection
+- [ ] **Create data processing agreements** - For third parties
+
+### 12.10 Testing & Validation 🔴
+- [ ] **Add security unit tests** - Test auth, validation
+- [ ] **Implement integration security tests** - Test full flows
+- [ ] **Add penetration testing** - Before production
+- [ ] **Create security regression tests** - Prevent reintroduction
+- [ ] **Implement dependency scanning** - Check for vulnerable packages
+- [ ] **Add static code analysis** - SonarQube, Snyk
+
+---
+
+## 13. ARCHITECTURAL IMPROVEMENTS
+
+### 13.1 Code Architecture 🔴
+- [ ] **Implement service layer pattern** - Separate business logic
+- [ ] **Add repository pattern** - Abstract data access
+- [ ] **Create DTO pattern** - API response shaping
+- [ ] **Implement dependency injection** - Better testing
+- [ ] **Add domain models** - Separate from database models
+- [ ] **Create validation layer** - Centralized validation
+
+### 13.2 Performance Optimization 🔴
+- [ ] **Add Redis caching** - Reduce database load
+- [ ] **Implement database indexing** - Optimize queries
+- [ ] **Add connection pooling** - Prevent exhaustion
+- [ ] **Implement lazy loading** - Reduce initial load
+- [ ] **Add CDN for static assets** - Improve load times
+- [ ] **Optimize images** - Compression, WebP format
+
+### 13.3 Scalability Preparation 🔴
+- [ ] **Add horizontal scaling support** - Stateless design
+- [ ] **Implement message queue** - Bull, RabbitMQ
+- [ ] **Move to cloud storage** - S3, Azure Blob
+- [ ] **Add load balancing ready** - Health checks
+- [ ] **Implement database sharding** - If needed
+- [ ] **Create microservices structure** - Future consideration
+
+### 13.4 DevOps & Deployment 🔴
+- [ ] **Create CI/CD pipeline** - Automated testing
+- [ ] **Add staging environment** - Test before production
+- [ ] **Implement blue-green deployment** - Zero downtime
+- [ ] **Add infrastructure as code** - Terraform, CloudFormation
+- [ ] **Create disaster recovery plan** - Backup strategy
+- [ ] **Implement secret management** - Vault, AWS Secrets
+
+---
+
 ## Additional Tasks (To Be Added)
 
 *Space reserved for additional tasks identified during implementation or from stakeholder feedback*
@@ -346,6 +467,6 @@ This document tracks all pending integrations and improvements for the Super Adm
 - [ ] Notification Center
 - [ ] Bulk Operations
 - [ ] Import/Export Functionality
-- [ ] Backup & Recovery
-- [ ] Monitoring & Alerting
+- [ ] Advanced Backup & Recovery
 - [ ] Cost Management
+- [ ] AI/ML Enhancements

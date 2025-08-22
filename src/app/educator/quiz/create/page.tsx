@@ -434,6 +434,30 @@ function CreateQuizContent() {
                   💡 Did you know? Your biblical documents are being carefully analyzed to create thoughtful questions that test understanding of scripture and theological concepts!
                 </p>
               </div>
+              
+              {/* Cancel Button */}
+              <div className="mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Stop polling
+                    if (pollIntervalRef.current) {
+                      clearInterval(pollIntervalRef.current);
+                      pollIntervalRef.current = null;
+                    }
+                    // Reset all states
+                    setLoading(false);
+                    isSubmittingRef.current = false;
+                    setJobId(null);
+                    setGenerationProgress(0);
+                    setGenerationMessage("");
+                    // No quiz will be created since we're cancelling before completion
+                  }}
+                  className="w-full"
+                >
+                  Cancel Generation
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -740,11 +764,19 @@ function CreateQuizContent() {
                   <input
                     type="number"
                     value={config.questionCount || ""}
-                    onChange={(e) => setConfig({ ...config, questionCount: parseInt(e.target.value) || 10 })}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 10;
+                      // Enforce max limit of 25 questions
+                      const limitedValue = Math.min(value, 25);
+                      setConfig({ ...config, questionCount: limitedValue });
+                    }}
                     min="5"
-                    max="100"
+                    max="25"
                     className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Choose between 5 and 25 questions
+                  </p>
                 </div>
                 
                 <div>

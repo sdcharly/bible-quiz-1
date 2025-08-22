@@ -87,7 +87,7 @@ async function getAdminData() {
   systemSettingsResult.forEach((setting) => {
     const key = setting.settingKey as keyof typeof settings;
     if (key in settings) {
-      (settings as any)[key] = setting.settingValue;
+      (settings as Record<string, unknown>)[key] = setting.settingValue;
     }
   });
 

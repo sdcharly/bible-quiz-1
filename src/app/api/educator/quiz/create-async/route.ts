@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { checkEducatorPermission, checkEducatorLimits, getPermissionMessage } from "@/lib/permissions";
 import { jobStore } from "@/lib/quiz-generation-jobs";
+import { debugLogger } from "@/lib/debug-logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -183,6 +184,7 @@ export async function POST(req: NextRequest) {
     // Create job in store BEFORE calling webhook
     const job = jobStore.create(jobId, quizId, webhookPayload);
     console.log(`[CREATE-ASYNC] Created job ${jobId} for quiz ${quizId}`);
+    debugLogger.info(`Created job ${jobId} for quiz ${quizId}`, { jobId, quizId });
 
     // Check if webhook is configured
     if (process.env.QUIZ_GENERATION_WEBHOOK_URL) {
@@ -190,6 +192,13 @@ export async function POST(req: NextRequest) {
       console.log("Callback URL:", callbackUrl);
       console.log("Job ID:", jobId);
       console.log("Job exists in store:", !!jobStore.get(jobId));
+      
+      debugLogger.info("Calling webhook", {
+        url: process.env.QUIZ_GENERATION_WEBHOOK_URL,
+        callbackUrl,
+        jobId,
+        jobExists: !!jobStore.get(jobId)
+      });
       
       // Call the webhook with a shorter timeout (10 seconds)
       // We expect the service to respond immediately with "processing" status
@@ -204,37 +213,83 @@ export async function POST(req: NextRequest) {
         });
 
         console.log(`[CREATE-ASYNC] Webhook response status: ${webhookResponse.status}`);
+        
+        // Read response body regardless of status to check for any error messages
+        const responseText = await webhookResponse.text();
+        console.log(`[CREATE-ASYNC] Webhook response body:`, responseText);
+        
+        // Try to parse response as JSON
+        let responseData: unknown = null;
+        try {
+          if (responseText) {
+            responseData = JSON.parse(responseText);
+            console.log(`[CREATE-ASYNC] Parsed response data:`, responseData);
+          }
+        } catch (e) {
+          console.log(`[CREATE-ASYNC] Response is not JSON:`, responseText);
+        }
+        
+        debugLogger.info("Webhook response received", {
+          status: webhookResponse.status,
+          body: responseText,
+          parsedData: responseData,
+          jobId
+        });
 
         if (!webhookResponse.ok) {
-          const errorText = await webhookResponse.text();
           console.error("Webhook failed to acknowledge:", {
             status: webhookResponse.status,
-            error: errorText
+            body: responseText,
+            parsedData: responseData
           });
+          
+          // Check if n8n is returning an immediate error
+          const parsedResponse = responseData as any;
+          const errorMessage = parsedResponse?.error || parsedResponse?.message || responseText || `Webhook failed with status ${webhookResponse.status}`;
           
           // Update job as failed
           jobStore.update(jobId, {
             status: 'failed',
-            error: `Webhook failed: ${webhookResponse.status} - ${errorText}`,
+            error: errorMessage,
             message: 'Failed to start quiz generation'
           });
 
           return NextResponse.json({
             success: false,
             error: "Failed to start quiz generation",
+            details: errorMessage,
             jobId,
             quizId
           }, { status: 500 });
         }
+        
+        // Check if the response contains an error even with 200 status
+        // (n8n might return 200 with error in body)
+        const parsedResp = responseData as any;
+        if (parsedResp?.error || parsedResp?.status === 'error') {
+          console.error(`[CREATE-ASYNC] Webhook returned error in body:`, responseData);
+          
+          const errorMessage = parsedResp.error || parsedResp.message || "Unknown error from webhook";
+          
+          // Update job as failed
+          jobStore.update(jobId, {
+            status: 'failed',
+            error: errorMessage,
+            message: 'Quiz generation failed'
+          });
+          
+          // Don't return error to client, let polling handle it
+          console.log(`[CREATE-ASYNC] Error will be handled through polling`);
+        } else {
+          // Update job as processing only if no error
+          jobStore.update(jobId, {
+            status: 'processing',
+            progress: 10,
+            message: 'Biblical quiz generation in progress...'
+          });
 
-        // Update job as processing
-        jobStore.update(jobId, {
-          status: 'processing',
-          progress: 10,
-          message: 'Biblical quiz generation in progress...'
-        });
-
-        console.log("Webhook acknowledged, processing in background");
+          console.log("Webhook acknowledged successfully, processing in background");
+        }
         
         // Log the expected callback for debugging
         console.log(`[CREATE-ASYNC] Service should callback to: ${callbackUrl}`);

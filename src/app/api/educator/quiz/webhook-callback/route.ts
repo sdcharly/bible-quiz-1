@@ -3,6 +3,7 @@ import { jobStore } from "@/lib/quiz-generation-jobs";
 import { db } from "@/lib/db";
 import { questions } from "@/lib/schema";
 import * as crypto from "crypto";
+import { debugLogger } from "@/lib/debug-logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +12,15 @@ export async function POST(req: NextRequest) {
     
     console.log(`[QUIZ CREATE CALLBACK] Received callback for job: ${jobId}`);
     console.log(`[QUIZ CREATE CALLBACK] Status: ${status}, Error: ${error || 'none'}, Questions: ${questionsData?.length || 0}`);
+    console.log(`[QUIZ CREATE CALLBACK] Full callback body:`, JSON.stringify(body, null, 2));
+    
+    debugLogger.info("Webhook callback received", {
+      jobId,
+      status,
+      error: error || 'none',
+      questionsCount: questionsData?.length || 0,
+      fullBody: body
+    });
 
     if (!jobId) {
       return NextResponse.json(
