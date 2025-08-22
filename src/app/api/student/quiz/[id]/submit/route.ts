@@ -85,22 +85,8 @@ export async function POST(
 
     const score = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
     
-    // Theological grading system (international standards)
-    const getGrade = (score: number) => {
-      if (score >= 95) return { grade: "A+", points: 4.0, description: "Exceptional" };
-      if (score >= 90) return { grade: "A", points: 4.0, description: "Excellent" };
-      if (score >= 85) return { grade: "A-", points: 3.7, description: "Very Good" };
-      if (score >= 80) return { grade: "B+", points: 3.3, description: "Good" };
-      if (score >= 75) return { grade: "B", points: 3.0, description: "Above Average" };
-      if (score >= 70) return { grade: "B-", points: 2.7, description: "Satisfactory" };
-      if (score >= 65) return { grade: "C+", points: 2.3, description: "Acceptable" };
-      if (score >= 60) return { grade: "C", points: 2.0, description: "Average" };
-      if (score >= 55) return { grade: "C-", points: 1.7, description: "Below Average" };
-      if (score >= 50) return { grade: "D", points: 1.0, description: "Poor" };
-      return { grade: "F", points: 0.0, description: "Fail" };
-    };
-    
-    const gradeInfo = getGrade(score);
+    // Note: Grade calculation happens when results are retrieved, not during submission
+    // This ensures consistent grading across the application and prevents data leakage
 
     // Create quiz attempt record
     const attemptId = crypto.randomUUID();
@@ -135,15 +121,13 @@ export async function POST(
       });
     }
 
+    // Security: Don't return score or results immediately
+    // Students must wait until quiz duration expires to see results
+    // This prevents sharing answers with other students still taking the quiz
     return NextResponse.json({
       success: true,
       attemptId,
-      score: Math.round(score),
-      grade: gradeInfo.grade,
-      gradePoints: gradeInfo.points,
-      gradeDescription: gradeInfo.description,
-      correctAnswers,
-      totalQuestions,
+      message: "Quiz submitted successfully. Results will be available after the quiz time expires for all students."
     });
 
   } catch (error) {
