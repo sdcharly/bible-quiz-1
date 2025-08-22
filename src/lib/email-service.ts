@@ -66,59 +66,138 @@ export async function sendEmail(options: EmailOptions) {
   }
 }
 
-// Email templates
+// Email templates with biblical theming
 export const emailTemplates = {
   // Invitation for new users
   newUserInvitation: (educatorName: string, invitationUrl: string, quizTitle?: string) => {
     const subject = quizTitle 
-      ? `${educatorName} invited you to take "${quizTitle}" on BibleQuiz`
-      : `${educatorName} invited you to join BibleQuiz`;
+      ? `${educatorName} invited you to take "${quizTitle}" on Scrolls of Wisdom`
+      : `${educatorName} invited you to join Scrolls of Wisdom - Biblical Knowledge Quest`;
 
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-          .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-          .button { display: inline-block; padding: 12px 30px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          body { 
+            font-family: 'Georgia', 'Times New Roman', serif; 
+            line-height: 1.6; 
+            color: #451a03;
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            margin: 0;
+            padding: 20px;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(146, 64, 14, 0.1);
+            overflow: hidden;
+          }
+          .header { 
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center;
+            position: relative;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(146, 64, 14, 0.3);
+          }
+          .content { 
+            background-color: #fffbeb; 
+            padding: 30px; 
+            border-left: 4px solid #f59e0b;
+            border-right: 4px solid #f59e0b;
+          }
+          .content h2 {
+            color: #92400e;
+            font-size: 24px;
+            margin-top: 0;
+          }
+          .button { 
+            display: inline-block; 
+            padding: 14px 32px; 
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(217, 119, 6, 0.3);
+            transition: all 0.3s ease;
+          }
+          .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(217, 119, 6, 0.4);
+          }
+          .scripture-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #d97706;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+            color: #78350f;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px;
+            background: #fef3c7;
+            color: #92400e; 
+            font-size: 14px;
+            border-top: 2px solid #f59e0b;
+          }
+          .divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+            margin: 20px 0;
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>📖 Welcome to BibleQuiz!</h1>
+            <h1>📜 Welcome to Scrolls of Wisdom!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Your Biblical Knowledge Quest Awaits</p>
           </div>
           <div class="content">
-            <h2>You've Been Invited!</h2>
-            <p>Hi there,</p>
-            <p><strong>${educatorName}</strong> has invited you to join BibleQuiz${quizTitle ? ` and take the quiz "${quizTitle}"` : ''}.</p>
+            <h2>✨ You've Been Blessed with an Invitation!</h2>
+            <p>Peace be with you,</p>
+            <p><strong>${educatorName}</strong> has invited you to embark on a spiritual journey through Scrolls of Wisdom${quizTitle ? `, beginning with the quiz: "${quizTitle}"` : ''}.</p>
             
-            <p>BibleQuiz is an interactive platform for biblical education where educators create quizzes to help students deepen their understanding of scripture.</p>
+            <div class="scripture-box">
+              <p>"Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth." - 2 Timothy 2:15</p>
+            </div>
             
-            <p>To get started:</p>
-            <ol>
-              <li>Click the button below to create your account</li>
-              <li>Fill in your details including your phone number (for educator communication)</li>
-              <li>Start taking quizzes and tracking your progress</li>
+            <p>Scrolls of Wisdom is a sacred space for biblical education where devoted educators guide students through the treasures of Scripture, helping them grow in knowledge and faith.</p>
+            
+            <p><strong>Your journey begins with these simple steps:</strong></p>
+            <ol style="color: #78350f;">
+              <li>Click the golden button below to create your blessed account</li>
+              <li>Complete your profile with care and reverence</li>
+              <li>Begin your quest for biblical wisdom through interactive quizzes</li>
             </ol>
             
             <div style="text-align: center;">
-              <a href="${invitationUrl}" class="button" style="color: white; text-decoration: none;">Accept Invitation & Sign Up</a>
+              <a href="${invitationUrl}" class="button" style="color: white; text-decoration: none;">🕊️ Accept Your Calling & Begin</a>
             </div>
             
-            <p style="color: #666; font-size: 14px;">
-              Or copy and paste this link into your browser:<br>
-              <code>${invitationUrl}</code>
+            <p style="color: #92400e; font-size: 14px; background: #fef3c7; padding: 10px; border-radius: 4px;">
+              Or copy and paste this sacred link into your browser:<br>
+              <code style="background: white; padding: 2px 4px; border-radius: 2px;">${invitationUrl}</code>
             </p>
             
-            <p><em>This invitation expires in 7 days.</em></p>
+            <div class="divider"></div>
+            
+            <p style="text-align: center; color: #b45309;"><em>⏰ This divine invitation expires in 7 days.</em></p>
           </div>
           <div class="footer">
-            <p>© 2024 BibleQuiz. Empowering biblical education.</p>
+            <p style="margin: 5px 0;">📖 "Thy word is a lamp unto my feet, and a light unto my path." - Psalm 119:105</p>
+            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Empowering Biblical Education</p>
+            <p style="margin: 5px 0; font-size: 12px;">Dedicated to spreading God's Word with love and wisdom</p>
           </div>
         </div>
       </body>
@@ -126,14 +205,17 @@ export const emailTemplates = {
     `;
 
     const text = `
-${educatorName} invited you to join BibleQuiz${quizTitle ? ` and take "${quizTitle}"` : ''}!
+${educatorName} invited you to join Scrolls of Wisdom${quizTitle ? ` and take "${quizTitle}"` : ''}!
+
+"Study to shew thyself approved unto God" - 2 Timothy 2:15
 
 To accept this invitation and create your account, visit:
 ${invitationUrl}
 
 This invitation expires in 7 days.
 
-BibleQuiz - Empowering biblical education
+Scrolls of Wisdom - Your Biblical Knowledge Quest
+Empowering biblical education with love and wisdom
     `;
 
     return { subject, html, text };
@@ -141,52 +223,153 @@ BibleQuiz - Empowering biblical education
 
   // Invitation for existing users
   existingUserInvitation: (educatorName: string, studentName: string, quizTitle: string, quizUrl: string) => {
-    const subject = `${educatorName} assigned you a new quiz: "${quizTitle}"`;
+    const subject = `📜 New Biblical Quest: "${quizTitle}" awaits you!`;
 
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-          .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-          .button { display: inline-block; padding: 12px 30px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-          .quiz-info { background-color: white; padding: 15px; border-left: 4px solid #2563eb; margin: 20px 0; }
-          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          body { 
+            font-family: 'Georgia', 'Times New Roman', serif; 
+            line-height: 1.6; 
+            color: #451a03;
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            margin: 0;
+            padding: 20px;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(146, 64, 14, 0.1);
+            overflow: hidden;
+          }
+          .header { 
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center;
+            position: relative;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(146, 64, 14, 0.3);
+          }
+          .content { 
+            background-color: #fffbeb; 
+            padding: 30px; 
+            border-left: 4px solid #f59e0b;
+            border-right: 4px solid #f59e0b;
+          }
+          .content h2 {
+            color: #92400e;
+            font-size: 22px;
+            margin-top: 0;
+          }
+          .button { 
+            display: inline-block; 
+            padding: 14px 32px; 
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(217, 119, 6, 0.3);
+            transition: all 0.3s ease;
+          }
+          .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(217, 119, 6, 0.4);
+          }
+          .quiz-info { 
+            background: linear-gradient(135deg, #fff 0%, #fef3c7 100%);
+            padding: 20px; 
+            border-left: 4px solid #d97706; 
+            margin: 20px 0;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(146, 64, 14, 0.1);
+          }
+          .quiz-info h3 {
+            color: #92400e;
+            margin-top: 0;
+            font-size: 20px;
+          }
+          .quiz-info ul {
+            color: #78350f;
+          }
+          .scripture-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #d97706;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+            color: #78350f;
+            border-radius: 4px;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px;
+            background: #fef3c7;
+            color: #92400e; 
+            font-size: 14px;
+            border-top: 2px solid #f59e0b;
+          }
+          .divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+            margin: 20px 0;
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>📚 New Quiz Assigned!</h1>
+            <h1>📚 New Scripture Challenge!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Test Your Biblical Knowledge</p>
           </div>
           <div class="content">
-            <h2>Hi ${studentName},</h2>
-            <p><strong>${educatorName}</strong> has assigned you a new quiz on BibleQuiz.</p>
+            <h2>Blessings, ${studentName}!</h2>
+            <p>Your spiritual guide, <strong>${educatorName}</strong>, has prepared a new quest for you on Scrolls of Wisdom.</p>
             
             <div class="quiz-info">
               <h3 style="margin-top: 0;">📖 ${quizTitle}</h3>
-              <p>Your educator has prepared this quiz to test your biblical knowledge. Log in to your account to:</p>
+              <p style="color: #78350f; font-weight: 500;">Your educator has lovingly crafted this quiz to deepen your understanding of God's Word.</p>
+              <p><strong>This sacred journey will help you:</strong></p>
               <ul>
-                <li>Take the quiz at your own pace</li>
-                <li>Review your answers and explanations</li>
-                <li>Track your progress</li>
+                <li>Test your knowledge of Scripture at your own pace</li>
+                <li>Discover deeper meanings through detailed explanations</li>
+                <li>Track your spiritual growth and biblical understanding</li>
+                <li>Strengthen your foundation in God's Word</li>
               </ul>
+            </div>
+
+            <div class="scripture-box">
+              <p>"All Scripture is given by inspiration of God, and is profitable for doctrine, for reproof, for correction, for instruction in righteousness." - 2 Timothy 3:16</p>
             </div>
             
             <div style="text-align: center;">
-              <a href="${quizUrl}" class="button" style="color: white; text-decoration: none;">Take Quiz Now</a>
+              <a href="${quizUrl}" class="button" style="color: white; text-decoration: none;">⚔️ Begin Your Quest Now</a>
             </div>
             
-            <p style="color: #666; font-size: 14px;">
-              Or copy and paste this link into your browser:<br>
-              <code>${quizUrl}</code>
+            <p style="color: #92400e; font-size: 14px; background: #fef3c7; padding: 10px; border-radius: 4px;">
+              Or copy and paste this sacred link into your browser:<br>
+              <code style="background: white; padding: 2px 4px; border-radius: 2px;">${quizUrl}</code>
+            </p>
+
+            <div class="divider"></div>
+            
+            <p style="text-align: center; color: #b45309; font-style: italic;">
+              "Iron sharpeneth iron; so a man sharpeneth the countenance of his friend." - Proverbs 27:17
             </p>
           </div>
           <div class="footer">
-            <p>© 2024 BibleQuiz. Empowering biblical education.</p>
+            <p style="margin: 5px 0;">🕊️ May wisdom and understanding guide your path</p>
+            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+            <p style="margin: 5px 0; font-size: 12px;">Growing in faith, one scripture at a time</p>
           </div>
         </div>
       </body>
@@ -194,16 +377,21 @@ BibleQuiz - Empowering biblical education
     `;
 
     const text = `
-Hi ${studentName},
+Blessings, ${studentName}!
 
-${educatorName} has assigned you a new quiz: "${quizTitle}"
+${educatorName} has assigned you a new biblical quest: "${quizTitle}"
 
-To take this quiz, visit:
+"All Scripture is given by inspiration of God" - 2 Timothy 3:16
+
+To begin your quest, visit:
 ${quizUrl}
 
-Log in to your BibleQuiz account to get started.
+Log in to your Scrolls of Wisdom account to get started.
 
-BibleQuiz - Empowering biblical education
+May wisdom and understanding guide your path.
+
+Scrolls of Wisdom - Your Biblical Knowledge Quest
+Growing in faith, one scripture at a time
     `;
 
     return { subject, html, text };
@@ -211,45 +399,142 @@ BibleQuiz - Empowering biblical education
 
   // Simple notification for educator-student connection
   studentAddedNotification: (educatorName: string, studentName: string) => {
-    const subject = `You've been added to ${educatorName}'s class on BibleQuiz`;
+    const subject = `🕊️ Welcome to ${educatorName}'s Biblical Study Circle`;
 
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-          .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-          .button { display: inline-block; padding: 12px 30px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          body { 
+            font-family: 'Georgia', 'Times New Roman', serif; 
+            line-height: 1.6; 
+            color: #451a03;
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            margin: 0;
+            padding: 20px;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(146, 64, 14, 0.1);
+            overflow: hidden;
+          }
+          .header { 
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center;
+            position: relative;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(146, 64, 14, 0.3);
+          }
+          .content { 
+            background-color: #fffbeb; 
+            padding: 30px; 
+            border-left: 4px solid #f59e0b;
+            border-right: 4px solid #f59e0b;
+          }
+          .content h2 {
+            color: #92400e;
+            font-size: 22px;
+            margin-top: 0;
+          }
+          .button { 
+            display: inline-block; 
+            padding: 14px 32px; 
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(217, 119, 6, 0.3);
+            transition: all 0.3s ease;
+          }
+          .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(217, 119, 6, 0.4);
+          }
+          .benefits-box {
+            background: linear-gradient(135deg, #fff 0%, #fef3c7 100%);
+            padding: 20px;
+            border-left: 4px solid #d97706;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .benefits-box ul {
+            color: #78350f;
+          }
+          .scripture-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #d97706;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+            color: #78350f;
+            border-radius: 4px;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px;
+            background: #fef3c7;
+            color: #92400e; 
+            font-size: 14px;
+            border-top: 2px solid #f59e0b;
+          }
+          .divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+            margin: 20px 0;
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>👋 Welcome to the Class!</h1>
+            <h1>👋 Welcome to the Fellowship!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Your Biblical Learning Community Awaits</p>
           </div>
           <div class="content">
-            <h2>Hi ${studentName},</h2>
-            <p>Great news! <strong>${educatorName}</strong> has added you to their class on BibleQuiz.</p>
+            <h2>Greetings in Christ, ${studentName}!</h2>
+            <p>Wonderful news! <strong>${educatorName}</strong> has welcomed you into their biblical study circle on Scrolls of Wisdom.</p>
             
-            <p>This means you'll be able to:</p>
-            <ul>
-              <li>Receive quiz assignments directly from your educator</li>
-              <li>Track your progress in biblical studies</li>
-              <li>Access personalized learning materials</li>
-            </ul>
+            <div class="scripture-box">
+              <p>"For where two or three are gathered together in my name, there am I in the midst of them." - Matthew 18:20</p>
+            </div>
             
-            <p>Your educator will notify you when new quizzes are available.</p>
+            <div class="benefits-box">
+              <p><strong>As part of this blessed fellowship, you will:</strong></p>
+              <ul>
+                <li>📖 Receive carefully crafted biblical quizzes from your educator</li>
+                <li>📈 Track your spiritual growth and scriptural understanding</li>
+                <li>🎯 Access personalized guidance in your faith journey</li>
+                <li>🤝 Join a community of believers seeking wisdom together</li>
+              </ul>
+            </div>
+            
+            <p style="color: #78350f;">Your educator will guide you through the treasures of Scripture with wisdom and care. Watch for upcoming quizzes that will challenge and strengthen your faith.</p>
             
             <div style="text-align: center;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard" class="button" style="color: white; text-decoration: none;">Go to Dashboard</a>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard" class="button" style="color: white; text-decoration: none;">🏠 Enter Your Study Hall</a>
             </div>
+
+            <div class="divider"></div>
+            
+            <p style="text-align: center; color: #b45309; font-style: italic;">
+              "Let us consider how to stir up one another to love and good works" - Hebrews 10:24
+            </p>
           </div>
           <div class="footer">
-            <p>© 2024 BibleQuiz. Empowering biblical education.</p>
+            <p style="margin: 5px 0;">✝️ Walking together in faith and knowledge</p>
+            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+            <p style="margin: 5px 0; font-size: 12px;">United in Christ, growing in wisdom</p>
           </div>
         </div>
       </body>
@@ -257,15 +542,380 @@ BibleQuiz - Empowering biblical education
     `;
 
     const text = `
-Hi ${studentName},
+Greetings in Christ, ${studentName}!
 
-${educatorName} has added you to their class on BibleQuiz.
+${educatorName} has welcomed you into their biblical study circle on Scrolls of Wisdom.
 
-You'll now receive quiz assignments and can track your progress in biblical studies.
+"For where two or three are gathered together in my name, there am I in the midst of them." - Matthew 18:20
 
-Visit your dashboard: ${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard
+You'll now receive quiz assignments and can track your spiritual growth in biblical studies.
 
-BibleQuiz - Empowering biblical education
+Visit your study hall: ${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard
+
+Walking together in faith and knowledge.
+
+Scrolls of Wisdom - Your Biblical Knowledge Quest
+United in Christ, growing in wisdom
+    `;
+
+    return { subject, html, text };
+  },
+
+  // Educator approval notification
+  educatorApprovalNotification: (educatorName: string, educatorEmail: string) => {
+    const subject = `🎉 Hallelujah! Your Educator Account Has Been Approved`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { 
+            font-family: 'Georgia', 'Times New Roman', serif; 
+            line-height: 1.6; 
+            color: #451a03;
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            margin: 0;
+            padding: 20px;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(146, 64, 14, 0.1);
+            overflow: hidden;
+          }
+          .header { 
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center;
+            position: relative;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(146, 64, 14, 0.3);
+          }
+          .celebration-banner {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+          }
+          .content { 
+            background-color: #fffbeb; 
+            padding: 30px; 
+            border-left: 4px solid #f59e0b;
+            border-right: 4px solid #f59e0b;
+          }
+          .content h2 {
+            color: #92400e;
+            font-size: 22px;
+            margin-top: 0;
+          }
+          .button { 
+            display: inline-block; 
+            padding: 14px 32px; 
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(217, 119, 6, 0.3);
+          }
+          .permissions-box {
+            background: linear-gradient(135deg, #fff 0%, #fef3c7 100%);
+            padding: 20px;
+            border-left: 4px solid #10b981;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .permissions-box ul {
+            color: #78350f;
+          }
+          .scripture-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #d97706;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+            color: #78350f;
+            border-radius: 4px;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px;
+            background: #fef3c7;
+            color: #92400e; 
+            font-size: 14px;
+            border-top: 2px solid #f59e0b;
+          }
+          .divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✨ Scrolls of Wisdom</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Educator Account Approved</p>
+          </div>
+          <div class="celebration-banner">
+            🎊 CONGRATULATIONS! YOUR MINISTRY BEGINS TODAY! 🎊
+          </div>
+          <div class="content">
+            <h2>Beloved Educator ${educatorName},</h2>
+            <p>Grace and peace to you! We are delighted to inform you that your educator account on <strong>Scrolls of Wisdom</strong> has been approved.</p>
+            
+            <div class="scripture-box">
+              <p>"Go ye therefore, and teach all nations... teaching them to observe all things whatsoever I have commanded you" - Matthew 28:19-20</p>
+            </div>
+            
+            <p>You have been called to a noble ministry of biblical education. Your dedication to spreading God's Word will touch many lives and help students grow in faith and understanding.</p>
+            
+            <div class="permissions-box">
+              <p><strong>🔑 Your Educator Privileges Include:</strong></p>
+              <ul>
+                <li>✅ Create and publish biblical quizzes</li>
+                <li>✅ Add and manage students in your study circles</li>
+                <li>✅ Edit and customize quiz content</li>
+                <li>✅ View detailed analytics and progress reports</li>
+                <li>✅ Export data for record keeping</li>
+                <li>✅ Access to our growing library of biblical resources</li>
+              </ul>
+            </div>
+            
+            <p style="color: #78350f; font-weight: 500;">Your journey as a biblical educator starts now! Begin by creating your first quiz or inviting students to join your study circle.</p>
+            
+            <div style="text-align: center;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/educator/dashboard" class="button" style="color: white; text-decoration: none;">🚀 Enter Your Educator Dashboard</a>
+            </div>
+
+            <div class="divider"></div>
+            
+            <div style="background: #f0fdf4; padding: 15px; border-radius: 4px; margin: 20px 0;">
+              <p style="color: #166534; font-weight: bold; margin: 0 0 10px 0;">📚 Quick Start Tips:</p>
+              <ol style="color: #166534; margin: 5px 0;">
+                <li>Upload your first biblical study material</li>
+                <li>Create an engaging quiz from your content</li>
+                <li>Invite your students to join</li>
+                <li>Track their spiritual growth journey</li>
+              </ol>
+            </div>
+            
+            <p style="text-align: center; color: #b45309; font-style: italic;">
+              "Well done, good and faithful servant!" - Matthew 25:21
+            </p>
+          </div>
+          <div class="footer">
+            <p style="margin: 5px 0;">🕊️ May your teaching bear much fruit for the Kingdom</p>
+            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Empowering Biblical Education</p>
+            <p style="margin: 5px 0; font-size: 12px;">Equipping saints for the work of ministry - Ephesians 4:12</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+Beloved Educator ${educatorName},
+
+CONGRATULATIONS! Your educator account has been approved!
+
+"Go ye therefore, and teach all nations" - Matthew 28:19
+
+You now have full access to create quizzes, manage students, and spread biblical knowledge through Scrolls of Wisdom.
+
+Start your ministry: ${process.env.NEXT_PUBLIC_APP_URL}/educator/dashboard
+
+May your teaching bear much fruit for the Kingdom.
+
+Scrolls of Wisdom - Empowering Biblical Education
+Equipping saints for the work of ministry
+    `;
+
+    return { subject, html, text };
+  },
+
+  // Educator rejection notification
+  educatorRejectionNotification: (educatorName: string, educatorEmail: string, reason?: string) => {
+    const subject = `Application Status Update - Scrolls of Wisdom`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { 
+            font-family: 'Georgia', 'Times New Roman', serif; 
+            line-height: 1.6; 
+            color: #451a03;
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            margin: 0;
+            padding: 20px;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(146, 64, 14, 0.1);
+            overflow: hidden;
+          }
+          .header { 
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center;
+            position: relative;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(146, 64, 14, 0.3);
+          }
+          .content { 
+            background-color: #fffbeb; 
+            padding: 30px; 
+            border-left: 4px solid #f59e0b;
+            border-right: 4px solid #f59e0b;
+          }
+          .content h2 {
+            color: #92400e;
+            font-size: 22px;
+            margin-top: 0;
+          }
+          .button { 
+            display: inline-block; 
+            padding: 14px 32px; 
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(217, 119, 6, 0.3);
+          }
+          .reason-box {
+            background: #fef3c7;
+            padding: 15px;
+            border-left: 4px solid #d97706;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .scripture-box {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            border-left: 4px solid #0284c7;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+            color: #075985;
+            border-radius: 4px;
+          }
+          .encouragement-box {
+            background: linear-gradient(135deg, #fff 0%, #fef3c7 100%);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px;
+            background: #fef3c7;
+            color: #92400e; 
+            font-size: 14px;
+            border-top: 2px solid #f59e0b;
+          }
+          .divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>📜 Scrolls of Wisdom</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Application Status Update</p>
+          </div>
+          <div class="content">
+            <h2>Dear ${educatorName},</h2>
+            <p>Peace be with you. Thank you for your interest in becoming an educator on Scrolls of Wisdom.</p>
+            
+            <p>After careful review, we regret to inform you that we are unable to approve your educator application at this time.</p>
+            
+            ${reason ? `
+            <div class="reason-box">
+              <p style="margin: 0; color: #92400e;"><strong>Additional Information:</strong></p>
+              <p style="margin: 10px 0 0 0; color: #78350f;">${reason}</p>
+            </div>
+            ` : ''}
+            
+            <div class="scripture-box">
+              <p>"Wait on the LORD: be of good courage, and he shall strengthen thine heart: wait, I say, on the LORD." - Psalm 27:14</p>
+            </div>
+            
+            <div class="encouragement-box">
+              <p style="color: #78350f; margin-top: 0;"><strong>This is not the end of your journey!</strong></p>
+              <p style="color: #78350f;">We encourage you to:</p>
+              <ul style="color: #78350f;">
+                <li>Continue growing in your biblical knowledge</li>
+                <li>Consider reapplying in the future with additional qualifications</li>
+                <li>Join as a student to experience our platform firsthand</li>
+                <li>Reach out to our support team if you have questions</li>
+              </ul>
+            </div>
+            
+            <p style="color: #78350f;">Remember, God's timing is perfect, and He may have different plans for your ministry at this moment.</p>
+            
+            <div style="text-align: center;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/contact" class="button" style="color: white; text-decoration: none;">📧 Contact Support</a>
+            </div>
+
+            <div class="divider"></div>
+            
+            <p style="text-align: center; color: #b45309; font-style: italic;">
+              "Trust in the LORD with all thine heart; and lean not unto thine own understanding." - Proverbs 3:5
+            </p>
+          </div>
+          <div class="footer">
+            <p style="margin: 5px 0;">🙏 May God bless your continued journey in faith</p>
+            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+            <p style="margin: 5px 0; font-size: 12px;">In His time, He makes all things beautiful - Ecclesiastes 3:11</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+Dear ${educatorName},
+
+Thank you for your interest in becoming an educator on Scrolls of Wisdom.
+
+After careful review, we are unable to approve your educator application at this time.
+
+${reason ? `Additional Information: ${reason}` : ''}
+
+"Wait on the LORD: be of good courage" - Psalm 27:14
+
+This is not the end of your journey. We encourage you to continue growing and consider reapplying in the future.
+
+For questions, contact: ${process.env.NEXT_PUBLIC_APP_URL}/contact
+
+May God bless your continued journey in faith.
+
+Scrolls of Wisdom - Your Biblical Knowledge Quest
+In His time, He makes all things beautiful
     `;
 
     return { subject, html, text };
