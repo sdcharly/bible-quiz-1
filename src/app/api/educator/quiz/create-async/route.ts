@@ -244,7 +244,7 @@ export async function POST(req: NextRequest) {
           });
           
           // Check if n8n is returning an immediate error
-          const parsedResponse = responseData as any;
+          const parsedResponse = responseData as Record<string, unknown>;
           const errorMessage = parsedResponse?.error || parsedResponse?.message || responseText || `Webhook failed with status ${webhookResponse.status}`;
           
           // Update job as failed
@@ -265,11 +265,11 @@ export async function POST(req: NextRequest) {
         
         // Check if the response contains an error even with 200 status
         // (n8n might return 200 with error in body)
-        const parsedResp = responseData as any;
+        const parsedResp = responseData as Record<string, unknown>;
         if (parsedResp?.error || parsedResp?.status === 'error') {
           console.error(`[CREATE-ASYNC] Webhook returned error in body:`, responseData);
           
-          const errorMessage = parsedResp.error || parsedResp.message || "Unknown error from webhook";
+          const errorMessage = String(parsedResp.error || parsedResp.message || "Unknown error from webhook");
           
           // Update job as failed
           jobStore.update(jobId, {

@@ -328,7 +328,8 @@ export default function QuizReviewPage() {
         
         if (response.ok) {
           const status = await response.json();
-          console.log(`[POLL] Job ${jobId} status:`, status.status, `progress:`, status.progress);
+          console.log(`[POLL-REPLACE] Job ${jobId} full response:`, JSON.stringify(status));
+          console.log(`[POLL-REPLACE] Job ${jobId} status:`, status.status, `progress:`, status.progress);
           
           // Update progress UI with time-aware messages
           const elapsedSeconds = attempts;
@@ -351,7 +352,8 @@ export default function QuizReviewPage() {
           setReplaceMessage(progressMessage);
           
           if (status.status === 'completed') {
-            console.log(`[POLL] Replacement job ${jobId} completed!`);
+            console.log(`[POLL-REPLACE] Replacement job ${jobId} completed! Status object:`, status);
+            console.log(`[POLL-REPLACE] About to refresh quiz details and close modal`);
             // Mark as completing to prevent race conditions
             isCompletingRef.current = true;
             

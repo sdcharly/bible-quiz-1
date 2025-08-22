@@ -3,6 +3,7 @@ import { jobStore } from "@/lib/quiz-generation-jobs";
 import { db } from "@/lib/db";
 import { questions } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { debugLogger } from "@/lib/debug-logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +12,15 @@ export async function POST(req: NextRequest) {
     
     console.log(`[REPLACE CALLBACK] Received callback for job: ${jobId}`);
     console.log(`[REPLACE CALLBACK] Status: ${status}, Error: ${error || 'none'}, Questions: ${questionsData?.length || 0}`);
+    
+    debugLogger.info("Replacement callback received", {
+      jobId,
+      status,
+      error: error || 'none',
+      questionsCount: questionsData?.length || 0,
+      hasQuestionsData: !!questionsData,
+      bodyKeys: Object.keys(body)
+    });
 
     if (!jobId) {
       return NextResponse.json(
@@ -208,7 +218,7 @@ export async function POST(req: NextRequest) {
         }
         
         // Update job as completed
-        jobStore.update(jobId, {
+        const updatedJob = jobStore.update(jobId, {
           status: 'completed',
           progress: 100,
           message: 'Question replaced successfully',
@@ -216,6 +226,13 @@ export async function POST(req: NextRequest) {
         });
         
         console.log(`Replacement job ${jobId} completed successfully`);
+        debugLogger.info("Replacement job marked as completed", {
+          jobId,
+          updatedJob: !!updatedJob,
+          jobStatus: updatedJob?.status,
+          questionId: questionIdToReplace,
+          updatedQuestionId: updatedQuestion[0].id
+        });
         
         // Return success response for completed replacement
         return NextResponse.json({

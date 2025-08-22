@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jobStore } from "@/lib/quiz-generation-jobs";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { debugLogger } from "@/lib/debug-logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,6 +35,7 @@ export async function GET(req: NextRequest) {
 
     if (!job) {
       console.log(`[POLL-STATUS] Job not found: ${jobId}`);
+      debugLogger.warn("Poll status - job not found", { jobId });
       return NextResponse.json(
         { 
           error: "Job not found or expired",
@@ -46,6 +48,18 @@ export async function GET(req: NextRequest) {
     }
     
     console.log(`[POLL-STATUS] Job ${jobId} status: ${job.status}, progress: ${job.progress}`);
+    
+    // Enhanced logging for replacement jobs
+    if (jobId.startsWith('replace-')) {
+      debugLogger.info("Poll status for replacement job", {
+        jobId,
+        status: job.status,
+        progress: job.progress,
+        message: job.message,
+        hasError: !!job.error,
+        questionsCount: job.questionsData?.length || 0
+      });
+    }
 
     // Return job status (without sensitive webhook payload)
     return NextResponse.json({

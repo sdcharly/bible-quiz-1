@@ -6,6 +6,7 @@ import { jobStore } from "@/lib/quiz-generation-jobs";
 import * as crypto from "crypto";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { debugLogger } from "@/lib/debug-logger";
 
 export async function PUT(
   req: NextRequest,
@@ -97,6 +98,14 @@ export async function PUT(
       questionIdToReplace: questionId
     });
     console.log(`[REPLACE-ASYNC] Created job ${jobId} for question ${questionId} in quiz ${quizId}`);
+    
+    debugLogger.info("Replacement job created", {
+      jobId,
+      quizId,
+      questionId,
+      callbackUrl,
+      jobExists: !!jobStore.get(jobId)
+    });
 
     // Check if webhook is configured
     if (process.env.QUIZ_GENERATION_WEBHOOK_URL) {
