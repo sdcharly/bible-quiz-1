@@ -1,8 +1,9 @@
+import { useEffect } from 'react';
 import { logger } from "@/lib/logger";
 
 export type WebSocketMessage = {
   type: 'quiz_status' | 'document_processing' | 'analytics_update' | 'notification';
-  data: any;
+  data: unknown;
   timestamp: number;
 };
 
@@ -230,22 +231,26 @@ export function getWebSocketService(): WebSocketService {
 export function useWebSocket(
   type: string,
   callback: WebSocketCallback,
-  deps: any[] = []
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  deps: unknown[] = []
 ): void {
-  if (typeof window === 'undefined') return;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-  const ws = getWebSocketService();
-  
-  // Connect on mount
-  ws.connect().catch(error => {
-    logger.error('Failed to connect WebSocket:', error);
-  });
+    const ws = getWebSocketService();
+    
+    // Connect on mount
+    ws.connect().catch(error => {
+      logger.error('Failed to connect WebSocket:', error);
+    });
 
-  // Subscribe to messages
-  const unsubscribe = ws.subscribe(type, callback);
+    // Subscribe to messages
+    const unsubscribe = ws.subscribe(type, callback);
 
-  // Cleanup on unmount or deps change
-  return () => {
-    unsubscribe();
-  };
+    // Cleanup on unmount
+    return () => {
+      unsubscribe();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
 }

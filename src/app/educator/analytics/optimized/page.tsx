@@ -43,18 +43,19 @@ export default function OptimizedAnalyticsPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "quizzes" | "students" | "topics">("overview");
   const [timeRange, setTimeRange] = useState<"week" | "month" | "all">("month");
   const [overallStats, setOverallStats] = useState<OverallStats | null>(null);
-  const [analyticsData, setAnalyticsData] = useState<any>({});
+  const [analyticsData, setAnalyticsData] = useState<Record<string, unknown>>({});
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Use WebSocket for real-time updates
   useWebSocket('analytics_update', (message) => {
     logger.debug('Received analytics update:', message);
-    if (message.data.educatorId === analyticsData.educatorId) {
+    const data = message.data as { educatorId?: string; updates?: Record<string, unknown> };
+    if (data.educatorId === (analyticsData.educatorId as string)) {
       // Merge updates with existing data
       setAnalyticsData(prev => ({
         ...prev,
-        ...message.data.updates,
+        ...(data.updates || {}),
       }));
       setLastUpdated(new Date(message.timestamp));
     }
@@ -259,7 +260,7 @@ export default function OptimizedAnalyticsPage() {
                 <button
                   key={tab}
                   onClick={() => {
-                    setActiveTab(tab as any);
+                    setActiveTab(tab as "overview" | "quizzes" | "students" | "topics");
                     if (tab !== "overview") {
                       // Fetch specific data when switching tabs
                       fetchAnalytics();
@@ -284,34 +285,40 @@ export default function OptimizedAnalyticsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         }>
-          {activeTab === "overview" && analyticsData.timeline && (
-            <div className="space-y-6">
-              <PerformanceTrend data={analyticsData.timeline} />
-              {/* Add more overview components */}
-            </div>
-          )}
+          <>
+            {activeTab === "overview" && analyticsData.timeline && (
+              <div className="space-y-6">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                <PerformanceTrend data={analyticsData.timeline as any[]} />
+                {/* Add more overview components */}
+              </div>
+            )}
 
-          {activeTab === "students" && analyticsData.students && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Student Progress Tracking</CardTitle>
-                <CardDescription>
-                  Individual student performance and trends
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AnalyticsStudentList students={analyticsData.students} />
-              </CardContent>
-            </Card>
-          )}
+            {activeTab === "students" && analyticsData.students && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Student Progress Tracking</CardTitle>
+                  <CardDescription>
+                    Individual student performance and trends
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  <AnalyticsStudentList students={analyticsData.students as any[]} />
+                </CardContent>
+              </Card>
+            )}
 
-          {activeTab === "quizzes" && analyticsData.quizzes && (
-            <QuizPerformanceTable quizzes={analyticsData.quizzes} />
-          )}
+            {activeTab === "quizzes" && analyticsData.quizzes && (
+              /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+              <QuizPerformanceTable quizzes={analyticsData.quizzes as any[]} />
+            )}
 
-          {activeTab === "topics" && analyticsData.topics && (
-            <TopicAnalysis topics={analyticsData.topics} />
-          )}
+            {activeTab === "topics" && analyticsData.topics && (
+              /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+              <TopicAnalysis topics={analyticsData.topics as any[]} />
+            )}
+          </>
         </Suspense>
       </div>
     </div>

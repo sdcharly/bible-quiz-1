@@ -43,7 +43,7 @@ export default function AnalyticsStudentList({ students: initialStudents }: Prop
 
   // Filter and sort students
   useEffect(() => {
-    let filtered = students.filter(student => {
+    const filtered = students.filter(student => {
       const searchLower = searchTerm.toLowerCase();
       return (
         student.studentName.toLowerCase().includes(searchLower) ||

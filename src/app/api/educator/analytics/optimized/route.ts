@@ -14,10 +14,10 @@ import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 
 // Cache for expensive queries (in-memory for now, will be replaced with Redis)
-const cache = new Map<string, { data: any; timestamp: number }>();
+const cache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-function getCacheKey(educatorId: string, params: Record<string, any>) {
+function getCacheKey(educatorId: string, params: Record<string, unknown>) {
   return `analytics:${educatorId}:${JSON.stringify(params)}`;
 }
 
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       dateFilter = new Date(0); // All time
     }
 
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     
     // Get educator's quizzes (optimized query)
     const educatorQuizzes = await db

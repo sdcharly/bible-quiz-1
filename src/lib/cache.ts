@@ -11,7 +11,7 @@ interface CacheClient {
 
 // In-memory cache implementation (fallback when Redis is not available)
 class InMemoryCache implements CacheClient {
-  private cache = new Map<string, { value: any; expires: number }>();
+  private cache = new Map<string, { value: unknown; expires: number }>();
   private cleanupInterval: NodeJS.Timeout;
 
   constructor() {
@@ -84,6 +84,7 @@ class InMemoryCache implements CacheClient {
 
 // Redis cache implementation
 class RedisCache implements CacheClient {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private client: any = null;
   private fallback: InMemoryCache;
 
