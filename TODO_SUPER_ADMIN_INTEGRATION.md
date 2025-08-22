@@ -330,6 +330,7 @@ This document tracks all pending integrations and improvements for the Super Adm
 
 ### Change Log:
 - 2024-12-22: Initial creation of comprehensive TODO list
+- 2024-12-22: ✅ COMPLETED - Removed hardcoded LIGHTRAG_API_KEY security vulnerability
 - [Future dates will be added as tasks are completed]
 
 ---
@@ -338,7 +339,7 @@ This document tracks all pending integrations and improvements for the Super Adm
 
 ### 12.1 Authentication & Session Security 🔴 🚨
 - [ ] **Hash admin passwords with bcrypt** - Replace plain text comparison in `/src/lib/admin-auth.ts:89-96`
-- [ ] **Remove hardcoded API key** - Move LIGHTRAG_API_KEY from `/src/lib/lightrag-service.ts:5` to env
+- [x] **Remove hardcoded API key** - ~~Move LIGHTRAG_API_KEY from `/src/lib/lightrag-service.ts:5` to env~~ ✅ COMPLETED (2024-12-22)
 - [ ] **Remove dev auth bypass** - Fix `/src/lib/auth-helpers.ts:17-47` development mode bypass
 - [ ] **Add JSON parsing validation** - Wrap all JSON.parse() in try-catch with validation
 - [ ] **Implement real password reset** - Replace fake implementation in forgot-password
