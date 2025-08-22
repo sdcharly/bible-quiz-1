@@ -2,8 +2,16 @@ import { db } from "./db";
 import { documents } from "./schema";
 import { eq } from "drizzle-orm";
 
-const LIGHTRAG_API_KEY = "01d8343f-fdf7-430f-927e-837df61d44fe";
-const LIGHTRAG_BASE_URL = "https://lightrag-6bki.onrender.com";
+const LIGHTRAG_API_KEY = process.env.LIGHTRAG_API_KEY || "";
+const LIGHTRAG_BASE_URL = process.env.LIGHTRAG_BASE_URL || "https://lightrag-6bki.onrender.com";
+
+// Validation function to check if API key is configured
+function validateApiKey(): void {
+  if (!LIGHTRAG_API_KEY) {
+    console.error("LIGHTRAG_API_KEY is not configured in environment variables");
+    throw new Error("LightRAG API key is not configured. Please set LIGHTRAG_API_KEY environment variable.");
+  }
+}
 
 export interface PipelineStatusResponse {
   autoscanned: boolean;
@@ -83,6 +91,7 @@ export interface UploadValidationResult {
 
 export class LightRAGService {
   static async checkPipelineStatus(): Promise<PipelineStatusResponse> {
+    validateApiKey();
     try {
       const response = await fetch(`${LIGHTRAG_BASE_URL}/documents/pipeline_status`, {
         method: 'GET',
@@ -234,6 +243,7 @@ export class LightRAGService {
   }
 
   static async checkEntityExists(entity: string): Promise<EntityExistsResponse> {
+    validateApiKey();
     try {
       const response = await fetch(`${LIGHTRAG_BASE_URL}/graph/entity/exists`, {
         method: 'POST',
@@ -286,6 +296,7 @@ export class LightRAGService {
   }
 
   static async getSubgraph(entities: string[], depth: number = 2): Promise<SubgraphResponse> {
+    validateApiKey();
     try {
       const response = await fetch(`${LIGHTRAG_BASE_URL}/graphs`, {
         method: 'POST',
@@ -334,6 +345,7 @@ export class LightRAGService {
   }
 
   static async deleteDocument(documentId: string, deleteFile: boolean = false): Promise<DeleteDocumentResponse> {
+    validateApiKey();
     try {
       const response = await fetch(`${LIGHTRAG_BASE_URL}/documents/delete_document`, {
         method: 'DELETE',
@@ -360,6 +372,7 @@ export class LightRAGService {
   }
 
   static async deleteMultipleDocuments(documentIds: string[], deleteFiles: boolean = false): Promise<DeleteDocumentResponse> {
+    validateApiKey();
     try {
       const response = await fetch(`${LIGHTRAG_BASE_URL}/documents/delete_document`, {
         method: 'DELETE',
@@ -487,6 +500,7 @@ export class LightRAGService {
   }
 
   static async listAllDocuments(): Promise<Array<{ id: string; title: string; content?: string; timestamp?: string; trackId?: string; status?: string }>> {
+    validateApiKey();
     try {
       // Get documents list from LightRAG
       const response = await fetch(`${LIGHTRAG_BASE_URL}/documents`, {
@@ -539,6 +553,7 @@ export class LightRAGService {
   }
 
   static async clearAllDocuments(): Promise<ClearDocumentsResponse> {
+    validateApiKey();
     try {
       console.warn("Clearing ALL documents from LightRAG - this is irreversible!");
       
@@ -642,6 +657,7 @@ export class LightRAGService {
   }
 
   static async uploadDocument(file: File): Promise<UploadDocumentResponse> {
+    validateApiKey();
     try {
       // Validate file before upload
       const validation = this.validateFileForUpload(file);
