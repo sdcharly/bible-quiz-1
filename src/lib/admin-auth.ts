@@ -5,9 +5,10 @@ import { db } from "@/lib/db";
 import { user, activityLogs } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { getSessionConfig } from "@/lib/session-config";
 
 const ADMIN_SESSION_COOKIE = "admin_session";
-const SESSION_DURATION = 30 * 60 * 1000; // 30 minutes
+const DEFAULT_SESSION_DURATION = 30 * 60 * 1000; // 30 minutes fallback
 
 interface AdminSession {
   id: string;
@@ -25,11 +26,15 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export async function createAdminSession(adminId: string, email: string): Promise<string> {
+  // Get session timeout from configuration
+  const sessionConfig = await getSessionConfig();
+  const sessionDuration = sessionConfig.adminSessionTimeout || DEFAULT_SESSION_DURATION;
+  
   const session: AdminSession = {
     id: adminId,
     email,
     role: "admin",
-    exp: Math.floor(Date.now() / 1000) + (SESSION_DURATION / 1000) // JWT exp is in seconds
+    exp: Math.floor(Date.now() / 1000) + (sessionDuration / 1000) // JWT exp is in seconds
   };
 
   const token = jwt.sign(session, process.env.SUPER_ADMIN_SECRET_KEY!);
@@ -39,7 +44,7 @@ export async function createAdminSession(adminId: string, email: string): Promis
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: SESSION_DURATION / 1000,
+    maxAge: sessionDuration / 1000,
     path: "/" // Changed from "/admin" to "/" to allow API access
   });
 
@@ -91,7 +96,12 @@ export async function authenticateSuperAdmin(email: string, password: string): P
       return { success: false, error: "Invalid credentials" };
     }
 
-    if (password !== process.env.SUPER_ADMIN_PASSWORD) {
+    // Hash the environment password for comparison (in production, this should be pre-hashed)
+    const envPasswordHash = process.env.SUPER_ADMIN_PASSWORD_HASH || await hashPassword(process.env.SUPER_ADMIN_PASSWORD!);
+    
+    // Verify the provided password against the hash
+    const isPasswordValid = await verifyPassword(password, envPasswordHash);
+    if (!isPasswordValid) {
       await logActivity(null, "failed_admin_login", "auth", null, { email, reason: "invalid_password" });
       return { success: false, error: "Invalid credentials" };
     }

@@ -4,8 +4,7 @@ import { NextResponse } from "next/server";
 
 /**
  * Get authenticated user session
- * Returns null in development if no session (for testing)
- * Throws error in production if no session
+ * Always requires authentication unless explicitly disabled via environment variable
  */
 export async function getAuthenticatedUser() {
   const session = await auth.api.getSession({
@@ -13,13 +12,14 @@ export async function getAuthenticatedUser() {
   });
 
   if (!session?.user) {
-    // In development, allow testing without auth
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('⚠️ No authenticated user in development mode');
+    // Only bypass auth if explicitly enabled via environment variable
+    // This should NEVER be true in production
+    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ AUTH BYPASS ENABLED - DO NOT USE IN PRODUCTION');
       return null;
     }
     
-    // In production, always require authentication
+    // Always require authentication by default
     throw new Error('Authentication required');
   }
 
@@ -35,9 +35,10 @@ export async function requireAuth() {
     const user = await getAuthenticatedUser();
     
     if (!user) {
-      // Development mode without auth
-      if (process.env.NODE_ENV === 'development') {
-        // Return a test user for development
+      // Only provide test user if explicitly enabled and NOT in production
+      if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
+        console.warn('⚠️ Using test user - AUTH BYPASS ENABLED');
+        // Return a test user for development ONLY
         return {
           id: 'dev-test-user',
           email: 'test@example.com',
@@ -85,13 +86,9 @@ export async function requireEducatorRole() {
     return null;
   }
   
-  // In production, check actual role from database
-  if (process.env.NODE_ENV === 'production') {
-    // You might want to fetch the role from database here
-    // For now, we'll trust the session role
-    if (user.role !== 'educator') {
-      return null;
-    }
+  // Always check the actual role
+  if (user.role !== 'educator' && user.role !== 'admin') {
+    return null;
   }
   
   return user;
@@ -107,11 +104,9 @@ export async function requireStudentRole() {
     return null;
   }
   
-  // In production, check actual role from database
-  if (process.env.NODE_ENV === 'production') {
-    if (user.role !== 'student') {
-      return null;
-    }
+  // Always check the actual role
+  if (user.role !== 'student') {
+    return null;
   }
   
   return user;

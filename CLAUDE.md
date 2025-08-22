@@ -98,3 +98,4 @@ scripts/                 # Development scripts
 - Don't create unnecessary files in the root directory
 - Always check the TODO list before starting new work
 - Run tests after making changes
+- the production domain of this app is https://biblequiz.textr.in

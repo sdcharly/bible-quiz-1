@@ -5,6 +5,7 @@ import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { MaintenanceCheck } from "@/components/maintenance-check";
 
 const playfairDisplay = Playfair_Display({
   variable: "--font-heading",
@@ -48,6 +49,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <UserProvider>
+            <MaintenanceCheck />
             <SiteHeader />
             {children}
             <SiteFooter />

@@ -3,6 +3,12 @@ import { requireAdminAuth, logActivity } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { 
+  applyTemplateToUser, 
+  getDefaultPermissionTemplate,
+  getPermissionTemplate 
+} from "@/lib/permission-templates";
+import { logger } from "@/lib/logger";
 
 export async function POST(
   request: NextRequest,
@@ -10,10 +16,14 @@ export async function POST(
 ) {
   try {
     const { id: educatorId } = await params;
-    console.log("Approve educator API called with ID:", educatorId);
+    logger.log("Approve educator API called with ID:", educatorId);
     
     const session = await requireAdminAuth();
-    console.log("Admin session:", session);
+    logger.log("Admin session:", session);
+
+    // Get request body for optional template ID
+    const body = await request.json().catch(() => ({}));
+    const { templateId } = body;
 
     // Get educator details
     const [educator] = await db
@@ -29,6 +39,30 @@ export async function POST(
       );
     }
 
+    // Determine which template to use
+    let permissionTemplateId = templateId;
+    let templatePermissions = null;
+
+    if (templateId) {
+      // Use specified template
+      const template = await getPermissionTemplate(templateId);
+      if (template) {
+        templatePermissions = template.permissions;
+      } else {
+        return NextResponse.json(
+          { error: "Invalid template ID" },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Use default template
+      const defaultTemplate = await getDefaultPermissionTemplate();
+      if (defaultTemplate) {
+        permissionTemplateId = defaultTemplate.id;
+        templatePermissions = defaultTemplate.permissions;
+      }
+    }
+
     // Update educator status
     await db
       .update(user)
@@ -37,7 +71,9 @@ export async function POST(
         approvalStatus: "approved",
         approvedBy: session.id,
         approvedAt: new Date(),
-        permissions: {
+        permissionTemplateId: permissionTemplateId || null,
+        permissions: templatePermissions || {
+          // Fallback permissions if no template is available
           canPublishQuiz: true,
           canAddStudents: true,
           canEditQuiz: true,
@@ -61,6 +97,7 @@ export async function POST(
         educatorEmail: educator.email,
         educatorName: educator.name,
         approvedBy: session.email,
+        templateId: permissionTemplateId,
       }
     );
 
@@ -69,9 +106,10 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: "Educator approved successfully",
+      templateId: permissionTemplateId,
     });
   } catch (error) {
-    console.error("Error approving educator:", error);
+    logger.error("Error approving educator:", error);
     
     // Check if it's an auth error
     if (error instanceof Error && error.message.includes("Unauthorized")) {

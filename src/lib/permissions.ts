@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
-import { user } from "@/lib/schema";
+import { user, permissionTemplates } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { logger } from "@/lib/logger";
 
 export interface EducatorPermissions {
   canPublishQuiz: boolean;
@@ -68,6 +69,7 @@ export async function getUserPermissions(userId: string): Promise<EducatorPermis
         role: user.role,
         approvalStatus: user.approvalStatus,
         permissions: user.permissions,
+        permissionTemplateId: user.permissionTemplateId,
       })
       .from(user)
       .where(eq(user.id, userId))
@@ -82,7 +84,20 @@ export async function getUserPermissions(userId: string): Promise<EducatorPermis
       return userData.permissions as EducatorPermissions;
     }
 
-    // Return default permissions based on approval status
+    // If user has a template, fetch and use template permissions
+    if (userData.permissionTemplateId) {
+      const [template] = await db
+        .select({ permissions: permissionTemplates.permissions })
+        .from(permissionTemplates)
+        .where(eq(permissionTemplates.id, userData.permissionTemplateId))
+        .limit(1);
+      
+      if (template?.permissions) {
+        return template.permissions as EducatorPermissions;
+      }
+    }
+
+    // Fallback to default permissions based on approval status
     switch (userData.approvalStatus) {
       case "approved":
         return DEFAULT_PERMISSIONS.approved;
@@ -94,7 +109,7 @@ export async function getUserPermissions(userId: string): Promise<EducatorPermis
         return DEFAULT_PERMISSIONS.pending;
     }
   } catch (error) {
-    console.error("Error fetching user permissions:", error);
+    logger.error("Error fetching user permissions:", error);
     return null;
   }
 }

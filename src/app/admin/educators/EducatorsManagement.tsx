@@ -23,6 +23,12 @@ interface Educator {
   approvedAt: Date | null;
   rejectionReason: string | null;
   permissions: Record<string, unknown>;
+  permissionTemplateId: string | null;
+  permissionTemplate?: {
+    id: string;
+    name: string;
+    description: string | null;
+  };
   createdAt: Date;
   phoneNumber: string | null;
   emailVerified: boolean | null;
@@ -283,6 +289,11 @@ export default function EducatorsManagement({ educators }: EducatorsManagementPr
                                 {educator.name || "Unnamed"}
                               </p>
                               {getStatusBadge(educator.approvalStatus)}
+                              {educator.permissionTemplate && (
+                                <Badge variant="outline" className="text-xs">
+                                  {educator.permissionTemplate.name}
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-gray-500">{educator.email}</p>
                             <div className="flex items-center space-x-4 mt-1 text-xs text-gray-400">

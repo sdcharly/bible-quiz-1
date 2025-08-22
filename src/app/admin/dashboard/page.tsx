@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
-import { user, quizzes, enrollments, activityLogs } from "@/lib/schema";
-import { eq, desc, and, or } from "drizzle-orm";
+import { user, quizzes, enrollments, activityLogs, educatorStudents } from "@/lib/schema";
+import { eq, desc, and, or, notInArray, sql } from "drizzle-orm";
 import AdminDashboard from "./AdminDashboard";
 
 async function getAdminStats() {
@@ -94,6 +94,50 @@ async function getAllStudents() {
     .limit(10);
 }
 
+async function getOrphanedUsers() {
+  const studentsWithEducators = db
+    .select({ studentId: educatorStudents.studentId })
+    .from(educatorStudents)
+    .where(eq(educatorStudents.status, "active"));
+
+  const orphanedUsers = await db
+    .select({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      emailVerified: user.emailVerified,
+      createdAt: user.createdAt,
+    })
+    .from(user)
+    .where(
+      and(
+        eq(user.role, "student"),
+        notInArray(user.id, sql`(${studentsWithEducators})`)
+      )
+    )
+    .orderBy(desc(user.createdAt));
+
+  return orphanedUsers;
+}
+
+async function getApprovedEducators() {
+  return await db
+    .select({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    })
+    .from(user)
+    .where(
+      and(
+        eq(user.role, "educator"),
+        eq(user.approvalStatus, "approved")
+      )
+    )
+    .orderBy(user.name);
+}
+
 export default async function AdminDashboardPage() {
   const session = await getAdminSession();
   
@@ -101,11 +145,13 @@ export default async function AdminDashboardPage() {
     redirect("/admin/login");
   }
 
-  const [stats, pendingEducators, allEducators, allStudents] = await Promise.all([
+  const [stats, pendingEducators, allEducators, allStudents, orphanedUsers, approvedEducators] = await Promise.all([
     getAdminStats(),
     getPendingEducators(),
     getAllEducators(),
     getAllStudents(),
+    getOrphanedUsers(),
+    getApprovedEducators(),
   ]);
 
   return (
@@ -115,6 +161,8 @@ export default async function AdminDashboardPage() {
         pendingEducators={pendingEducators}
         allEducators={allEducators}
         allStudents={allStudents}
+        orphanedUsers={orphanedUsers}
+        approvedEducators={approvedEducators}
         adminEmail={session.email}
       />
     </Suspense>

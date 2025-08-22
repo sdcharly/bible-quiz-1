@@ -35,10 +35,34 @@ export default function StudentDashboard() {
         return;
       }
       
-      const userWithRole = response.data.user as { role?: string; name?: string; email?: string };
+      const userWithRole = response.data.user as { role?: string; name?: string; email?: string; id?: string };
       if (!isStudent(userWithRole.role)) {
         router.push("/educator/dashboard");
         return;
+      }
+      
+      // Check and accept any pending invitations for this user
+      if (userWithRole.email && userWithRole.id) {
+        try {
+          const invitationResponse = await fetch("/api/invitations/check-and-accept", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: userWithRole.email,
+              userId: userWithRole.id,
+            }),
+          });
+          
+          if (invitationResponse.ok) {
+            const result = await invitationResponse.json();
+            if (result.acceptedCount > 0) {
+              console.log(`Accepted ${result.acceptedCount} pending invitations`);
+              // You could show a notification here if desired
+            }
+          }
+        } catch (error) {
+          console.error("Error checking invitations:", error);
+        }
       }
       
       setUser(userWithRole);

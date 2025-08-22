@@ -1,21 +1,14 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { adminSettings } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { getAdminSession } from "@/lib/admin-auth";
 import PermissionTemplates, { type PermissionTemplate } from "./PermissionTemplates";
 
 async function getAdminData() {
-  const cookieStore = await cookies();
-  const adminSessionCookie = cookieStore.get("admin_session");
+  const session = await getAdminSession();
   
-  if (!adminSessionCookie) {
-    redirect("/admin/login");
-  }
-
-  const adminSession = JSON.parse(adminSessionCookie.value);
-  
-  if (!adminSession.isAuthenticated || adminSession.role !== "superadmin") {
+  if (!session) {
     redirect("/admin/login");
   }
 
@@ -80,7 +73,7 @@ async function getAdminData() {
   }
 
   return {
-    adminEmail: adminSession.email,
+    adminEmail: session.email,
     permissionTemplates
   };
 }

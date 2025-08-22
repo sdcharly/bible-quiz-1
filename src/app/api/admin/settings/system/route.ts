@@ -1,22 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { adminSettings, activityLogs } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { requireAdminAuth, logActivity } from "@/lib/admin-auth";
+import { clearMaintenanceCache } from "@/lib/maintenance";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const adminSessionCookie = cookieStore.get("admin_session");
+    // Use proper admin authentication
+    const adminSession = await requireAdminAuth();
     
-    if (!adminSessionCookie) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const adminSession = JSON.parse(adminSessionCookie.value);
-    
-    if (!adminSession.isAuthenticated || adminSession.role !== "superadmin") {
+    if (!adminSession) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -36,16 +31,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const adminSessionCookie = cookieStore.get("admin_session");
+    // Use proper admin authentication
+    const adminSession = await requireAdminAuth();
     
-    if (!adminSessionCookie) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const adminSession = JSON.parse(adminSessionCookie.value);
-    
-    if (!adminSession.isAuthenticated || adminSession.role !== "superadmin") {
+    if (!adminSession) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -79,18 +68,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Log the activity
-    await db.insert(activityLogs).values({
-      id: nanoid(),
-      actionType: "update_system_settings",
-      entityType: "admin_settings",
-      entityId: "system_config",
-      details: {
+    // Clear maintenance cache if system_config was updated
+    if (settings.system_config) {
+      clearMaintenanceCache();
+    }
+
+    // Log the activity using proper logging function
+    await logActivity(
+      adminSession.id,
+      "update_system_settings",
+      "admin_settings",
+      "system_config",
+      {
         updatedBy: adminSession.email,
         settingsUpdated: Object.keys(settings),
-      },
-      createdAt: new Date(),
-    });
+      }
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

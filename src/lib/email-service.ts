@@ -921,3 +921,126 @@ In His time, He makes all things beautiful
     return { subject, html, text };
   }
 };
+
+// Password reset email function
+export async function sendPasswordResetEmail(email: string, userName: string, resetUrl: string) {
+  const subject = `🔑 Password Reset Request - Scrolls of Wisdom`;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { 
+          font-family: 'Georgia', 'Times New Roman', serif; 
+          line-height: 1.6; 
+          color: #451a03;
+          background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+          margin: 0;
+          padding: 20px;
+        }
+        .container { 
+          max-width: 600px; 
+          margin: 0 auto; 
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 4px 6px rgba(146, 64, 14, 0.1);
+          overflow: hidden;
+        }
+        .header { 
+          background: linear-gradient(135deg, #f59e0b, #dc2626);
+          color: white;
+          padding: 30px;
+          text-align: center;
+        }
+        .content { 
+          padding: 30px;
+        }
+        .button {
+          display: inline-block;
+          padding: 12px 30px;
+          background: linear-gradient(135deg, #f59e0b, #dc2626);
+          color: white;
+          text-decoration: none;
+          border-radius: 6px;
+          font-weight: bold;
+          margin: 20px 0;
+        }
+        .footer {
+          background: #fef3c7;
+          padding: 20px;
+          text-align: center;
+          font-size: 12px;
+          color: #92400e;
+        }
+        .warning {
+          background: #fee2e2;
+          border-left: 4px solid #dc2626;
+          padding: 10px;
+          margin: 20px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔑 Password Reset Request</h1>
+        </div>
+        <div class="content">
+          <p>Dear ${userName || 'Seeker'},</p>
+          
+          <p>We received a request to reset your password for your Scrolls of Wisdom account.</p>
+          
+          <p><strong>Click the button below to reset your password:</strong></p>
+          
+          <div style="text-align: center;">
+            <a href="${resetUrl}" class="button">Reset My Password</a>
+          </div>
+          
+          <div class="warning">
+            <strong>⚠️ Important:</strong>
+            <ul>
+              <li>This link will expire in 1 hour</li>
+              <li>If you did not request this reset, please ignore this email</li>
+              <li>Your password will not change unless you click the link above</li>
+            </ul>
+          </div>
+          
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; font-size: 12px; color: #666;">${resetUrl}</p>
+        </div>
+        <div class="footer">
+          <p>May your path be illuminated with divine wisdom</p>
+          <p>Scrolls of Wisdom - Your Biblical Knowledge Quest</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  const text = `
+Password Reset Request - Scrolls of Wisdom
+
+Dear ${userName || 'Seeker'},
+
+We received a request to reset your password for your Scrolls of Wisdom account.
+
+To reset your password, please visit the following link:
+${resetUrl}
+
+Important:
+- This link will expire in 1 hour
+- If you did not request this reset, please ignore this email
+- Your password will not change unless you click the link above
+
+May your path be illuminated with divine wisdom,
+Scrolls of Wisdom Team
+  `;
+  
+  return sendEmail({
+    to: email,
+    subject,
+    html,
+    text,
+  });
+}

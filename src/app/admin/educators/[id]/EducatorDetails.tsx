@@ -13,6 +13,7 @@ import {
   BookOpen, Users, CheckCircle, XCircle, AlertTriangle,
   Edit, Save, Ban, Unlock, Clock, MapPin
 } from "lucide-react";
+import EducatorApprovalDialog from "@/components/admin/EducatorApprovalDialog";
 
 interface EducatorPermissions {
   canPublishQuiz?: boolean;
@@ -70,6 +71,7 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [permissions, setPermissions] = useState(educator.permissions || {});
   const [isSaving, setIsSaving] = useState(false);
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
 
   const handleSavePermissions = async () => {
     setIsSaving(true);
@@ -94,14 +96,19 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
   };
 
   const handleStatusChange = async (action: "approve" | "reject" | "suspend" | "reactivate") => {
+    // For approve action, show the template selection dialog
+    if (action === "approve") {
+      setShowApprovalDialog(true);
+      return;
+    }
+
     const confirmMessage = {
-      approve: "Are you sure you want to approve this educator?",
       reject: "Are you sure you want to reject this educator?",
       suspend: "Are you sure you want to suspend this educator?",
       reactivate: "Are you sure you want to reactivate this educator?",
     };
 
-    if (!confirm(confirmMessage[action])) return;
+    if (!confirm(confirmMessage[action as keyof typeof confirmMessage])) return;
 
     try {
       const response = await fetch(`/api/admin/educators/${educator.id}/${action}`, {
@@ -119,6 +126,10 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
     } catch (error) {
       alert(`Error: ${error}`);
     }
+  };
+
+  const handleApprovalComplete = (templateId: string) => {
+    window.location.reload();
   };
 
   const getStatusBadge = (status: string | null) => {
@@ -440,6 +451,16 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
           </div>
         </div>
       </main>
+
+      {/* Approval Dialog */}
+      <EducatorApprovalDialog
+        isOpen={showApprovalDialog}
+        onClose={() => setShowApprovalDialog(false)}
+        educatorId={educator.id}
+        educatorName={educator.name || "Unnamed Educator"}
+        educatorEmail={educator.email}
+        onApprove={handleApprovalComplete}
+      />
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateSuperAdmin, createAdminSession, logActivity } from "@/lib/admin-auth";
 import { headers } from "next/headers";
+import { withMiddleware } from "@/lib/api-middleware";
 
-export async function POST(request: NextRequest) {
+async function handleLogin(request: NextRequest) {
   try {
     const { email, password } = await request.json();
 
@@ -61,6 +62,11 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply rate limiting to login endpoint
+export const POST = withMiddleware(handleLogin, {
+  rateLimit: { type: "login" },
+});
 
 export async function DELETE(request: NextRequest) {
   try {

@@ -8,6 +8,29 @@ export const enrollmentStatusEnum = pgEnum("enrollment_status", ["enrolled", "in
 export const difficultyEnum = pgEnum("difficulty", ["easy", "intermediate", "hard"]);
 export const bloomsLevelEnum = pgEnum("blooms_level", ["knowledge", "comprehension", "application", "analysis", "synthesis", "evaluation"]);
 
+// Permission templates table (defined before user table)
+export const permissionTemplates = pgTable("permission_templates", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  permissions: jsonb("permissions").notNull().default({}).$type<{
+    canPublishQuiz: boolean;
+    canAddStudents: boolean;
+    canEditQuiz: boolean;
+    canDeleteQuiz: boolean;
+    canViewAnalytics: boolean;
+    canExportData: boolean;
+    maxStudents: number;
+    maxQuizzes: number;
+    maxQuestionsPerQuiz: number;
+  }>(),
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const user: any = pgTable("user", {
   id: text("id").primaryKey(),
@@ -23,6 +46,7 @@ export const user: any = pgTable("user", {
   approvedBy: text("approved_by").references((): any => user.id),
   approvedAt: timestamp("approved_at"),
   rejectionReason: text("rejection_reason"),
+  permissionTemplateId: text("permission_template_id").references(() => permissionTemplates.id),
   permissions: jsonb("permissions").default({}).$type<{
     canPublishQuiz?: boolean;
     canAddStudents?: boolean;

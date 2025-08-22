@@ -18,10 +18,19 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      // TODO: Implement forgot password functionality with Better Auth
-      // This is a placeholder for the actual implementation
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
-      setSuccess(true);
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess(true);
+      } else {
+        setError(data.error || "Failed to send reset email");
+      }
     } catch (err) {
       setError((err as Error).message || "Failed to send reset email");
     } finally {

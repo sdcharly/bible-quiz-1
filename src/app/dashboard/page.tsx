@@ -25,6 +25,23 @@ export default function DashboardPage() {
         });
         
         const roleData = await roleResponse.json();
+        
+        // Check and accept any pending invitations for students
+        if (roleData.role === "student" && session.user.email && session.user.id) {
+          try {
+            await fetch("/api/invitations/check-and-accept", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: session.user.email,
+                userId: session.user.id,
+              }),
+            });
+          } catch (error) {
+            console.error("Error checking invitations:", error);
+          }
+        }
+        
         const dashboardPath = getDefaultDashboardPath(roleData.role || "student");
         router.replace(dashboardPath);
       } else if (!isPending && !session) {

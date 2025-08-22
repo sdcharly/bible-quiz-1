@@ -32,12 +32,16 @@ export const auth = betterAuth({
   },
   callbacks: {
     user: {
-      create: async ({ user }: { user: { role?: string } }) => {
+      create: async ({ user }: { user: { role?: string; email?: string } }) => {
         // Default role is student
-        return {
+        const updatedUser = {
           ...user,
           role: user.role || "student",
-        }
+        };
+        
+        // For Google OAuth users, also check for pending invitations after creation
+        // This is handled in the dashboard redirect, but we ensure the role is set
+        return updatedUser;
       },
     },
   },

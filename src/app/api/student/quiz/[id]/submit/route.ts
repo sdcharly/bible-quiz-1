@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { quizAttempts, questionResponses, questions, quizzes, user } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 export async function POST(
   req: NextRequest,
@@ -37,7 +38,7 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { answers, timeSpent } = body;
+    const { answers, timeSpent, attemptId } = body;
 
     // Fetch the quiz details
     const [quiz] = await db
@@ -85,33 +86,98 @@ export async function POST(
 
     const score = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
     
-    // Note: Grade calculation happens when results are retrieved, not during submission
-    // This ensures consistent grading across the application and prevents data leakage
-
-    // Create quiz attempt record
-    const attemptId = crypto.randomUUID();
+    // If attemptId is provided, update the existing attempt
+    // Otherwise, check for an existing in-progress attempt
+    let finalAttemptId = attemptId;
     
-    await db.insert(quizAttempts).values({
-      id: attemptId,
-      quizId,
-      studentId,
-      startTime: new Date(Date.now() - (timeSpent * 1000)), // Calculate start time
-      endTime: new Date(),
-      score: Math.round(score),
-      totalQuestions,
-      totalCorrect: correctAnswers,
-      timeSpent: timeSpent,
-      timezone: userTimezone, // Store the user's timezone with the attempt
-      status: "completed",
-      answers: evaluatedAnswers,
-      createdAt: new Date(),
-    });
+    if (!attemptId) {
+      // Check for existing in-progress attempt (backward compatibility)
+      const [existingAttempt] = await db
+        .select()
+        .from(quizAttempts)
+        .where(
+          and(
+            eq(quizAttempts.quizId, quizId),
+            eq(quizAttempts.studentId, studentId),
+            eq(quizAttempts.status, "in_progress")
+          )
+        );
+      
+      if (existingAttempt) {
+        finalAttemptId = existingAttempt.id;
+      } else {
+        // No attempt found - this shouldn't happen in normal flow
+        logger.error("No in-progress attempt found for quiz submission", {
+          quizId,
+          studentId
+        });
+        return NextResponse.json(
+          { error: "No active quiz attempt found. Please start the quiz first." },
+          { status: 400 }
+        );
+      }
+    }
+    
+    // Verify the attempt belongs to this student and is in progress
+    const [attemptToUpdate] = await db
+      .select()
+      .from(quizAttempts)
+      .where(
+        and(
+          eq(quizAttempts.id, finalAttemptId),
+          eq(quizAttempts.studentId, studentId),
+          eq(quizAttempts.quizId, quizId)
+        )
+      );
+    
+    if (!attemptToUpdate) {
+      logger.error("Invalid attempt ID for submission", {
+        attemptId: finalAttemptId,
+        studentId,
+        quizId
+      });
+      return NextResponse.json(
+        { error: "Invalid quiz attempt" },
+        { status: 403 }
+      );
+    }
+    
+    if (attemptToUpdate.status === "completed") {
+      logger.warn("Attempt to submit already completed quiz", {
+        attemptId: finalAttemptId,
+        studentId
+      });
+      return NextResponse.json(
+        { 
+          error: "Quiz already submitted",
+          message: "This quiz has already been completed and submitted.",
+          attemptId: finalAttemptId
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Update the existing attempt
+    await db
+      .update(quizAttempts)
+      .set({
+        endTime: new Date(),
+        score: Math.round(score),
+        totalQuestions,
+        totalCorrect: correctAnswers,
+        timeSpent: timeSpent,
+        timezone: userTimezone,
+        status: "completed",
+        answers: evaluatedAnswers,
+        updatedAt: new Date(),
+      })
+      .where(eq(quizAttempts.id, finalAttemptId));
 
     // Save individual question responses
     for (const answer of evaluatedAnswers) {
       await db.insert(questionResponses).values({
         id: crypto.randomUUID(),
-        attemptId,
+        attemptId: finalAttemptId,
         questionId: answer.questionId,
         selectedAnswer: answer.answer,
         isCorrect: answer.isCorrect,
@@ -120,13 +186,19 @@ export async function POST(
         answeredAt: new Date(),
       });
     }
+    
+    logger.info("Quiz submitted successfully", {
+      attemptId: finalAttemptId,
+      studentId,
+      score: Math.round(score)
+    });
 
     // Security: Don't return score or results immediately
     // Students must wait until quiz duration expires to see results
     // This prevents sharing answers with other students still taking the quiz
     return NextResponse.json({
       success: true,
-      attemptId,
+      attemptId: finalAttemptId,
       message: "Quiz submitted successfully. Results will be available after the quiz time expires for all students."
     });
 
