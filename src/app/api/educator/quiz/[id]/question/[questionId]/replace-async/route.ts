@@ -95,7 +95,9 @@ export async function PUT(
     // Create job in store BEFORE calling webhook (reusing the same job store)
     const job = jobStore.create(jobId, quizId, {
       ...webhookPayload,
-      questionIdToReplace: questionId
+      questionIdToReplace: questionId,
+      educatorId: session.user.id,  // Important for WebSocket routing
+      questionId: questionId  // For the job store
     });
     console.log(`[REPLACE-ASYNC] Created job ${jobId} for question ${questionId} in quiz ${quizId}`);
     

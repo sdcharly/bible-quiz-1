@@ -5,12 +5,15 @@ import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { withRateLimit, rateLimits } from "@/lib/rate-limiter";
 
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  try {
+  // Apply rate limiting for quiz submissions
+  return withRateLimit(req, rateLimits.quizSubmission, async () => {
+    try {
     const params = await context.params;
     const quizId = params.id;
     
@@ -202,11 +205,12 @@ export async function POST(
       message: "Quiz submitted successfully. Results will be available after the quiz time expires for all students."
     });
 
-  } catch (error) {
-    console.error("Error submitting quiz:", error);
-    return NextResponse.json(
-      { error: "Failed to submit quiz" },
-      { status: 500 }
-    );
-  }
+    } catch (error) {
+      console.error("Error submitting quiz:", error);
+      return NextResponse.json(
+        { error: "Failed to submit quiz" },
+        { status: 500 }
+      );
+    }
+  });
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useWebSocket } from "@/lib/websocket";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -116,20 +117,71 @@ export default function QuizReviewPage() {
     overallValid: boolean;
   } | null>(null);
   const [validating, setValidating] = useState(false);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const hasShownTimeoutAlert = useRef(false);
-  const isCompletingRef = useRef(false);
+  const jobStartTimeRef = useRef<number>(0);
 
   useEffect(() => {
     fetchQuizDetails();
-    
-    // Cleanup interval on unmount
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-    };
   }, [quizId]);
+
+  // WebSocket handler for question replacement
+  useWebSocket('question_replace', (message) => {
+    const data = message.data as {
+      jobId: string;
+      quizId: string;
+      questionId?: string;
+      status: string;
+      progress: number;
+      message: string;
+      error?: string;
+    };
+    
+    // Only process messages for our job
+    if (data.jobId !== replaceJobId || !replaceJobId) return;
+    
+    // Calculate elapsed time for better messages
+    const elapsedSeconds = jobStartTimeRef.current ? Math.floor((Date.now() - jobStartTimeRef.current) / 1000) : 0;
+    let progressMessage = data.message || "Generating replacement question...";
+    
+    // Add time-based encouragement messages for AI workflows
+    if (elapsedSeconds > 600 && data.status === 'processing') { // 10+ minutes
+      progressMessage = "Deep theological analysis in progress... AI is ensuring biblical accuracy and depth.";
+    } else if (elapsedSeconds > 300 && data.status === 'processing') { // 5+ minutes
+      progressMessage = "Analyzing scripture context and crafting meaningful questions... Please be patient.";
+    } else if (elapsedSeconds > 120 && data.status === 'processing') { // 2+ minutes
+      progressMessage = "AI is carefully studying your biblical texts to create the perfect question...";
+    } else if (elapsedSeconds > 60 && data.status === 'processing') {
+      progressMessage = "Still working on it... Complex theological questions take time to craft perfectly.";
+    } else if (elapsedSeconds > 30 && data.status === 'processing') {
+      progressMessage = "AI is carefully analyzing biblical content for your question...";
+    }
+    
+    setReplaceProgress(data.progress || 0);
+    setReplaceMessage(progressMessage);
+    
+    if (data.status === 'completed') {
+      setReplaceProgress(100);
+      setReplaceMessage("Question replaced successfully!");
+      
+      // Refresh quiz data to show the new question
+      fetchQuizDetails().then(() => {
+        // Clear states after a short delay
+        setTimeout(() => {
+          setReplacingQuestion(null);
+          setReplaceJobId(null);
+          setReplaceProgress(0);
+          setReplaceMessage("");
+          jobStartTimeRef.current = 0;
+        }, 1500);
+      });
+    } else if (data.status === 'failed') {
+      setReplacingQuestion(null);
+      setReplaceJobId(null);
+      setReplaceProgress(0);
+      setReplaceMessage("");
+      jobStartTimeRef.current = 0;
+      alert(data.error || "Failed to replace question. Please try again.");
+    }
+  }, [replaceJobId]);
 
   const fetchQuizDetails = async () => {
     try {
@@ -298,153 +350,42 @@ export default function QuizReviewPage() {
     }
   };
 
-  const pollReplaceJobStatus = async (jobId: string, questionId: string) => {
-    const maxAttempts = 1200; // Poll for up to 20 minutes (suitable for AI question generation)
-    let attempts = 0;
+  // Fallback polling function (only used if WebSocket is unavailable)
+  const pollReplaceJobStatus = async (jobId: string) => {
+    // This function is now only used as a fallback
+    // The primary mechanism is WebSocket
+    console.warn("Using polling fallback for job status - WebSocket may be unavailable");
     
-    // Clear any existing interval
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-    }
-    
-    // Reset flags
-    hasShownTimeoutAlert.current = false;
-    isCompletingRef.current = false;
-    
-    pollIntervalRef.current = setInterval(async () => {
-      attempts++;
-      
-      // Stop polling if job was cleared (e.g., user cancelled or completed)
-      if (!replaceJobId || isCompletingRef.current) {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-          pollIntervalRef.current = null;
-        }
-        return;
-      }
-      
-      try {
-        const response = await fetch(`/api/educator/quiz/poll-status?jobId=${jobId}`);
+    // Poll the status endpoint once to check current state
+    try {
+      const response = await fetch(`/api/educator/quiz/poll-status?jobId=${jobId}`);
+      if (response.ok) {
+        const status = await response.json();
         
-        if (response.ok) {
-          const status = await response.json();
-          console.log(`[POLL-REPLACE] Job ${jobId} full response:`, JSON.stringify(status));
-          console.log(`[POLL-REPLACE] Job ${jobId} status:`, status.status, `progress:`, status.progress);
-          
-          // Update progress UI with time-aware messages
-          const elapsedSeconds = attempts;
-          let progressMessage = status.message || "Generating replacement question...";
-          
-          // Add time-based encouragement messages for AI workflows
-          if (elapsedSeconds > 600 && status.status === 'processing') { // 10+ minutes
-            progressMessage = "Deep theological analysis in progress... AI is ensuring biblical accuracy and depth.";
-          } else if (elapsedSeconds > 300 && status.status === 'processing') { // 5+ minutes
-            progressMessage = "Analyzing scripture context and crafting meaningful questions... Please be patient.";
-          } else if (elapsedSeconds > 120 && status.status === 'processing') { // 2+ minutes
-            progressMessage = "AI is carefully studying your biblical texts to create the perfect question...";
-          } else if (elapsedSeconds > 60 && status.status === 'processing') {
-            progressMessage = "Still working on it... Complex theological questions take time to craft perfectly.";
-          } else if (elapsedSeconds > 30 && status.status === 'processing') {
-            progressMessage = "AI is carefully analyzing biblical content for your question...";
-          }
-          
-          setReplaceProgress(status.progress || Math.min(5 + attempts, 90));
-          setReplaceMessage(progressMessage);
-          
-          if (status.status === 'completed') {
-            console.log(`[POLL-REPLACE] Replacement job ${jobId} completed! Status object:`, status);
-            console.log(`[POLL-REPLACE] About to refresh quiz details and close modal`);
-            // Mark as completing to prevent race conditions
-            isCompletingRef.current = true;
-            
-            // Stop polling immediately
-            if (pollIntervalRef.current) {
-              clearInterval(pollIntervalRef.current);
-              pollIntervalRef.current = null;
-            }
-            
-            // Clear jobId immediately to prevent further polling
-            setReplaceJobId(null);
-            
-            setReplaceProgress(100);
-            setReplaceMessage("Question replaced successfully!");
-            
-            // Refresh quiz data to show the new question
-            await fetchQuizDetails();
-            
-            // Clear remaining states after a short delay
-            setTimeout(() => {
-              setReplacingQuestion(null);
-              setReplaceProgress(0);
-              setReplaceMessage("");
-              isCompletingRef.current = false;
-            }, 1500);
-          } else if (status.status === 'failed') {
-            if (pollIntervalRef.current) {
-              clearInterval(pollIntervalRef.current);
-              pollIntervalRef.current = null;
-            }
-            setReplacingQuestion(null);
-            setReplaceJobId(null);
-            setReplaceProgress(0);
-            alert(status.error || "Failed to replace question. Please try again.");
-          } else if (attempts >= maxAttempts) {
-            // Stop polling and show alert only once
-            if (pollIntervalRef.current) {
-              clearInterval(pollIntervalRef.current);
-              pollIntervalRef.current = null;
-            }
+        // Process the status (WebSocket handler will take over if it connects)
+        if (status.status === 'completed') {
+          setReplaceProgress(100);
+          setReplaceMessage("Question replaced successfully!");
+          await fetchQuizDetails();
+          setTimeout(() => {
             setReplacingQuestion(null);
             setReplaceJobId(null);
             setReplaceProgress(0);
             setReplaceMessage("");
-            
-            // Show alert only if we haven't shown it already
-            if (!hasShownTimeoutAlert.current) {
-              hasShownTimeoutAlert.current = true;
-              alert("Question generation is taking longer than usual. The question will be updated once ready. You can continue working and check back later.");
-            }
-          }
-        } else if (response.status === 404) {
-          // Don't show error if we're in the process of completing
-          if (!isCompletingRef.current) {
-            if (pollIntervalRef.current) {
-              clearInterval(pollIntervalRef.current);
-              pollIntervalRef.current = null;
-            }
-            setReplacingQuestion(null);
-            setReplaceJobId(null);
-            setReplaceProgress(0);
-            
-            // Only show alert if we're not completing and haven't shown timeout alert
-            if (!hasShownTimeoutAlert.current) {
-              alert("Replacement job expired. Please try again.");
-            }
-          }
-        }
-      } catch (error) {
-        // Don't process errors if we're completing
-        if (!isCompletingRef.current) {
-          console.error("Error polling replacement status:", error);
-          if (attempts >= maxAttempts) {
-            // Stop polling and clean up
-            if (pollIntervalRef.current) {
-              clearInterval(pollIntervalRef.current);
-              pollIntervalRef.current = null;
-            }
-            setReplacingQuestion(null);
-            setReplaceJobId(null);
-            setReplaceProgress(0);
-            
-            // Show alert only if we haven't shown the timeout alert
-            if (!hasShownTimeoutAlert.current) {
-              hasShownTimeoutAlert.current = true;
-              alert("Failed to check replacement status. Please try again.");
-            }
-          }
+          }, 1500);
+        } else if (status.status === 'failed') {
+          alert(status.error || "Failed to replace question.");
+          setReplacingQuestion(null);
+          setReplaceJobId(null);
+        } else {
+          // Still processing - WebSocket should pick this up
+          setReplaceProgress(status.progress || 10);
+          setReplaceMessage(status.message || "Processing...");
         }
       }
-    }, 1000); // Poll every second
+    } catch (error) {
+      console.error("Fallback polling failed:", error);
+    }
   };
 
   const handleReplaceQuestion = async () => {
@@ -470,9 +411,15 @@ export default function QuizReviewPage() {
           setReplaceJobId(data.jobId);
           setReplaceProgress(5);
           setReplaceMessage("Starting question generation...");
+          jobStartTimeRef.current = Date.now();
           
-          // Start polling for status
-          pollReplaceJobStatus(data.jobId, questionToReplace);
+          // WebSocket will handle updates, but do one fallback poll after 2 seconds
+          // in case WebSocket is not connected
+          setTimeout(() => {
+            if (replaceProgress < 10) {
+              pollReplaceJobStatus(data.jobId);
+            }
+          }, 2000);
         } else {
           // Fallback if no jobId (shouldn't happen with async endpoint)
           alert("Failed to start question replacement");
@@ -1211,16 +1158,12 @@ export default function QuizReviewPage() {
                     variant="destructive"
                     size="sm"
                     onClick={() => {
-                      // Stop polling completely
-                      if (pollIntervalRef.current) {
-                        clearInterval(pollIntervalRef.current);
-                        pollIntervalRef.current = null;
-                      }
+                      // Stop the job
                       setReplacingQuestion(null);
                       setReplaceJobId(null);
                       setReplaceProgress(0);
                       setReplaceMessage("");
-                      hasShownTimeoutAlert.current = false;
+                      jobStartTimeRef.current = 0;
                     }}
                   >
                     Cancel Generation

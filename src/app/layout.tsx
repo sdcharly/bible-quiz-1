@@ -6,6 +6,9 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MaintenanceCheck } from "@/components/maintenance-check";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
+import { WebVitalsReporter } from "./web-vitals";
 
 const playfairDisplay = Playfair_Display({
   variable: "--font-heading",
@@ -53,6 +56,9 @@ export default function RootLayout({
             <SiteHeader />
             {children}
             <SiteFooter />
+            <WebVitalsReporter />
+            <SpeedInsights />
+            <Analytics />
           </UserProvider>
         </ThemeProvider>
       </body>

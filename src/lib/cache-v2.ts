@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { redisCache, redisClient } from "@/lib/redis";
 
 // Cache interface
 interface CacheClient {
@@ -13,52 +14,77 @@ interface CacheClient {
 class InMemoryCache implements CacheClient {
   private cache = new Map<string, { value: unknown; expires: number }>();
   private cleanupInterval: NodeJS.Timeout;
+  private metrics = {
+    hits: 0,
+    misses: 0,
+    sets: 0,
+    deletes: 0,
+  };
 
   constructor() {
     // Clean up expired entries every minute
     this.cleanupInterval = setInterval(() => {
       const now = Date.now();
+      let cleaned = 0;
       for (const [key, entry] of this.cache.entries()) {
         if (entry.expires && entry.expires < now) {
           this.cache.delete(key);
+          cleaned++;
         }
+      }
+      if (cleaned > 0) {
+        logger.debug(`Cleaned ${cleaned} expired cache entries`);
       }
     }, 60000);
   }
 
   async get<T>(key: string): Promise<T | null> {
     const entry = this.cache.get(key);
-    if (!entry) return null;
-    
-    if (entry.expires && entry.expires < Date.now()) {
-      this.cache.delete(key);
+    if (!entry) {
+      this.metrics.misses++;
       return null;
     }
     
+    if (entry.expires && entry.expires < Date.now()) {
+      this.cache.delete(key);
+      this.metrics.misses++;
+      return null;
+    }
+    
+    this.metrics.hits++;
     return entry.value as T;
   }
 
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     const expires = ttl ? Date.now() + ttl * 1000 : 0;
     this.cache.set(key, { value, expires });
+    this.metrics.sets++;
   }
 
   async del(key: string): Promise<void> {
     this.cache.delete(key);
+    this.metrics.deletes++;
   }
 
   async clear(pattern?: string): Promise<void> {
     if (!pattern) {
+      const size = this.cache.size;
       this.cache.clear();
+      logger.debug(`Cleared ${size} cache entries`);
       return;
     }
     
     // Simple pattern matching for * wildcard
     const regex = new RegExp(pattern.replace(/\*/g, ".*"));
+    let cleared = 0;
     for (const key of this.cache.keys()) {
       if (regex.test(key)) {
         this.cache.delete(key);
+        cleared++;
       }
+    }
+    if (cleared > 0) {
+      logger.debug(`Cleared ${cleared} cache entries matching ${pattern}`);
     }
   }
 
@@ -74,6 +100,22 @@ class InMemoryCache implements CacheClient {
     return true;
   }
 
+  getMetrics() {
+    const hitRate = (this.metrics.hits + this.metrics.misses) > 0
+      ? (this.metrics.hits / (this.metrics.hits + this.metrics.misses)) * 100
+      : 0;
+
+    return {
+      type: 'in-memory',
+      entries: this.cache.size,
+      hits: this.metrics.hits,
+      misses: this.metrics.misses,
+      sets: this.metrics.sets,
+      deletes: this.metrics.deletes,
+      hitRate: hitRate.toFixed(2) + '%',
+    };
+  }
+
   destroy() {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
@@ -82,148 +124,157 @@ class InMemoryCache implements CacheClient {
   }
 }
 
-// Redis cache implementation
-class RedisCache implements CacheClient {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private client: any = null;
-  private fallback: InMemoryCache;
+// Hybrid cache implementation with Redis primary and in-memory fallback
+class HybridCache implements CacheClient {
+  private inMemory: InMemoryCache;
+  private useRedis: boolean = false;
 
   constructor() {
-    this.fallback = new InMemoryCache();
+    this.inMemory = new InMemoryCache();
     this.initializeRedis();
   }
 
   private async initializeRedis() {
-    // Only try to use Redis if the URL is configured
-    const redisUrl = process.env.REDIS_URL || process.env.KV_URL;
-    
-    if (!redisUrl) {
-      logger.debug("Redis URL not configured, using in-memory cache");
-      return;
-    }
-
     try {
-      // Dynamically import Redis client to avoid build errors when not available
-      const { Redis } = await import("@upstash/redis").catch(() => ({ Redis: null }));
+      await redisClient.connect();
+      const isConnected = await redisClient.ping();
+      this.useRedis = isConnected;
       
-      if (!Redis) {
-        logger.debug("Redis client not available, using in-memory cache");
-        return;
+      if (this.useRedis) {
+        logger.log("Redis cache initialized and connected");
+      } else {
+        logger.log("Redis not available, using in-memory cache");
       }
-
-      this.client = new Redis({
-        url: redisUrl,
-        token: process.env.REDIS_TOKEN || process.env.KV_REST_API_TOKEN || "",
-      });
-
-      // Test connection
-      await this.client.ping();
-      logger.log("Redis cache initialized successfully");
     } catch (error) {
       logger.debug("Redis initialization failed, using in-memory cache", error);
-      this.client = null;
+      this.useRedis = false;
     }
   }
 
   async get<T>(key: string): Promise<T | null> {
     const startTime = Date.now();
     
-    try {
-      if (this.client) {
-        const value = await this.client.get(key);
+    // Try Redis first if available
+    if (this.useRedis && redisClient.isReady()) {
+      try {
+        const value = await redisCache.get<T>(key);
         
-        // Log slow cache operations
+        // Log slow operations
         const fetchTime = Date.now() - startTime;
         if (fetchTime > 100) {
-          logger.warn(`Slow Redis fetch for ${key}: ${fetchTime}ms`);
+          logger.warn(`Slow cache fetch for ${key}: ${fetchTime}ms`);
         }
         
-        return value as T;
+        if (value !== null) {
+          return value;
+        }
+      } catch (error) {
+        logger.debug("Redis get error, falling back to memory", error);
+        // Fall through to in-memory cache
       }
-    } catch (error) {
-      logger.debug("Redis get error, falling back to memory", error);
     }
     
-    return this.fallback.get<T>(key);
+    // Fallback to in-memory cache
+    return this.inMemory.get<T>(key);
   }
 
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     const startTime = Date.now();
     const effectiveTTL = ttl || getCacheTTL(key);
     
-    try {
-      if (this.client) {
-        await this.client.setex(key, effectiveTTL, JSON.stringify(value));
-        
-        // Log slow cache operations
-        const writeTime = Date.now() - startTime;
-        if (writeTime > 100) {
-          logger.warn(`Slow Redis write for ${key}: ${writeTime}ms`);
-        }
-        
-        return;
-      }
-    } catch (error) {
-      logger.debug("Redis set error, falling back to memory", error);
+    // Set in both caches for redundancy
+    const promises: Promise<void>[] = [
+      this.inMemory.set(key, value, effectiveTTL)
+    ];
+    
+    if (this.useRedis && redisClient.isReady()) {
+      promises.push(
+        redisCache.set(key, value, effectiveTTL).then(() => undefined).catch((error) => {
+          logger.debug("Redis set error", error);
+        })
+      );
     }
     
-    await this.fallback.set(key, value, effectiveTTL);
+    await Promise.all(promises);
+    
+    // Log slow operations
+    const writeTime = Date.now() - startTime;
+    if (writeTime > 100) {
+      logger.warn(`Slow cache write for ${key}: ${writeTime}ms`);
+    }
   }
 
   async del(key: string): Promise<void> {
-    try {
-      if (this.client) {
-        await this.client.del(key);
-        return;
-      }
-    } catch (error) {
-      logger.debug("Redis del error, falling back to memory", error);
+    // Delete from both caches
+    const promises: Promise<void>[] = [
+      this.inMemory.del(key)
+    ];
+    
+    if (this.useRedis && redisClient.isReady()) {
+      promises.push(
+        redisCache.delete(key).then(() => undefined).catch((error) => {
+          logger.debug("Redis delete error", error);
+        })
+      );
     }
     
-    await this.fallback.del(key);
+    await Promise.all(promises);
   }
 
   async clear(pattern?: string): Promise<void> {
-    try {
-      if (this.client) {
-        if (!pattern) {
-          await this.client.flushdb();
-        } else {
-          const keys = await this.client.keys(pattern);
-          if (keys.length > 0) {
-            await this.client.del(...keys);
-          }
-        }
-        return;
-      }
-    } catch (error) {
-      logger.debug("Redis clear error, falling back to memory", error);
+    // Clear both caches
+    const promises: Promise<void>[] = [
+      this.inMemory.clear(pattern)
+    ];
+    
+    if (this.useRedis && redisClient.isReady() && !pattern) {
+      promises.push(
+        redisCache.flush().then(() => undefined).catch((error) => {
+          logger.debug("Redis flush error", error);
+        })
+      );
     }
     
-    await this.fallback.clear(pattern);
+    await Promise.all(promises);
+    logger.debug(`Cache cleared: ${pattern || 'all'}`);
   }
 
   async exists(key: string): Promise<boolean> {
-    try {
-      if (this.client) {
-        const result = await this.client.exists(key);
-        return result === 1;
+    // Check Redis first if available
+    if (this.useRedis && redisClient.isReady()) {
+      try {
+        const value = await redisCache.get(key);
+        if (value !== null) {
+          return true;
+        }
+      } catch (error) {
+        logger.debug("Redis exists check error", error);
       }
-    } catch (error) {
-      logger.debug("Redis exists error, falling back to memory", error);
     }
     
-    return this.fallback.exists(key);
+    // Fallback to in-memory
+    return this.inMemory.exists(key);
+  }
+
+  getMetrics() {
+    const memoryMetrics = this.inMemory.getMetrics();
+    const redisMetrics = redisCache.getMetrics();
+    
+    return {
+      redis: redisMetrics,
+      memory: memoryMetrics,
+      usingRedis: this.useRedis && redisClient.isReady(),
+    };
   }
 }
 
 // Cache helper functions
 export class Cache {
-  private static instance: CacheClient | null = null;
+  private static instance: HybridCache | null = null;
 
   static getInstance(): CacheClient {
     if (!Cache.instance) {
-      Cache.instance = new RedisCache();
+      Cache.instance = new HybridCache();
     }
     return Cache.instance;
   }
@@ -286,6 +337,15 @@ export class Cache {
     await Promise.all(
       items.map(item => cache.set(item.key, item.value, item.ttl || getCacheTTL(item.key)))
     );
+  }
+
+  // Get cache metrics
+  static getMetrics() {
+    const instance = Cache.instance;
+    if (!instance) {
+      return null;
+    }
+    return instance.getMetrics();
   }
 }
 

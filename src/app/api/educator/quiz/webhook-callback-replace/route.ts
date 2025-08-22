@@ -5,6 +5,7 @@ import { questions } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { debugLogger } from "@/lib/debug-logger";
 import { logger } from "@/lib/logger";
+import { sendJobStatusUpdate } from "@/lib/websocket-server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -196,6 +197,7 @@ export async function POST(req: NextRequest) {
           error: 'Invalid question data received',
           message: 'Missing required fields in generated question'
         });
+        sendJobStatusUpdate(jobId);
         
         return NextResponse.json({
           success: false,
@@ -253,6 +255,7 @@ export async function POST(req: NextRequest) {
             error: 'Failed to update question in database - no rows affected',
             message: 'Database update failed'
           });
+          sendJobStatusUpdate(jobId);
           
           return NextResponse.json({
             success: false,
@@ -268,6 +271,7 @@ export async function POST(req: NextRequest) {
           message: 'Question replaced successfully',
           questionsData: [updatedQuestion[0]] // Store the updated question
         });
+        sendJobStatusUpdate(jobId);
         
         logger.log(`Replacement job ${jobId} completed successfully`);
         debugLogger.info("Replacement job marked as completed", {
@@ -309,6 +313,7 @@ export async function POST(req: NextRequest) {
           error: dbError instanceof Error ? dbError.message : 'Database update failed',
           message: 'Failed to update question in database'
         });
+        sendJobStatusUpdate(jobId);
         
         // Provide more detailed error response
         const errorDetails = dbError instanceof Error 
@@ -330,6 +335,7 @@ export async function POST(req: NextRequest) {
         message: error || 'Question replacement failed',
         error: error || 'Unknown error occurred'
       });
+      sendJobStatusUpdate(jobId);
       
       logger.error(`Replacement job ${jobId} failed:`, error);
     } else {
@@ -342,6 +348,7 @@ export async function POST(req: NextRequest) {
         progress,
         message
       });
+      sendJobStatusUpdate(jobId);
       
       logger.log(`Replacement job ${jobId} progress update: ${progress}%`);
     }

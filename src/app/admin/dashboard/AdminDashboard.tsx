@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Shield, Users, GraduationCap, BookOpen, Activity, 
   Clock, AlertTriangle, LogOut,
-  UserCheck, UserX, Eye, Settings, BarChart, UserPlus, Link
+  UserCheck, UserX, Eye, Settings, BarChart, UserPlus, Link, Gauge
 } from "lucide-react";
 import {
   Select,
@@ -221,7 +221,7 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -306,6 +306,23 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
               </div>
             </CardContent>
           </Card>
+
+          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/10 dark:to-gray-900">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                    System Health
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                    <span className="text-green-500 animate-pulse text-sm">●</span>
+                    Live
+                  </p>
+                </div>
+                <Gauge className="h-8 w-8 text-blue-500 animate-pulse" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Alerts */}
@@ -327,6 +344,54 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
             </Alert>
           )}
         </div>
+
+        {/* Performance Dashboard Card - Prominent Position */}
+        <Card className="mb-8 border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-900/20 dark:via-gray-900 dark:to-indigo-900/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                    <Gauge className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Performance Monitoring Center
+                  </h3>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  Real-time monitoring of application performance, database metrics, and system health
+                </p>
+                <div className="flex flex-wrap gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-green-500" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Web Vitals</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-purple-500" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Database Metrics</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <BarChart className="h-4 w-4 text-yellow-500" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Real-time Updates</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3">
+                <Button 
+                  onClick={() => router.push("/admin/performance")}
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Gauge className="h-5 w-5 mr-2" />
+                  Open Dashboard
+                </Button>
+                <Badge variant="outline" className="text-xs self-center">
+                  <span className="animate-pulse mr-1">●</span> Live Monitoring
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="pending" className="space-y-4">

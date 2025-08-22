@@ -4,6 +4,8 @@
 export interface QuizGenerationJob {
   jobId: string;
   quizId: string;
+  questionId?: string; // For question replacement jobs
+  educatorId?: string; // For WebSocket routing
   status: 'pending' | 'processing' | 'completed' | 'failed';
   progress: number; // 0-100
   message: string;
@@ -60,6 +62,24 @@ class QuizGenerationJobStore {
 
   delete(jobId: string): void {
     this.jobs.delete(jobId);
+  }
+
+  // Get all jobs (for monitoring/WebSocket updates)
+  getAllJobs(): Map<string, QuizGenerationJob> {
+    return this.jobs;
+  }
+
+  // Update job (simplified method for WebSocket integration)
+  updateJob(jobId: string, updates: Partial<QuizGenerationJob>): void {
+    const job = this.jobs.get(jobId);
+    if (job) {
+      Object.assign(job, updates, { updatedAt: new Date() });
+    }
+  }
+
+  // Get job (alias for consistency)
+  getJob(jobId: string): QuizGenerationJob | undefined {
+    return this.get(jobId);
   }
 
   // Clean up old jobs
