@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       valid: true,
-      email: invitation[0].email,
+      email: invitation[0].email || '', // Handle empty email for open invitations
       educatorId: invitation[0].educatorId,
       educatorName: educator[0]?.name || "Educator",
       quizId: invitation[0].quizId,

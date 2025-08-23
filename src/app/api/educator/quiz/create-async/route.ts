@@ -201,17 +201,46 @@ export async function POST(req: NextRequest) {
         jobExists: !!jobStore.get(jobId)
       });
       
-      // Call the webhook with a shorter timeout (10 seconds)
-      // We expect the service to respond immediately with "processing" status
+      // Call the webhook with retry logic
+      let webhookResponse: Response | null = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          console.log(`[CREATE-ASYNC] Webhook attempt ${retryCount + 1}/${maxRetries}`);
+          
+          webhookResponse = await fetch(process.env.QUIZ_GENERATION_WEBHOOK_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(webhookPayload),
+            signal: AbortSignal.timeout(15000), // 15 second timeout per attempt
+          });
+          
+          // If we got a response (even error), break the loop
+          if (webhookResponse) {
+            break;
+          }
+        } catch (fetchError) {
+          retryCount++;
+          console.error(`[CREATE-ASYNC] Webhook attempt ${retryCount} failed:`, fetchError);
+          
+          if (retryCount >= maxRetries) {
+            throw fetchError;
+          }
+          
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
+      
+      if (!webhookResponse) {
+        throw new Error("Failed to connect to webhook after " + maxRetries + " attempts");
+      }
+      
       try {
-        const webhookResponse = await fetch(process.env.QUIZ_GENERATION_WEBHOOK_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(webhookPayload),
-          signal: AbortSignal.timeout(10000), // 10 second timeout for immediate response
-        });
 
         console.log(`[CREATE-ASYNC] Webhook response status: ${webhookResponse.status}`);
         

@@ -150,7 +150,6 @@ function CreateQuizContent() {
   
   const [selectedBook, setSelectedBook] = useState<string>("");
   const [chapterInput, setChapterInput] = useState<string>("");
-  const [showBloomsGuidance, setShowBloomsGuidance] = useState(false);
   
   // Validation helper to check what's missing
   const getValidationStatus = () => {
@@ -193,11 +192,13 @@ function CreateQuizContent() {
     }
   };
 
+  // Polling for job status updates with retry logic
   const pollJobStatus = async (jobId: string, quizId: string) => {
-    const maxAttempts = 1800; // Poll for up to 30 minutes (suitable for AI workflows)
+    console.log(`[QUIZ-CREATE] Starting polling for job ${jobId}`);
+    const maxAttempts = 180; // Poll for 3 minutes (180 seconds)
     let attempts = 0;
     let consecutiveErrors = 0;
-    const MAX_CONSECUTIVE_ERRORS = 5;
+    const MAX_CONSECUTIVE_ERRORS = 10; // More tolerance for errors
     
     // Clear any existing interval
     if (pollIntervalRef.current) {
@@ -413,7 +414,8 @@ function CreateQuizContent() {
           setGenerationProgress(5);
           setGenerationMessage("Beginning to craft biblical study questions...");
           
-          // Start polling for status
+          // Start polling immediately for job status updates
+          console.log('[QUIZ-CREATE] Starting polling for job status updates');
           pollJobStatus(data.jobId, data.quizId);
         } else {
           // Fallback to old behavior if no jobId

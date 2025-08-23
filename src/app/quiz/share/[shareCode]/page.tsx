@@ -68,11 +68,25 @@ export default function QuizSharePage() {
       // Store the share code in session storage for after login
       sessionStorage.setItem('pendingQuizShare', shareCode);
       
+      // Always provide invitation token for new users
+      // This allows anyone with the link to sign up and access the quiz
       if (quizInfo.invitationToken) {
-        // New user - redirect to signup with invitation
-        router.push(`/auth/signup?invitation=${quizInfo.invitationToken}`);
+        // Show option to sign up or sign in
+        const choice = confirm(
+          "You need to be logged in to take this quiz.\n\n" +
+          "Click OK to sign up for a new account\n" +
+          "Click Cancel to sign in with an existing account"
+        );
+        
+        if (choice) {
+          // New user - redirect to signup with invitation
+          router.push(`/auth/signup?invitation=${quizInfo.invitationToken}`);
+        } else {
+          // Existing user - redirect to signin
+          router.push(`/auth/signin?redirect=/quiz/share/${shareCode}`);
+        }
       } else {
-        // Existing user - redirect to signin
+        // Fallback - shouldn't happen with our new logic
         router.push(`/auth/signin?redirect=/quiz/share/${shareCode}`);
       }
       return;

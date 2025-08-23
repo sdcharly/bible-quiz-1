@@ -91,13 +91,27 @@ function StudentSignUpForm() {
         });
       }
 
+      // Wait a moment for session to be established
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Get the user's ID from the newly created session
+      const newSession = await authClient.getSession();
+      const studentId = newSession?.data?.user?.id;
+      
       // If there's an invitation, accept it
-      if (invitationToken) {
-        await fetch('/api/invitations/accept', {
+      if (invitationToken && studentId) {
+        const acceptResponse = await fetch('/api/invitations/accept', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: invitationToken }),
+          body: JSON.stringify({ 
+            token: invitationToken,
+            studentId: studentId 
+          }),
         });
+        
+        if (!acceptResponse.ok) {
+          console.error('Failed to accept invitation:', await acceptResponse.text());
+        }
         
         // Check if there's a pending quiz share in session storage
         const pendingQuizShare = sessionStorage.getItem('pendingQuizShare');
@@ -125,9 +139,28 @@ function StudentSignUpForm() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
+      // Store invitation token in session storage for after OAuth
+      if (invitationToken) {
+        sessionStorage.setItem('pendingInvitation', invitationToken);
+      }
+      
+      // Check if there's a pending quiz share
+      const pendingQuizShare = sessionStorage.getItem('pendingQuizShare');
+      
+      // Construct callback URL with invitation info
+      let callbackURL = '/student/dashboard';
+      if (invitationToken) {
+        callbackURL = `/auth/callback?invitation=${invitationToken}`;
+        if (pendingQuizShare) {
+          callbackURL += `&shareCode=${pendingQuizShare}`;
+        }
+      } else if (pendingQuizShare) {
+        callbackURL = `/auth/callback?shareCode=${pendingQuizShare}`;
+      }
+      
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/student/dashboard",
+        callbackURL,
       });
     } catch (err) {
       setError((err as Error).message || "Failed to sign in with Google");

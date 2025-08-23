@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { educatorStudents, user, enrollments, quizAttempts } from "@/lib/schema";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     
     const educatorId = session.user.id;
 
-    // Fetch all students under this educator
+    // Fetch all students under this educator - sorted by latest signup first
     const students = await db
       .select({
         relationshipId: educatorStudents.id,
@@ -35,7 +35,8 @@ export async function GET(req: NextRequest) {
       })
       .from(educatorStudents)
       .innerJoin(user, eq(educatorStudents.studentId, user.id))
-      .where(eq(educatorStudents.educatorId, educatorId));
+      .where(eq(educatorStudents.educatorId, educatorId))
+      .orderBy(desc(educatorStudents.enrolledAt));
 
     // Get statistics for each student
     const studentsWithStats = await Promise.all(

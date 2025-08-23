@@ -66,9 +66,18 @@ function SignInForm() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
+      // Check if redirect contains a quiz share URL
+      let callbackURL = redirect || "/dashboard";
+      
+      // If redirecting to a quiz share, use the callback page
+      if (redirect?.includes('/quiz/share/')) {
+        const shareCode = redirect.split('/quiz/share/')[1];
+        callbackURL = `/auth/callback?shareCode=${shareCode}`;
+      }
+      
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: redirect || "/dashboard",
+        callbackURL,
       });
     } catch (err) {
       setError((err as Error).message || "Failed to sign in with Google");

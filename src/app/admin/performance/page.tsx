@@ -53,6 +53,14 @@ interface ApplicationMetrics {
   errorRate: number;
 }
 
+interface SessionStats {
+  total: number;
+  expired: number;
+  activeLastHour: number;
+  activeLastDay: number;
+  stale: number;
+}
+
 export default function PerformanceDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -85,6 +93,15 @@ export default function PerformanceDashboard() {
       status: string;
       message?: string;
     }>;
+  } | null>(null);
+  const [sessionStats, setSessionStats] = useState<SessionStats | null>(null);
+  const [cleaningUpSessions, setCleaningUpSessions] = useState(false);
+  const [sessionCleanupResult, setSessionCleanupResult] = useState<{
+    success: boolean;
+    before: SessionStats;
+    after: { total: number; activeLastHour: number };
+    deleted: { expired: number; stale: number; total: number };
+    message: string;
   } | null>(null);
 
   const checkIndexStatus = async () => {
@@ -357,6 +374,13 @@ export default function PerformanceDashboard() {
         setAppMetrics(appData);
       }
 
+      // Fetch session statistics
+      const sessionResponse = await fetch('/api/admin/cleanup-sessions');
+      if (sessionResponse.ok) {
+        const sessionData = await sessionResponse.json();
+        setSessionStats(sessionData);
+      }
+
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching metrics:', error);
@@ -402,6 +426,36 @@ export default function PerformanceDashboard() {
       alert('Failed to apply indexes. Check console for details.');
     } finally {
       setApplyingIndexes(false);
+    }
+  };
+
+  const cleanupSessions = async () => {
+    if (!confirm('This will clean up all expired and stale sessions. Active sessions will be preserved. Continue?')) {
+      return;
+    }
+    
+    setCleaningUpSessions(true);
+    setSessionCleanupResult(null);
+    
+    try {
+      const response = await fetch('/api/admin/cleanup-sessions', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSessionCleanupResult(data);
+        // Refresh metrics to see the updated counts
+        await fetchMetrics();
+      } else {
+        const error = await response.json();
+        alert(`Failed to clean up sessions: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error cleaning up sessions:', error);
+      alert('Failed to clean up sessions. Check console for details.');
+    } finally {
+      setCleaningUpSessions(false);
     }
   };
 
@@ -614,6 +668,126 @@ export default function PerformanceDashboard() {
             </div>
           </div>
         )}
+
+        {/* Session Management */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Session Management
+          </h2>
+          <Card className="border-orange-200">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Active Sessions</span>
+                {sessionStats && (
+                  <Badge variant={sessionStats.stale > 0 || sessionStats.expired > 0 ? "secondary" : "default"}>
+                    {sessionStats.activeLastHour} Active / {sessionStats.total} Total
+                  </Badge>
+                )}
+              </CardTitle>
+              <CardDescription>
+                Manage user sessions and clean up stale or expired sessions to improve performance
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {sessionStats && (
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-600">Total Sessions</p>
+                    <p className="text-xl font-bold">{sessionStats.total}</p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <p className="text-xs text-green-600">Active (1hr)</p>
+                    <p className="text-xl font-bold text-green-700">{sessionStats.activeLastHour}</p>
+                  </div>
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-600">Active (24hr)</p>
+                    <p className="text-xl font-bold text-blue-700">{sessionStats.activeLastDay}</p>
+                  </div>
+                  <div className="p-3 bg-yellow-50 rounded-lg">
+                    <p className="text-xs text-yellow-600">Stale</p>
+                    <p className="text-xl font-bold text-yellow-700">{sessionStats.stale}</p>
+                  </div>
+                  <div className="p-3 bg-red-50 rounded-lg">
+                    <p className="text-xs text-red-600">Expired</p>
+                    <p className="text-xl font-bold text-red-700">{sessionStats.expired}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  {sessionStats && (sessionStats.stale > 0 || sessionStats.expired > 0) ? (
+                    <>
+                      <AlertCircle className="h-5 w-5 text-yellow-500" />
+                      <div>
+                        <span className="text-sm font-medium">
+                          {sessionStats.expired + sessionStats.stale} sessions need cleanup
+                        </span>
+                        <p className="text-xs text-gray-600">
+                          {sessionStats.expired} expired, {sessionStats.stale} stale sessions
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <span className="text-sm font-medium">All sessions are active</span>
+                    </>
+                  )}
+                </div>
+                <Button
+                  onClick={cleanupSessions}
+                  disabled={cleaningUpSessions || !!(sessionStats && sessionStats.expired === 0 && sessionStats.stale === 0)}
+                  variant={(sessionStats && sessionStats.expired === 0 && sessionStats.stale === 0) ? "outline" : "destructive"}
+                >
+                  {cleaningUpSessions ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Cleaning...
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      Clean Up Sessions
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {sessionCleanupResult && (
+                <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                  <h4 className="font-medium text-sm mb-2 text-green-900">Session Cleanup Results:</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span>Deleted: {sessionCleanupResult.deleted.total}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4 text-yellow-500" />
+                      <span>Expired: {sessionCleanupResult.deleted.expired}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4 text-blue-500" />
+                      <span>Stale: {sessionCleanupResult.deleted.stale}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-green-700 mt-2">{sessionCleanupResult.message}</p>
+                </div>
+              )}
+
+              <div className="text-xs text-gray-500 mt-4">
+                <p>💡 Session cleanup helps:</p>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>Remove sessions from users who haven&apos;t been active</li>
+                  <li>Clean up expired sessions that weren&apos;t properly cleared</li>
+                  <li>Reduce database storage and improve query performance</li>
+                  <li>Get accurate active user counts</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Database Indexes Management */}
         <div className="mb-8">

@@ -4,6 +4,7 @@ import { quizzes, questions, quizAttempts, enrollments, educatorStudents } from 
 import { eq, and, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import * as crypto from "crypto";
 
 // Seeded shuffle function for consistent randomization per attempt
 function shuffleArray<T>(array: T[], seed: string): T[] {
@@ -61,27 +62,20 @@ export async function POST(
     }
 
     // Check if student is associated with the quiz's educator
+    // This is now more permissive - we'll auto-create the relationship if needed
     const educatorRelation = await db
       .select()
       .from(educatorStudents)
       .where(
         and(
           eq(educatorStudents.studentId, studentId),
-          eq(educatorStudents.educatorId, quiz.educatorId),
-          eq(educatorStudents.status, "active")
+          eq(educatorStudents.educatorId, quiz.educatorId)
         )
       )
       .limit(1);
 
-    if (educatorRelation.length === 0) {
-      return NextResponse.json(
-        { 
-          error: "Access denied",
-          message: "You are not enrolled with this quiz's educator"
-        },
-        { status: 403 }
-      );
-    }
+    // We don't block here anymore - relationship will be created if needed
+    // This allows students who accessed via shareable link to take the quiz
 
     // Check if student is enrolled in this specific quiz
     // Get ALL enrollments (original and reassignments) for this student
@@ -97,13 +91,58 @@ export async function POST(
       .orderBy(desc(enrollments.enrolledAt)); // Order by enrollment date (newest first)
 
     if (allEnrollments.length === 0) {
-      return NextResponse.json(
-        { 
-          error: "Not enrolled",
-          message: "You must be enrolled in this quiz before you can take it. Please contact your educator."
-        },
-        { status: 403 }
-      );
+      // Check if quiz is published and accessible
+      if (quiz.status !== 'published') {
+        return NextResponse.json(
+          { 
+            error: "Quiz not available",
+            message: "This quiz is not yet published."
+          },
+          { status: 403 }
+        );
+      }
+      
+      // Auto-enroll the student if they have access to this quiz
+      // This happens when they come from a shareable link
+      const enrollmentId = crypto.randomUUID();
+      
+      // Create educator-student relationship if it doesn't exist
+      if (educatorRelation.length === 0) {
+        await db.insert(educatorStudents).values({
+          id: crypto.randomUUID(),
+          educatorId: quiz.educatorId,
+          studentId: studentId,
+          status: 'active',
+          enrolledAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+      
+      // Create enrollment
+      await db.insert(enrollments).values({
+        id: enrollmentId,
+        quizId: quizId,
+        studentId: studentId,
+        enrolledAt: new Date(),
+        status: 'enrolled'
+      });
+      
+      // Re-fetch the enrollment
+      allEnrollments.push({
+        id: enrollmentId,
+        quizId: quizId,
+        studentId: studentId,
+        enrolledAt: new Date(),
+        status: 'enrolled',
+        completedAt: null,
+        startedAt: null,
+        isReassignment: false,
+        reassignmentReason: null,
+        parentEnrollmentId: null,
+        groupEnrollmentId: null,
+        reassignedAt: null,
+        reassignedBy: null
+      });
     }
 
     // Find the active enrollment (latest non-completed one)

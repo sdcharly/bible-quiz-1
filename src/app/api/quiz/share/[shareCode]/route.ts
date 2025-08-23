@@ -132,30 +132,24 @@ export async function GET(
 
       response.hasEducatorRelation = !!educatorRelation;
     } else {
-      // For non-authenticated users, we need to create an invitation token
-      // so they can sign up and get auto-enrolled
+      // For non-authenticated users, always create an invitation token
+      // This allows them to sign up and get auto-enrolled
       const invitationToken = crypto.randomBytes(32).toString('hex');
       const invitationId = crypto.randomUUID();
       
-      // Get user's email from query params if provided (for pre-filled signup)
-      // Ignore UTM parameters  
-      const email = req.nextUrl.searchParams.get('email');
+      // Create an open invitation that can be used by anyone signing up through this link
+      await db.insert(invitations).values({
+        id: invitationId,
+        educatorId: quiz.educatorId,
+        quizId: quiz.id,
+        email: '', // Empty email means any email can use this invitation
+        token: invitationToken,
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        createdAt: new Date()
+      });
       
-      if (email) {
-        // Create invitation for this specific email
-        await db.insert(invitations).values({
-          id: invitationId,
-          educatorId: quiz.educatorId,
-          quizId: quiz.id,
-          email: email.toLowerCase().trim(),
-          token: invitationToken,
-          status: 'pending',
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-          createdAt: new Date()
-        });
-        
-        response.invitationToken = invitationToken;
-      }
+      response.invitationToken = invitationToken;
     }
 
     return NextResponse.json(response);

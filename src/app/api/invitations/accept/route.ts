@@ -40,6 +40,15 @@ export async function POST(req: NextRequest) {
     // Get the student ID (either from parameter or from email)
     let actualStudentId = studentId;
     if (!actualStudentId) {
+      // If invitation has no email (open invitation), get the current user's ID from session
+      if (!invitationData.email || invitationData.email === '') {
+        // This will be passed from the signup/signin flow
+        return NextResponse.json(
+          { error: "Student ID required for open invitations" },
+          { status: 400 }
+        );
+      }
+      
       const student = await db
         .select()
         .from(user)

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useWebSocket } from "@/lib/websocket";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -119,65 +118,7 @@ export default function QuizReviewPage() {
     fetchQuizDetails();
   }, [quizId]);
 
-  // WebSocket handler for question replacement
-  useWebSocket('question_replace', (message) => {
-    const data = message.data as {
-      jobId: string;
-      quizId: string;
-      questionId?: string;
-      status: string;
-      progress: number;
-      message: string;
-      error?: string;
-    };
-    
-    // Only process messages for our job
-    if (data.jobId !== replaceJobId || !replaceJobId) return;
-    
-    // Calculate elapsed time for better messages
-    const elapsedSeconds = jobStartTimeRef.current ? Math.floor((Date.now() - jobStartTimeRef.current) / 1000) : 0;
-    let progressMessage = data.message || "Generating replacement question...";
-    
-    // Add time-based encouragement messages for AI workflows
-    if (elapsedSeconds > 600 && data.status === 'processing') { // 10+ minutes
-      progressMessage = "Deep theological analysis in progress... AI is ensuring biblical accuracy and depth.";
-    } else if (elapsedSeconds > 300 && data.status === 'processing') { // 5+ minutes
-      progressMessage = "Analyzing scripture context and crafting meaningful questions... Please be patient.";
-    } else if (elapsedSeconds > 120 && data.status === 'processing') { // 2+ minutes
-      progressMessage = "AI is carefully studying your biblical texts to create the perfect question...";
-    } else if (elapsedSeconds > 60 && data.status === 'processing') {
-      progressMessage = "Still working on it... Complex theological questions take time to craft perfectly.";
-    } else if (elapsedSeconds > 30 && data.status === 'processing') {
-      progressMessage = "AI is carefully analyzing biblical content for your question...";
-    }
-    
-    setReplaceProgress(data.progress || 0);
-    setReplaceMessage(progressMessage);
-    
-    if (data.status === 'completed') {
-      setReplaceProgress(100);
-      setReplaceMessage("Question replaced successfully!");
-      
-      // Refresh quiz data to show the new question
-      fetchQuizDetails().then(() => {
-        // Clear states after a short delay
-        setTimeout(() => {
-          setReplacingQuestion(null);
-          setReplaceJobId(null);
-          setReplaceProgress(0);
-          setReplaceMessage("");
-          jobStartTimeRef.current = 0;
-        }, 1500);
-      });
-    } else if (data.status === 'failed') {
-      setReplacingQuestion(null);
-      setReplaceJobId(null);
-      setReplaceProgress(0);
-      setReplaceMessage("");
-      jobStartTimeRef.current = 0;
-      alert(data.error || "Failed to replace question. Please try again.");
-    }
-  }, [replaceJobId]);
+  // Removed WebSocket - using polling only for reliable updates
 
   const fetchQuizDetails = async () => {
     try {
@@ -346,42 +287,87 @@ export default function QuizReviewPage() {
     }
   };
 
-  // Fallback polling function (only used if WebSocket is unavailable)
+  // Polling for replace question job status (2 minutes max)
   const pollReplaceJobStatus = async (jobId: string) => {
-    // This function is now only used as a fallback
-    // The primary mechanism is WebSocket
-    console.warn("Using polling fallback for job status - WebSocket may be unavailable");
+    console.log("[REPLACE-POLL] Starting polling for replacement job:", jobId);
+    let pollAttempts = 0;
+    const maxPollAttempts = 120; // 2 minutes (120 seconds)
     
-    // Poll the status endpoint once to check current state
-    try {
-      const response = await fetch(`/api/educator/quiz/poll-status?jobId=${jobId}`);
-      if (response.ok) {
-        const status = await response.json();
-        
-        // Process the status (WebSocket handler will take over if it connects)
-        if (status.status === 'completed') {
-          setReplaceProgress(100);
-          setReplaceMessage("Question replaced successfully!");
-          await fetchQuizDetails();
-          setTimeout(() => {
+    const pollInterval = setInterval(async () => {
+      pollAttempts++;
+      
+      // Stop after 2 minutes
+      if (pollAttempts > maxPollAttempts) {
+        clearInterval(pollInterval);
+        alert("Question replacement is taking longer than expected. Please check back later.");
+        setReplacingQuestion(null);
+        setReplaceJobId(null);
+        setReplaceProgress(0);
+        setReplaceMessage("");
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/educator/quiz/poll-status?jobId=${jobId}`);
+        if (response.ok) {
+          const status = await response.json();
+          console.log(`[REPLACE-POLL] Job ${jobId} status:`, status.status, `progress:`, status.progress);
+          
+          // Update progress with time-based messages
+          const elapsedSeconds = pollAttempts;
+          let progressMessage = status.message || "Processing...";
+          
+          if (elapsedSeconds > 90) {
+            progressMessage = "Almost done... finalizing the question.";
+          } else if (elapsedSeconds > 60) {
+            progressMessage = "AI is carefully crafting your biblical question...";
+          } else if (elapsedSeconds > 30) {
+            progressMessage = "Analyzing scripture context...";
+          }
+          
+          setReplaceProgress(status.progress || Math.min(10 + pollAttempts, 90));
+          setReplaceMessage(progressMessage);
+          
+          // Handle completion
+          if (status.status === 'completed') {
+            clearInterval(pollInterval);
+            setReplaceProgress(100);
+            setReplaceMessage("Question replaced successfully!");
+            await fetchQuizDetails();
+            setTimeout(() => {
+              setReplacingQuestion(null);
+              setReplaceJobId(null);
+              setReplaceProgress(0);
+              setReplaceMessage("");
+              jobStartTimeRef.current = 0;
+            }, 1500);
+          } else if (status.status === 'failed') {
+            clearInterval(pollInterval);
+            alert(status.error || "Failed to replace question. Please try again.");
             setReplacingQuestion(null);
             setReplaceJobId(null);
             setReplaceProgress(0);
             setReplaceMessage("");
-          }, 1500);
-        } else if (status.status === 'failed') {
-          alert(status.error || "Failed to replace question.");
-          setReplacingQuestion(null);
-          setReplaceJobId(null);
-        } else {
-          // Still processing - WebSocket should pick this up
-          setReplaceProgress(status.progress || 10);
-          setReplaceMessage(status.message || "Processing...");
+            jobStartTimeRef.current = 0;
+          }
+        } else if (response.status === 404) {
+          // Job not found - continue polling for a bit
+          console.warn("[REPLACE-POLL] Job not found yet, continuing...");
+          if (pollAttempts > 10) {
+            // After 10 seconds, if job still not found, stop
+            clearInterval(pollInterval);
+            alert("Unable to track question replacement. Please refresh the page to see if it completed.");
+            setReplacingQuestion(null);
+            setReplaceJobId(null);
+            setReplaceProgress(0);
+            setReplaceMessage("");
+          }
         }
+      } catch (error) {
+        console.error("[REPLACE-POLL] Polling error:", error);
+        // Continue polling on error (might be temporary network issue)
       }
-    } catch (error) {
-      console.error("Fallback polling failed:", error);
-    }
+    }, 1000); // Poll every second
   };
 
   const handleReplaceQuestion = async () => {
@@ -409,13 +395,9 @@ export default function QuizReviewPage() {
           setReplaceMessage("Starting question generation...");
           jobStartTimeRef.current = Date.now();
           
-          // WebSocket will handle updates, but do one fallback poll after 2 seconds
-          // in case WebSocket is not connected
-          setTimeout(() => {
-            if (replaceProgress < 10) {
-              pollReplaceJobStatus(data.jobId);
-            }
-          }, 2000);
+          // Start polling for job status updates
+          console.log('[REPLACE-QUESTION] Starting polling for job status updates');
+          pollReplaceJobStatus(data.jobId);
         } else {
           // Fallback if no jobId (shouldn't happen with async endpoint)
           alert("Failed to start question replacement");

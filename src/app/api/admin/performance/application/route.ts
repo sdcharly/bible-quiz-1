@@ -3,10 +3,20 @@ import { db } from "@/lib/db";
 import { user, quizzes, quizAttempts, session } from "@/lib/schema";
 import { gte, count } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+import { getAdminSession } from "@/lib/admin-auth";
 
 export async function GET(_req: NextRequest) {
   try {
-    // Check admin authentication here if needed
+    // Verify admin authentication
+    const adminSession = await getAdminSession();
+    if (!adminSession) {
+      logger.warn("Unauthorized admin API access attempt to /api/admin/performance/application");
+      return NextResponse.json(
+        { error: "Unauthorized - Admin access required" },
+        { status: 401 }
+      );
+    }
+    logger.log(`Admin ${adminSession.email} accessing application metrics`);
     
     // Get total users
     const totalUsers = await db

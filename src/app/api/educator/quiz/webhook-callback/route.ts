@@ -5,6 +5,7 @@ import { questions } from "@/lib/schema";
 import * as crypto from "crypto";
 import { debugLogger } from "@/lib/debug-logger";
 import { logger } from "@/lib/logger";
+import { sendJobStatusUpdate } from "@/lib/websocket-server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -248,6 +249,9 @@ export async function POST(req: NextRequest) {
           error: `All ${questionsData.length} questions failed to insert`
         });
         
+        // Send WebSocket update for failure
+        sendJobStatusUpdate(jobId);
+        
         return NextResponse.json({
           success: false,
           error: "Failed to insert questions into database",
@@ -266,6 +270,9 @@ export async function POST(req: NextRequest) {
         message: statusMessage,
         questionsData: insertedQuestions
       });
+      
+      // Send WebSocket update for completion
+      sendJobStatusUpdate(jobId);
       
       logger.log(`Job ${jobId} completed: ${statusMessage}`);
       
@@ -287,6 +294,9 @@ export async function POST(req: NextRequest) {
         error: error || 'Unknown error occurred'
       });
       
+      // Send WebSocket update for error
+      sendJobStatusUpdate(jobId);
+      
       logger.error(`Job ${jobId} failed:`, error);
     } else {
       // Update progress (backend service might send progress updates)
@@ -298,6 +308,9 @@ export async function POST(req: NextRequest) {
         progress,
         message
       });
+      
+      // Send WebSocket update for progress
+      sendJobStatusUpdate(jobId);
       
       logger.log(`Job ${jobId} progress update: ${progress}%`);
     }
