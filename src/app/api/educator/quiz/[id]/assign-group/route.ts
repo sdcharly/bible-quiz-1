@@ -180,7 +180,7 @@ export async function POST(
             quiz[0].description,
             quiz[0].totalQuestions,
             quiz[0].duration,
-            new Date(quiz[0].startTime),
+            quiz[0].startTime ? new Date(quiz[0].startTime) : null,
             group[0].name
           );
           

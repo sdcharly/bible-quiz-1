@@ -55,19 +55,21 @@ export function checkQuizCompatibility(quiz: Record<string, unknown>): Compatibi
   }
 
   // Check duration
-  if (!quiz.duration || quiz.duration <= 0) {
+  if (!quiz.duration || typeof quiz.duration !== 'number' || quiz.duration <= 0) {
     issues.push("Quiz has invalid duration");
   }
 
   // Check questions
-  if (!quiz.totalQuestions || quiz.totalQuestions <= 0) {
+  if (!quiz.totalQuestions || typeof quiz.totalQuestions !== 'number' || quiz.totalQuestions <= 0) {
     warnings.push("Quiz has no questions");
   }
 
   // Check status
   const validStatuses = ['draft', 'published', 'completed', 'archived'];
-  if (!validStatuses.includes(quiz.status)) {
+  if (typeof quiz.status === 'string' && !validStatuses.includes(quiz.status)) {
     issues.push(`Invalid quiz status: ${quiz.status}`);
+  } else if (typeof quiz.status !== 'string') {
+    issues.push('Quiz status must be a string');
   }
 
   return {
@@ -89,12 +91,17 @@ export function ensureQuizCompatibility(quiz: Record<string, unknown>): Record<s
 
   // Add time configuration if missing for legacy quizzes
   if (quiz.schedulingStatus === 'legacy' && !quiz.timeConfiguration) {
+    const startTimeValue = quiz.startTime;
+    const createdAtValue = quiz.createdAt;
+    
     quiz.timeConfiguration = {
-      startTime: quiz.startTime?.toISOString ? quiz.startTime.toISOString() : quiz.startTime,
-      timezone: quiz.timezone || 'UTC',
-      duration: quiz.duration,
-      configuredAt: quiz.createdAt?.toISOString ? quiz.createdAt.toISOString() : quiz.createdAt,
-      configuredBy: quiz.educatorId,
+      startTime: startTimeValue instanceof Date ? startTimeValue.toISOString() : 
+                 typeof startTimeValue === 'string' ? startTimeValue : undefined,
+      timezone: typeof quiz.timezone === 'string' ? quiz.timezone : 'UTC',
+      duration: typeof quiz.duration === 'number' ? quiz.duration : undefined,
+      configuredAt: createdAtValue instanceof Date ? createdAtValue.toISOString() : 
+                    typeof createdAtValue === 'string' ? createdAtValue : undefined,
+      configuredBy: typeof quiz.educatorId === 'string' ? quiz.educatorId : undefined,
       isLegacy: true
     };
   }
@@ -124,8 +131,9 @@ export function checkEnrollmentCompatibility(quiz: Record<string, unknown>): {
   // For legacy quizzes, check if time has passed
   if (quiz.schedulingStatus === 'legacy' || !quiz.schedulingStatus) {
     if (quiz.startTime) {
-      const startTime = new Date(quiz.startTime);
-      const endTime = new Date(startTime.getTime() + quiz.duration * 60 * 1000);
+      const startTime = new Date(quiz.startTime as string | number | Date);
+      const duration = typeof quiz.duration === 'number' ? quiz.duration : 0;
+      const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
       
       if (new Date() > endTime) {
         return {
@@ -171,8 +179,9 @@ export function checkQuizStartCompatibility(quiz: Record<string, unknown>): {
   }
 
   const now = new Date();
-  const startTime = new Date(quiz.startTime);
-  const endTime = new Date(startTime.getTime() + quiz.duration * 60 * 1000);
+  const startTime = new Date(quiz.startTime as string | number | Date);
+  const duration = typeof quiz.duration === 'number' ? quiz.duration : 0;
+  const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
 
   // Check if quiz hasn't started
   if (now < startTime) {

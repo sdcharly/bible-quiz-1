@@ -569,7 +569,7 @@ United in Christ, growing in wisdom
     quizDescription: string | null,
     questionCount: number,
     duration: number,
-    startTime: Date,
+    startTime: Date | null,
     groupName?: string
   ) => {
     const subject = `📜 New Biblical Quest: "${quizTitle}" Awaits You!`;
@@ -724,7 +724,7 @@ United in Christ, growing in wisdom
               </div>
               <div class="detail-row">
                 <span class="detail-label">📅 Start Time:</span>
-                <span class="detail-value">${startTime.toLocaleString()}</span>
+                <span class="detail-value">${startTime ? startTime.toLocaleString() : 'To be announced'}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">🎯 Enrolled by:</span>
@@ -769,7 +769,7 @@ ${quizDescription ? `\n${quizDescription}\n` : ''}
 Quest Details:
 - Number of Questions: ${questionCount}
 - Duration: ${duration} minutes
-- Start Time: ${startTime.toLocaleString()}
+- Start Time: ${startTime ? startTime.toLocaleString() : 'To be announced'}
 - Enrolled by: ${educatorName}
 
 "Study to shew thyself approved unto God" - 2 Timothy 2:15

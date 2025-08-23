@@ -16,12 +16,7 @@ import {
   HelpCircle,
   Timer
 } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+// Tooltip component not available yet
 import { getQuizAvailabilityStatus } from "@/lib/quiz-scheduling";
 
 interface QuizCardProps {
@@ -292,25 +287,9 @@ export function QuizCard({ quiz, onEnroll, onStartQuiz }: QuizCardProps) {
           </div>
           
           {/* Availability Status */}
-          <div className={`flex items-center text-sm ${timeDisplay.color}`}>
-            {timeDisplay.tooltip ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger className="flex items-center">
-                    {timeDisplay.icon}
-                    <span className="ml-2">{timeDisplay.text}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{timeDisplay.tooltip}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              <>
-                {timeDisplay.icon}
-                <span className="ml-2">{timeDisplay.text}</span>
-              </>
-            )}
+          <div className={`flex items-center text-sm ${timeDisplay.color}`} title={timeDisplay.tooltip}>
+            {timeDisplay.icon}
+            <span className="ml-2">{timeDisplay.text}</span>
           </div>
         </div>
 

@@ -6,12 +6,7 @@ import { SchedulingModal } from "./SchedulingModal";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
 import { CheckCircle, Send, Calendar, AlertCircle, Loader2 } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+// Tooltip component not available yet
 
 interface PublishButtonProps {
   quizId: string;
@@ -167,16 +162,7 @@ export function PublishButton({
   return (
     <>
       {tooltipText ? (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              {button}
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{tooltipText}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {button}
       ) : (
         button
       )}

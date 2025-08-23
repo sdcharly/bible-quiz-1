@@ -26,7 +26,6 @@ interface EnhancedQuizConfig {
   documentIds: string[];
   questionCount: number;
   duration: number;
-  passingScore: number;
   difficulty: "easy" | "intermediate" | "hard";
   bloomsLevels: string[];
   topics: string[];
@@ -56,10 +55,23 @@ export function CreateQuizWithDeferred({
   
   const [schedulingMode, setSchedulingMode] = useState<"immediate" | "deferred">("immediate");
   const [config, setConfig] = useState<EnhancedQuizConfig>({
+    title: "",
+    description: "",
+    documentIds: [],
+    questionCount: 10,
+    duration: 30,
+    difficulty: "intermediate",
+    bloomsLevels: [],
+    topics: [],
+    books: [],
+    chapters: [],
+    startTime: "",
+    timezone: userTimezone,
+    shuffleQuestions: false,
     ...initialConfig,
     schedulingMode: "immediate",
     useDeferredScheduling: false
-  });
+  } as EnhancedQuizConfig);
 
   // Initialize startTime with user's timezone (only for immediate mode)
   useEffect(() => {

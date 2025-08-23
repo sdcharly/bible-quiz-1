@@ -137,7 +137,7 @@ export const quizzes = pgTable("quizzes", {
   description: text("description"),
   documentIds: jsonb("document_ids").notNull().$type<string[]>(),
   configuration: jsonb("configuration").notNull(),
-  startTime: timestamp("start_time").notNull(),
+  startTime: timestamp("start_time"), // Made nullable for deferred scheduling
   timezone: text("timezone").notNull().default("Asia/Kolkata"), // Quiz timezone for accurate scheduling
   duration: integer("duration").notNull(), // in minutes
   status: quizStatusEnum("status").notNull().default("draft"),

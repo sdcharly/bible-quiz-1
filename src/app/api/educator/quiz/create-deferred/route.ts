@@ -93,8 +93,6 @@ export async function POST(req: NextRequest) {
       schedulingStatus = 'deferred';
       timeConfiguration = {
         duration,
-        configuredAt: null,
-        configuredBy: null,
         isLegacy: false,
         // If time was provided (shouldn't happen in deferred mode), store it but don't use it
         ...(startTime ? { providedStartTime: startTime, providedTimezone: timezone } : {})

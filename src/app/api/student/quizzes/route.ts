@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
         description: quiz.description,
         totalQuestions: quiz.totalQuestions,
         duration: quiz.duration,
-        startTime: quiz.startTime.toISOString(),
+        startTime: quiz.startTime?.toISOString() || null,
         timezone: quiz.timezone,
         status: quiz.status,
         enrolled: !!enrollment,

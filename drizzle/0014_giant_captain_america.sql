@@ -1,0 +1,1 @@
+ALTER TABLE "quizzes" ALTER COLUMN "start_time" DROP NOT NULL;

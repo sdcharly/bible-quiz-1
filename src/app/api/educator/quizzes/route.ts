@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
           status: quiz.status,
           totalQuestions: quiz.totalQuestions,
           duration: quiz.duration,
-          startTime: quiz.startTime.toISOString(),
+          startTime: quiz.startTime?.toISOString() || null,
           timezone: quiz.timezone,
           createdAt: quiz.createdAt.toISOString(),
           updatedAt: quiz.updatedAt.toISOString(),
