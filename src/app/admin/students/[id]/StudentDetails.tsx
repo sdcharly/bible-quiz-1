@@ -6,9 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  ArrowLeft, GraduationCap, User, Mail, Phone, Calendar, 
-  BookOpen, Award, Clock, MapPin, Trash, AlertTriangle,
-  TrendingUp, Users, CheckCircle, XCircle
+  ArrowLeft, GraduationCap, BookOpen, Award, MapPin, Trash, AlertTriangle,
+  TrendingUp, CheckCircle
 } from "lucide-react";
 
 interface QuizAttempt {

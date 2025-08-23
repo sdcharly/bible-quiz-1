@@ -3,7 +3,7 @@
  * This prevents console spam in production while maintaining debugging capability
  */
 
-import { ENV, shouldLog } from './env-config';
+import { shouldLog } from './env-config';
 
 export const logger = {
   log: (...args: unknown[]) => {

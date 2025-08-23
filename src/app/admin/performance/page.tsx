@@ -90,9 +90,29 @@ export default function PerformanceDashboard() {
       if (response.ok) {
         const data = await response.json();
         setIndexStatus(data);
+      } else if (response.status === 401) {
+        console.log('Unauthorized access to index status - admin login required');
+        // Set a default state to show the UI
+        setIndexStatus({
+          totalExpected: 12,
+          totalExisting: 0,
+          missingCount: 12,
+          existingIndexes: [],
+          missingIndexes: [],
+          allApplied: false
+        });
       }
     } catch (error) {
       console.error('Error checking index status:', error);
+      // Set a default state to show the UI
+      setIndexStatus({
+        totalExpected: 12,
+        totalExisting: 0,
+        missingCount: 12,
+        existingIndexes: [],
+        missingIndexes: [],
+        allApplied: false
+      });
     }
   };
 
@@ -241,7 +261,7 @@ export default function PerformanceDashboard() {
               buffered: true,
               durationThreshold: 40 
             });
-          } catch (e) {
+          } catch {
             // Fallback for browsers that don't support event timing
             console.log('INP observation not supported');
           }
@@ -598,11 +618,11 @@ export default function PerformanceDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {indexStatus && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      {indexStatus.allApplied ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {indexStatus ? (
+                      indexStatus.allApplied ? (
                         <>
                           <CheckCircle className="h-5 w-5 text-green-500" />
                           <span className="text-sm font-medium">All performance indexes are applied</span>
@@ -614,44 +634,49 @@ export default function PerformanceDashboard() {
                             {indexStatus.missingCount} indexes missing
                           </span>
                         </>
-                      )}
-                    </div>
-                    <Button
-                      onClick={applyIndexes}
-                      disabled={applyingIndexes || indexStatus.allApplied}
-                      variant={indexStatus.allApplied ? "outline" : "default"}
-                    >
-                      {applyingIndexes ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          Applying...
-                        </>
-                      ) : indexStatus.allApplied ? (
-                        <>
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          All Applied
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="h-4 w-4 mr-2" />
-                          Apply Indexes
-                        </>
-                      )}
-                    </Button>
+                      )
+                    ) : (
+                      <>
+                        <AlertCircle className="h-5 w-5 text-gray-400" />
+                        <span className="text-sm font-medium">Check index status to optimize database</span>
+                      </>
+                    )}
                   </div>
-
-                  {indexStatus.missingCount > 0 && (
-                    <div className="text-sm text-gray-600">
-                      <p className="font-medium mb-1">Missing indexes:</p>
-                      <ul className="list-disc list-inside text-xs space-y-1">
-                        {indexStatus.missingIndexes.map((idx: string) => (
-                          <li key={idx}>{idx}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  <Button
+                    onClick={applyIndexes}
+                    disabled={applyingIndexes || (indexStatus?.allApplied ?? false)}
+                    variant={(indexStatus?.allApplied ?? false) ? "outline" : "default"}
+                  >
+                    {applyingIndexes ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Applying...
+                      </>
+                    ) : (indexStatus?.allApplied ?? false) ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        All Applied
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 mr-2" />
+                        Apply Indexes
+                      </>
+                    )}
+                  </Button>
                 </div>
-              )}
+
+                {indexStatus && indexStatus.missingCount > 0 && (
+                  <div className="text-sm text-gray-600">
+                    <p className="font-medium mb-1">Missing indexes:</p>
+                    <ul className="list-disc list-inside text-xs space-y-1">
+                      {indexStatus.missingIndexes.map((idx: string) => (
+                        <li key={idx}>{idx}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
 
               {indexResults && (
                 <div className="mt-4 p-4 bg-blue-50 rounded-lg">

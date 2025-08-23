@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
-import { requireAdminAuth } from "@/lib/admin-auth";
+import { getAdminSession } from "@/lib/admin-auth";
+import { logger } from "@/lib/logger";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/check-users/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing GET src/app/api/admin/check-users/route.ts`);
+
   try {
-    // Check admin auth
-    await requireAdminAuth();
-
     // Get all users with their approval status
     const users = await db.select({
       id: user.id,

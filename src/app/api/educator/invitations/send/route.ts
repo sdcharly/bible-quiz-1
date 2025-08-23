@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { invitations, user, quizzes, educatorStudents } from "@/lib/schema";
+import { invitations, user, quizzes, educatorStudents, quizShareLinks } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import * as crypto from "crypto";
 import { sendEmail, emailTemplates } from "@/lib/email-service";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { createShortUrl, getShortUrl } from "@/lib/link-shortener";
 
 export async function POST(req: NextRequest) {
   try {
@@ -125,9 +126,50 @@ export async function POST(req: NextRequest) {
               .where(eq(educatorStudents.id, existingRelation[0].id));
           }
 
-          // If quiz is provided, send quiz assignment email
+          // If quiz is provided, send quiz assignment email with share link
           if (quizDetails) {
-            const quizUrl = `${process.env.NEXT_PUBLIC_APP_URL}/student/quiz/${quizId}`;
+            // Get or create share link for this quiz
+            const shareLink = await db
+              .select()
+              .from(quizShareLinks)
+              .where(eq(quizShareLinks.quizId, quizId))
+              .limit(1);
+
+            let shareCode: string;
+            let shortUrl: string | null = null;
+            
+            if (shareLink.length === 0) {
+              // Create new share link
+              shareCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+              const id = crypto.randomUUID();
+              
+              await db.insert(quizShareLinks).values({
+                id,
+                quizId,
+                educatorId: actualEducatorId,
+                shareCode,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+              
+              // Generate short URL
+              const shortCode = await createShortUrl(shareCode);
+              shortUrl = shortCode ? getShortUrl(shortCode) : null;
+            } else {
+              shareCode = shareLink[0].shareCode;
+              if (!shareLink[0].shortUrl) {
+                const shortCode = await createShortUrl(shareCode);
+                shortUrl = shortCode ? getShortUrl(shortCode) : null;
+              } else {
+                shortUrl = getShortUrl(shareLink[0].shortUrl);
+              }
+            }
+            
+            // Use short URL if available, otherwise use full share URL
+            // Add UTM parameters for email tracking
+            const baseUrl = shortUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'https://biblequiz.textr.in'}/quiz/share/${shareCode}`;
+            const quizUrl = `${baseUrl}?utm_source=email&utm_medium=assignment&utm_campaign=quiz_invite`;
+            
             const emailContent = emailTemplates.existingUserInvitation(
               educatorData.name || "Your Educator",
               existingUser[0].name || "Student",
@@ -187,7 +229,56 @@ export async function POST(req: NextRequest) {
           });
 
           // Send invitation email
-          const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/signup?invitation=${token}`;
+          let invitationUrl: string;
+          
+          if (quizDetails && quizId) {
+            // If quiz is provided, use share link which will handle signup flow
+            // Get or create share link for this quiz
+            const shareLink = await db
+              .select()
+              .from(quizShareLinks)
+              .where(eq(quizShareLinks.quizId, quizId))
+              .limit(1);
+
+            let shareCode: string;
+            let shortUrl: string | null = null;
+            
+            if (shareLink.length === 0) {
+              // Create new share link
+              shareCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+              const id = crypto.randomUUID();
+              
+              await db.insert(quizShareLinks).values({
+                id,
+                quizId,
+                educatorId: actualEducatorId,
+                shareCode,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+              
+              // Generate short URL
+              const shortCode = await createShortUrl(shareCode);
+              shortUrl = shortCode ? getShortUrl(shortCode) : null;
+            } else {
+              shareCode = shareLink[0].shareCode;
+              if (!shareLink[0].shortUrl) {
+                const shortCode = await createShortUrl(shareCode);
+                shortUrl = shortCode ? getShortUrl(shortCode) : null;
+              } else {
+                shortUrl = getShortUrl(shareLink[0].shortUrl);
+              }
+            }
+            
+            // Use short URL if available, with email parameter for pre-filling signup
+            // Add UTM parameters for email tracking
+            const baseUrl = shortUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'https://biblequiz.textr.in'}/quiz/share/${shareCode}`;
+            invitationUrl = `${baseUrl}?email=${encodeURIComponent(normalizedEmail)}&utm_source=email&utm_medium=invitation&utm_campaign=quiz_invite`;
+          } else {
+            // No quiz specified, use regular invitation flow
+            invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/signup?invitation=${token}`;
+          }
+          
           const emailContent = emailTemplates.newUserInvitation(
             educatorData.name || "Your Educator",
             invitationUrl,

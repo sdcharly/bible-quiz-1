@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useWebSocket } from "@/lib/websocket";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -23,14 +23,12 @@ import { ValidationSummary } from "@/components/validation-summary";
 import { QuestionValidationResult } from "@/lib/question-validator";
 import {
   ArrowLeft,
-  ArrowRight,
   Edit2,
   Save,
   X,
   CheckCircle,
   AlertCircle,
   BookOpen,
-  Clock,
   Target,
   Brain,
   Send,
@@ -39,10 +37,8 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  List,
   Grid3x3,
   Check,
-  FileText,
   BarChart3,
   Hash,
   RefreshCw,

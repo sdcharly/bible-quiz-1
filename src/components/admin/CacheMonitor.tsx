@@ -163,7 +163,7 @@ export default function CacheMonitor() {
 
   const isRedisConfigured = 
     cacheMetrics.configuration.redisUrl === "Configured" ||
-    cacheMetrics.configuration.upstashUrl === "Configured" ||
+    cacheMetrics.configuration.upstashUrl.includes("Configured") ||
     cacheMetrics.configuration.kvUrl === "Configured";
 
   const hitRate = parseFloat(
@@ -218,14 +218,25 @@ export default function CacheMonitor() {
               <p className="font-medium">{cacheMetrics.configuration.kvUrl}</p>
             </div>
           </div>
+          
+          {/* Note about Upstash */}
+          {cacheMetrics.configuration.upstashUrl.includes("Configured") && (
+            <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+              ℹ️ Using Upstash Serverless Redis for caching
+            </div>
+          )}
 
           {/* Latency */}
           {cacheMetrics.status.connected && (
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-sm text-gray-600">Redis Latency</span>
+              <span className="text-sm text-gray-600">Cache Latency</span>
               <div className="flex items-center gap-2">
-                <span className="font-semibold">{cacheMetrics.status.latency}ms</span>
-                {cacheMetrics.status.latency < 50 ? (
+                <span className="font-semibold">
+                  {cacheMetrics.status.latency > 0 ? `${cacheMetrics.status.latency}ms` : 
+                   cacheMetrics.metrics.redis?.avgLatency || 'N/A'}
+                </span>
+                {(cacheMetrics.status.latency > 0 ? cacheMetrics.status.latency : 
+                  parseInt(cacheMetrics.metrics.redis?.avgLatency || '0')) < 100 ? (
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 ) : (
                   <AlertCircle className="h-4 w-4 text-yellow-500" />
@@ -265,8 +276,8 @@ export default function CacheMonitor() {
                (cacheMetrics.metrics.cache?.memory?.misses || 0)}
             </div>
             <div className="text-xs text-gray-500">
-              Hits: {cacheMetrics.metrics.cache?.memory?.hits || 0} / 
-              Misses: {cacheMetrics.metrics.cache?.memory?.misses || 0}
+              Hits: {cacheMetrics.metrics.redis?.hits || cacheMetrics.metrics.cache?.memory?.hits || 0} / 
+              Misses: {cacheMetrics.metrics.redis?.misses || cacheMetrics.metrics.cache?.memory?.misses || 0}
             </div>
           </CardContent>
         </Card>
@@ -284,6 +295,12 @@ export default function CacheMonitor() {
               Sets: {cacheMetrics.metrics.cache?.memory?.sets || 0} / 
               Deletes: {cacheMetrics.metrics.cache?.memory?.deletes || 0}
             </div>
+            {cacheMetrics.metrics.redis?.totalOps !== undefined && 
+             cacheMetrics.metrics.redis.totalOps < 10 && (
+              <div className="text-xs text-yellow-600 mt-1">
+                Limited data
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

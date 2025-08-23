@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
       } else {
         setError(data.error || "Invalid credentials");
       }
-    } catch (error) {
+    } catch (_error) {
       setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);

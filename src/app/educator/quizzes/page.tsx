@@ -24,6 +24,7 @@ import {
   Trash2,
   CheckCircle,
 } from "lucide-react";
+import { ShareLinkButton } from "@/components/quiz/ShareLinkButton";
 
 interface Quiz {
   id: string;
@@ -39,12 +40,11 @@ interface Quiz {
 }
 
 export default function EducatorQuizzesPage() {
-  const router = useRouter();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const { formatDate, getRelativeTime, isQuizAvailable } = useTimezone();
+  const { formatDate, getRelativeTime } = useTimezone();
 
   useEffect(() => {
     fetchQuizzes();
@@ -371,6 +371,13 @@ export default function EducatorQuizzesPage() {
                         </>
                       ) : quiz.status === 'published' ? (
                         <>
+                          <ShareLinkButton 
+                            quizId={quiz.id}
+                            quizTitle={quiz.title}
+                            variant="ghost"
+                            size="sm"
+                            showLabel={false}
+                          />
                           <Link href={`/educator/quiz/${quiz.id}/results`}>
                             <Button variant="outline" size="sm">
                               <BarChart3 className="h-4 w-4 mr-1" />

@@ -27,7 +27,10 @@ import {
   Eye,
   BookOpen,
   Loader2,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
+import { ShareLinkButton } from "@/components/quiz/ShareLinkButton";
 
 interface QuizDetails {
   id: string;
@@ -59,6 +62,18 @@ interface AvailableStudent {
   isEnrolled: boolean;
 }
 
+interface ReassignmentStudent {
+  studentId: string;
+  name: string;
+  email: string;
+  originalStatus: string;
+  reassignmentCount: number;
+  lastReassignedAt: string | null;
+  latestScore: number | null;
+  isEligibleForReassignment: boolean;
+  eligibilityReason: string;
+}
+
 export default function QuizManagePage() {
   const params = useParams();
   const quizId = params.id as string;
@@ -72,6 +87,15 @@ export default function QuizManagePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [enrolling, setEnrolling] = useState(false);
   const [enrollmentStats, setEnrollmentStats] = useState({ total: 0, enrolled: 0 });
+  const [sendNotifications, setSendNotifications] = useState(true);
+  
+  // Reassignment states
+  const [showReassignDialog, setShowReassignDialog] = useState(false);
+  const [reassignmentStudents, setReassignmentStudents] = useState<ReassignmentStudent[]>([]);
+  const [selectedReassignStudents, setSelectedReassignStudents] = useState<Set<string>>(new Set());
+  const [reassignmentReason, setReassignmentReason] = useState("Missed original attempt");
+  const [reassigning, setReassigning] = useState(false);
+  const [loadingReassignment, setLoadingReassignment] = useState(false);
 
   useEffect(() => {
     fetchQuizDetails();
@@ -129,14 +153,21 @@ export default function QuizManagePage() {
       const response = await fetch(`/api/educator/quiz/${quizId}/bulk-enroll`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentIds: Array.from(selectedStudents) })
+        body: JSON.stringify({ 
+          studentIds: Array.from(selectedStudents),
+          sendNotifications 
+        })
       });
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Successfully enrolled ${data.enrolledCount} student(s)!`);
+        const message = data.notificationsSent 
+          ? `Successfully enrolled ${data.enrolledCount} student(s) and sent email notifications!`
+          : `Successfully enrolled ${data.enrolledCount} student(s)!`;
+        alert(message);
         setSelectedStudents(new Set());
         setShowBulkEnroll(false);
+        setSendNotifications(true); // Reset for next time
         fetchEnrolledStudents();
         fetchAvailableStudents();
       } else {
@@ -171,6 +202,88 @@ export default function QuizManagePage() {
 
   const deselectAll = () => {
     setSelectedStudents(new Set());
+  };
+
+  // Reassignment functions
+  const fetchReassignmentStudents = async () => {
+    setLoadingReassignment(true);
+    try {
+      const response = await fetch(`/api/educator/quiz/${quizId}/reassign`);
+      if (response.ok) {
+        const data = await response.json();
+        setReassignmentStudents(data.students || []);
+      }
+    } catch (error) {
+      console.error("Error fetching reassignment students:", error);
+    } finally {
+      setLoadingReassignment(false);
+    }
+  };
+
+  const handleReassign = async () => {
+    if (selectedReassignStudents.size === 0) {
+      alert("Please select at least one student to reassign");
+      return;
+    }
+
+    setReassigning(true);
+    try {
+      const response = await fetch(`/api/educator/quiz/${quizId}/reassign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentIds: Array.from(selectedReassignStudents),
+          reason: reassignmentReason,
+          sendNotifications
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const message = data.notificationsSent
+          ? `Successfully reassigned quiz to ${data.reassignedCount} student(s) and sent notifications!`
+          : `Successfully reassigned quiz to ${data.reassignedCount} student(s)!`;
+        alert(message);
+        setSelectedReassignStudents(new Set());
+        setShowReassignDialog(false);
+        setReassignmentReason("Missed original attempt");
+        fetchEnrolledStudents();
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to reassign quiz");
+      }
+    } catch (error) {
+      console.error("Error reassigning quiz:", error);
+      alert("Error reassigning quiz");
+    } finally {
+      setReassigning(false);
+    }
+  };
+
+  const openReassignDialog = () => {
+    setShowReassignDialog(true);
+    fetchReassignmentStudents();
+  };
+
+  const toggleReassignStudent = (studentId: string) => {
+    const newSelected = new Set(selectedReassignStudents);
+    if (newSelected.has(studentId)) {
+      newSelected.delete(studentId);
+    } else {
+      newSelected.add(studentId);
+    }
+    setSelectedReassignStudents(newSelected);
+  };
+
+  const selectAllEligible = () => {
+    const eligible = reassignmentStudents
+      .filter(s => s.isEligibleForReassignment)
+      .map(s => s.studentId);
+    setSelectedReassignStudents(new Set(eligible));
+  };
+
+  const deselectAllReassign = () => {
+    setSelectedReassignStudents(new Set());
   };
 
   const filteredStudents = availableStudents.filter(student =>
@@ -232,12 +345,26 @@ export default function QuizManagePage() {
               </p>
             </div>
             <div className="flex gap-2">
+              <ShareLinkButton 
+                quizId={quizId}
+                quizTitle={quiz?.title || "Quiz"}
+                variant="outline"
+                size="sm"
+              />
               <Link href={`/educator/quiz/${quizId}/review`}>
                 <Button variant="outline" size="sm">
                   <Eye className="h-4 w-4 mr-2" />
                   View Quiz
                 </Button>
               </Link>
+              <Button 
+                onClick={openReassignDialog}
+                variant="outline"
+                size="sm"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Reassign Quiz
+              </Button>
               <Button 
                 onClick={() => setShowBulkEnroll(true)}
                 size="sm"
@@ -486,14 +613,29 @@ export default function QuizManagePage() {
             </div>
 
             <DialogFooter className="px-6 py-4 border-t shrink-0 bg-gray-50 dark:bg-gray-900/50">
-              <Button variant="outline" onClick={() => setShowBulkEnroll(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleBulkEnroll}
-                disabled={enrolling || selectedStudents.size === 0}
-                className="min-w-[120px]"
-              >
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="sendNotifications"
+                    checked={sendNotifications}
+                    onCheckedChange={(checked) => setSendNotifications(checked as boolean)}
+                  />
+                  <label 
+                    htmlFor="sendNotifications" 
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Send email notifications with share link
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowBulkEnroll(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleBulkEnroll}
+                    disabled={enrolling || selectedStudents.size === 0}
+                    className="min-w-[120px]"
+                  >
                 {enrolling ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -502,7 +644,165 @@ export default function QuizManagePage() {
                 ) : (
                   `Assign ${selectedStudents.size} Student${selectedStudents.size !== 1 ? "s" : ""}`
                 )}
-              </Button>
+                  </Button>
+                </div>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reassignment Dialog */}
+        <Dialog open={showReassignDialog} onOpenChange={setShowReassignDialog}>
+          <DialogContent className="sm:max-w-2xl w-[95vw] max-w-[95vw] h-[90vh] sm:h-[85vh] max-h-[90vh] p-0 flex flex-col overflow-hidden">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+              <DialogTitle>Reassign Quiz to Students</DialogTitle>
+              <DialogDescription>
+                Select students who missed or need to retake the quiz. They will get the same questions in a different order.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="flex-1 flex flex-col px-6 py-4 min-h-0 overflow-hidden">
+              {/* Reason Input */}
+              <div className="mb-4 shrink-0">
+                <label className="text-sm font-medium mb-2 block">Reassignment Reason</label>
+                <Input
+                  type="text"
+                  placeholder="e.g., Missed original attempt, Technical issues..."
+                  value={reassignmentReason}
+                  onChange={(e) => setReassignmentReason(e.target.value)}
+                />
+              </div>
+
+              {/* Student List */}
+              <div className="flex-1 overflow-y-auto min-h-0 mb-4 border rounded-lg">
+                {loadingReassignment ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  </div>
+                ) : reassignmentStudents.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                    <Users className="h-8 w-8 mb-2 text-gray-300" />
+                    <p>No students available for reassignment</p>
+                  </div>
+                ) : (
+                  <div className="p-2 space-y-1">
+                    {reassignmentStudents.map((student) => (
+                      <div
+                        key={student.studentId}
+                        className={`flex items-center gap-3 p-3 rounded-md transition-colors ${
+                          !student.isEligibleForReassignment
+                            ? "bg-gray-50 dark:bg-gray-800 opacity-50"
+                            : selectedReassignStudents.has(student.studentId)
+                            ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                        }`}
+                        onClick={() => student.isEligibleForReassignment && toggleReassignStudent(student.studentId)}
+                      >
+                        <Checkbox
+                          checked={selectedReassignStudents.has(student.studentId)}
+                          disabled={!student.isEligibleForReassignment}
+                          onCheckedChange={() => toggleReassignStudent(student.studentId)}
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                          className="shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate">{student.name}</span>
+                            {student.reassignmentCount > 0 && (
+                              <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">
+                                Reassigned {student.reassignmentCount}x
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{student.email}</div>
+                          <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                            {student.originalStatus === "completed" ? (
+                              <>
+                                <CheckCircle className="h-3 w-3 text-green-500" />
+                                <span>Completed (Score: {student.latestScore}%)</span>
+                              </>
+                            ) : student.originalStatus === "in_progress" ? (
+                              <>
+                                <Clock className="h-3 w-3 text-yellow-500" />
+                                <span>In Progress</span>
+                              </>
+                            ) : student.originalStatus === "enrolled" ? (
+                              <>
+                                <Users className="h-3 w-3 text-blue-500" />
+                                <span>Not Started</span>
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="h-3 w-3 text-gray-400" />
+                                <span>Abandoned</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {!student.isEligibleForReassignment && (
+                          <span className="text-xs text-orange-600 dark:text-orange-400 font-medium shrink-0">
+                            {student.eligibilityReason}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Actions */}
+              <div className="flex gap-2 text-sm shrink-0">
+                <button
+                  onClick={selectAllEligible}
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  Select All Eligible
+                </button>
+                <span className="text-gray-300 dark:text-gray-600">|</span>
+                <button
+                  onClick={deselectAllReassign}
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+
+            <DialogFooter className="px-6 py-4 border-t shrink-0 bg-gray-50 dark:bg-gray-900/50">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="sendReassignNotifications"
+                    checked={sendNotifications}
+                    onCheckedChange={(checked) => setSendNotifications(checked as boolean)}
+                  />
+                  <label 
+                    htmlFor="sendReassignNotifications" 
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Send email notifications
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowReassignDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleReassign}
+                    disabled={reassigning || selectedReassignStudents.size === 0}
+                    className="min-w-[120px]"
+                  >
+                    {reassigning ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Reassigning...
+                      </>
+                    ) : (
+                      `Reassign to ${selectedReassignStudents.size} Student${selectedReassignStudents.size !== 1 ? "s" : ""}`
+                    )}
+                  </Button>
+                </div>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>

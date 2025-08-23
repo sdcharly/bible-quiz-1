@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminAuth, logActivity } from "@/lib/admin-auth";
+import { getAdminSession, logActivity } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { 
-  applyTemplateToUser, 
   getDefaultPermissionTemplate,
   getPermissionTemplate 
 } from "@/lib/permission-templates";
@@ -14,11 +13,22 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/educators/[id]/approve/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing POST src/app/api/admin/educators/[id]/approve/route.ts`);
+
   try {
     const { id: educatorId } = await params;
     logger.log("Approve educator API called with ID:", educatorId);
     
-    const session = await requireAdminAuth();
+    // Admin already authenticated above
     logger.log("Admin session:", session);
 
     // Get request body for optional template ID

@@ -295,7 +295,7 @@ function getTimezoneOffsetMinutes(timezone: string, date: Date): number {
           return sign * (hours * 60 + minutes);
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // Fallback to Method 2 if shortOffset is not supported
     }
     

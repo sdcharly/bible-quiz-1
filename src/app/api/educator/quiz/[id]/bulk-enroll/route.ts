@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { enrollments, educatorStudents, user, quizzes } from "@/lib/schema";
+import { enrollments, educatorStudents, user, quizzes, quizShareLinks } from "@/lib/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import * as crypto from "crypto";
+import { sendEmail, emailTemplates } from "@/lib/email-service";
+import { createShortUrl, getShortUrl } from "@/lib/link-shortener";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export async function POST(
   req: NextRequest,
@@ -11,7 +15,7 @@ export async function POST(
   try {
     const params = await context.params;
     const quizId = params.id;
-    const { studentIds, enrollAll } = await req.json();
+    const { studentIds, enrollAll, sendNotifications = false } = await req.json();
 
     // Check if quiz exists and is published
     const quiz = await db
@@ -110,12 +114,89 @@ export async function POST(
       .from(user)
       .where(inArray(user.id, newEnrollments));
 
+    // Send email notifications if requested
+    if (sendNotifications && newEnrollments.length > 0) {
+      // Get educator details
+      const session = await auth.api.getSession({
+        headers: await headers()
+      });
+      
+      const educatorId = session?.user?.id || quiz[0].educatorId;
+      const [educator] = await db
+        .select()
+        .from(user)
+        .where(eq(user.id, educatorId));
+      
+      // Get or create share link for this quiz
+      const shareLink = await db
+        .select()
+        .from(quizShareLinks)
+        .where(eq(quizShareLinks.quizId, quizId))
+        .limit(1);
+
+      let shareCode: string;
+      let shortUrl: string | null = null;
+      
+      if (shareLink.length === 0) {
+        // Create new share link
+        shareCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+        const id = crypto.randomUUID();
+        
+        await db.insert(quizShareLinks).values({
+          id,
+          quizId,
+          educatorId: quiz[0].educatorId,
+          shareCode,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        
+        // Generate short URL
+        const shortCode = await createShortUrl(shareCode);
+        shortUrl = shortCode ? getShortUrl(shortCode) : null;
+      } else {
+        shareCode = shareLink[0].shareCode;
+        if (!shareLink[0].shortUrl) {
+          const shortCode = await createShortUrl(shareCode);
+          shortUrl = shortCode ? getShortUrl(shortCode) : null;
+        } else {
+          shortUrl = getShortUrl(shareLink[0].shortUrl);
+        }
+      }
+      
+      // Send emails to all newly enrolled students
+      const emailPromises = enrolledStudentDetails.map(async (student) => {
+        const baseUrl = shortUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'https://biblequiz.textr.in'}/quiz/share/${shareCode}`;
+        const quizUrl = `${baseUrl}?utm_source=email&utm_medium=bulk_enrollment&utm_campaign=quiz_assignment`;
+        
+        const emailContent = emailTemplates.existingUserInvitation(
+          educator?.name || "Your Educator",
+          student.name || "Student",
+          quiz[0].title,
+          quizUrl
+        );
+        
+        return sendEmail({
+          to: student.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+          text: emailContent.text,
+        });
+      });
+      
+      // Send emails in parallel but don't wait for them
+      Promise.all(emailPromises).catch(error => {
+        console.error("Error sending enrollment emails:", error);
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Successfully enrolled ${newEnrollments.length} student(s)`,
+      message: `Successfully enrolled ${newEnrollments.length} student(s)${sendNotifications ? ' and sent notifications' : ''}`,
       enrolledCount: newEnrollments.length,
       alreadyEnrolledCount: alreadyEnrolled.size,
       enrolledStudents: enrolledStudentDetails,
+      notificationsSent: sendNotifications
     });
 
   } catch (error) {

@@ -9,9 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
-  ArrowLeft, Shield, User, Mail, Phone, Calendar, 
-  BookOpen, Users, CheckCircle, XCircle, AlertTriangle,
-  Edit, Save, Ban, Unlock, Clock, MapPin
+  ArrowLeft, Shield, BookOpen, Users, CheckCircle, XCircle,
+  Edit, Save, Ban, Unlock, MapPin
 } from "lucide-react";
 import EducatorApprovalDialog from "@/components/admin/EducatorApprovalDialog";
 
@@ -128,7 +127,7 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
     }
   };
 
-  const handleApprovalComplete = (templateId: string) => {
+  const handleApprovalComplete = (_templateId: string) => {
     window.location.reload();
   };
 

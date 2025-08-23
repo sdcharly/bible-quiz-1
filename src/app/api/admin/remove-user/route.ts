@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { withAdminAuth } from "@/lib/admin-api-auth";
+import { logger } from "@/lib/logger";
 
 export async function DELETE(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const email = searchParams.get("email");
+  return withAdminAuth(async (session) => {
+    try {
+      const { searchParams } = new URL(req.url);
+      const email = searchParams.get("email");
+      
+      logger.log(`Admin ${session.email} attempting to remove user: ${email}`);
     
     if (!email) {
       return NextResponse.json(
@@ -32,20 +37,21 @@ export async function DELETE(req: NextRequest) {
     // Delete the user
     await db.delete(user).where(eq(user.email, email));
     
-    return NextResponse.json({
-      success: true,
-      message: `Successfully removed user: ${email}`,
-      deletedUser: {
-        id: existingUser[0].id,
-        name: existingUser[0].name,
-        email: existingUser[0].email
-      }
-    });
-  } catch (error) {
-    console.error("Error removing user:", error);
-    return NextResponse.json(
-      { error: "Failed to remove user" },
-      { status: 500 }
-    );
-  }
+      return NextResponse.json({
+        success: true,
+        message: `Successfully removed user: ${email}`,
+        deletedUser: {
+          id: existingUser[0].id,
+          name: existingUser[0].name,
+          email: existingUser[0].email
+        }
+      }) as NextResponse;
+    } catch (error) {
+      logger.error("Error removing user:", error);
+      return NextResponse.json(
+        { error: "Failed to remove user" },
+        { status: 500 }
+      );
+    }
+  });
 }

@@ -1,10 +1,22 @@
 import { NextResponse } from "next/server";
-import { requireAdminAuth } from "@/lib/admin-auth";
+import { getAdminSession, requireAdminAuth } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { permissionTemplates } from "@/lib/schema";
 import { sql } from "drizzle-orm";
+import { logger } from "@/lib/logger";
 
 export async function POST() {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/seed-templates/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing POST src/app/api/admin/seed-templates/route.ts`);
+
   try {
     await requireAdminAuth();
 

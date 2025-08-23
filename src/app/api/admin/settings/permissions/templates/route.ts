@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminAuth, logActivity } from "@/lib/admin-auth";
+import { getAdminSession, logActivity } from "@/lib/admin-auth";
 import {
   getPermissionTemplates,
   createPermissionTemplate,
   updatePermissionTemplate,
   deletePermissionTemplate,
 } from "@/lib/permission-templates";
+import { logger } from "@/lib/logger";
 
 // GET /api/admin/settings/permissions/templates - Get all templates
 export async function GET() {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/settings/permissions/templates/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing GET src/app/api/admin/settings/permissions/templates/route.ts`);
+
   try {
-    await requireAdminAuth();
     const templates = await getPermissionTemplates();
     
     return NextResponse.json({ templates });
@@ -31,8 +42,19 @@ export async function GET() {
 
 // POST /api/admin/settings/permissions/templates - Create new template
 export async function POST(request: NextRequest) {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/settings/permissions/templates/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing POST src/app/api/admin/settings/permissions/templates/route.ts`);
+
   try {
-    const session = await requireAdminAuth();
+    // Admin already authenticated above
     const body = await request.json();
     
     const { name, description, permissions, isDefault } = body;
@@ -88,8 +110,19 @@ export async function POST(request: NextRequest) {
 
 // PUT /api/admin/settings/permissions/templates - Update template
 export async function PUT(request: NextRequest) {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/settings/permissions/templates/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing PUT src/app/api/admin/settings/permissions/templates/route.ts`);
+
   try {
-    const session = await requireAdminAuth();
+    // Admin already authenticated above
     const body = await request.json();
     
     const { id, name, description, permissions, isDefault, isActive } = body;
@@ -144,8 +177,19 @@ export async function PUT(request: NextRequest) {
 
 // DELETE /api/admin/settings/permissions/templates - Delete template
 export async function DELETE(request: NextRequest) {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/settings/permissions/templates/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing DELETE src/app/api/admin/settings/permissions/templates/route.ts`);
+
   try {
-    const session = await requireAdminAuth();
+    // Admin already authenticated above
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     

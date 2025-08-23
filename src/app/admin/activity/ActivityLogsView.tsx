@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
-  ArrowLeft, Activity, Search, User, Shield, 
-  Calendar, Globe, Smartphone, Filter, Download,
+  ArrowLeft, Activity, Search,
+  Calendar, Globe, Download,
   CheckCircle, XCircle, AlertTriangle, LogIn, LogOut,
-  UserPlus, UserMinus, Edit, Trash
+  UserPlus, Edit, Trash
 } from "lucide-react";
 
 interface ActivityLog {
@@ -34,7 +34,7 @@ interface ActivityLogsViewProps {
 export default function ActivityLogsView({ logs }: ActivityLogsViewProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<string>("all");
+  const [filterType] = useState<string>("all");
   const [filterEntity, setFilterEntity] = useState<string>("all");
 
   const filteredLogs = logs.filter((log) => {
@@ -104,8 +104,7 @@ export default function ActivityLogsView({ logs }: ActivityLogsViewProps) {
     a.click();
   };
 
-  // Get unique action types and entity types for filters
-  const actionTypes = [...new Set(logs.map(log => log.actionType))];
+  // Get unique entity types for filters
   const entityTypes = [...new Set(logs.map(log => log.entityType))];
 
   return (

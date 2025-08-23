@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminAuth, logActivity } from "@/lib/admin-auth";
+import { getAdminSession, logActivity } from "@/lib/admin-auth";
 import { bulkApplyTemplate } from "@/lib/permission-templates";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/educators/bulk-update-template/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing POST src/app/api/admin/educators/bulk-update-template/route.ts`);
+
   try {
-    const session = await requireAdminAuth();
+    // Admin already authenticated above
     const body = await request.json();
     
     const { userIds, templateId } = body;

@@ -172,6 +172,13 @@ export const enrollments = pgTable("enrollments", {
   status: enrollmentStatusEnum("status").notNull().default("enrolled"),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
+  // Reassignment tracking fields
+  isReassignment: boolean("is_reassignment").default(false),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  parentEnrollmentId: text("parent_enrollment_id").references((): any => enrollments.id),
+  reassignmentReason: text("reassignment_reason"),
+  reassignedAt: timestamp("reassigned_at"),
+  reassignedBy: text("reassigned_by").references(() => user.id),
 });
 
 export const quizAttempts = pgTable("quiz_attempts", {
@@ -245,5 +252,18 @@ export const adminSettings = pgTable("admin_settings", {
   settingValue: jsonb("setting_value").notNull().$type<unknown>(),
   description: text("description"),
   updatedBy: text("updated_by").references(() => user.id),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Quiz share links for easy sharing via chat apps
+export const quizShareLinks = pgTable("quiz_share_links", {
+  id: text("id").primaryKey(),
+  quizId: text("quiz_id").notNull().references(() => quizzes.id, { onDelete: "cascade" }),
+  educatorId: text("educator_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  shareCode: text("share_code").notNull().unique(), // Short unique code for the URL
+  shortUrl: text("short_url"), // Optional shortened URL
+  expiresAt: timestamp("expires_at"), // Optional expiration
+  clickCount: integer("click_count").default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

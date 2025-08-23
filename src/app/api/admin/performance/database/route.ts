@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, pgClient } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     // Check admin authentication here if needed
     

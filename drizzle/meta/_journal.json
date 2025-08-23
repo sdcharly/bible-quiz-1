@@ -71,6 +71,20 @@
       "when": 1755878776084,
       "tag": "0009_keen_tag",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1755921592942,
+      "tag": "0010_broad_speedball",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1755924056233,
+      "tag": "0011_mixed_paper_doll",
+      "breakpoints": true
     }
   ]
 }

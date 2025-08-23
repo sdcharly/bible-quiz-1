@@ -1,15 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminAuth, logActivity } from "@/lib/admin-auth";
+import { getAdminSession, logActivity } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { logger } from "@/lib/logger";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/educators/[id]/permissions/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing PUT src/app/api/admin/educators/[id]/permissions/route.ts`);
+
   try {
-    const session = await requireAdminAuth();
+    // Admin already authenticated above
     const { id: educatorId } = await params;
     const { permissions } = await request.json();
 

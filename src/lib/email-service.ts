@@ -562,7 +562,7 @@ United in Christ, growing in wisdom
   },
 
   // Educator approval notification
-  educatorApprovalNotification: (educatorName: string, educatorEmail: string) => {
+  educatorApprovalNotification: (educatorName: string, _educatorEmail: string) => {
     const subject = `🎉 Hallelujah! Your Educator Account Has Been Approved`;
 
     const html = `

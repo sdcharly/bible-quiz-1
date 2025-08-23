@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { user, quizzes, quizAttempts, session } from "@/lib/schema";
-import { eq, gte, count, avg, desc } from "drizzle-orm";
+import { gte, count } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     // Check admin authentication here if needed
     

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { quizzes, questions, quizAttempts, enrollments, educatorStudents } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
@@ -84,7 +84,8 @@ export async function POST(
     }
 
     // Check if student is enrolled in this specific quiz
-    const enrollment = await db
+    // Get ALL enrollments (original and reassignments) for this student
+    const allEnrollments = await db
       .select()
       .from(enrollments)
       .where(
@@ -93,9 +94,9 @@ export async function POST(
           eq(enrollments.studentId, studentId)
         )
       )
-      .limit(1);
+      .orderBy(desc(enrollments.enrolledAt)); // Order by enrollment date (newest first)
 
-    if (enrollment.length === 0) {
+    if (allEnrollments.length === 0) {
       return NextResponse.json(
         { 
           error: "Not enrolled",
@@ -105,14 +106,41 @@ export async function POST(
       );
     }
 
-    // Check if student has already attempted this quiz
+    // Find the active enrollment (latest non-completed one)
+    let activeEnrollment = null;
+    let hasCompletedOriginal = false;
+    
+    for (const enrollment of allEnrollments) {
+      if (enrollment.status === "completed") {
+        if (!enrollment.isReassignment) {
+          hasCompletedOriginal = true;
+        }
+      } else if (!activeEnrollment) {
+        // This is the first non-completed enrollment
+        activeEnrollment = enrollment;
+      }
+    }
+
+    // If no active enrollment, all are completed
+    if (!activeEnrollment) {
+      return NextResponse.json(
+        { 
+          error: "No active enrollment",
+          message: "You have completed all available attempts for this quiz."
+        },
+        { status: 403 }
+      );
+    }
+
+    // Check if student has already attempted this specific enrollment
     const existingAttempt = await db
       .select()
       .from(quizAttempts)
       .where(
         and(
           eq(quizAttempts.quizId, quizId),
-          eq(quizAttempts.studentId, studentId)
+          eq(quizAttempts.studentId, studentId),
+          eq(quizAttempts.enrollmentId, activeEnrollment.id)
         )
       );
 
@@ -180,7 +208,10 @@ export async function POST(
           bloomsLevel: q.bloomsLevel,
         }));
 
-        if (quiz[0].shuffleQuestions) {
+        // For reassignments, always shuffle regardless of quiz setting
+        const shouldShuffle = quiz[0].shuffleQuestions || activeEnrollment.isReassignment;
+        
+        if (shouldShuffle) {
           // Use a seed based on attemptId for consistent shuffle per attempt
           sortedQuestions = shuffleArray(sortedQuestions, attempt.id);
         } else {
@@ -229,6 +260,7 @@ export async function POST(
       id: attemptId,
       quizId,
       studentId,
+      enrollmentId: activeEnrollment.id, // Link to the specific enrollment
       startTime: new Date(),
       status: "in_progress",
       answers: [],
@@ -236,7 +268,16 @@ export async function POST(
       createdAt: new Date(),
     });
 
-    // Prepare questions - shuffle if enabled, otherwise sort by orderIndex
+    // Update enrollment status to in_progress
+    await db
+      .update(enrollments)
+      .set({ 
+        status: "in_progress",
+        startedAt: new Date()
+      })
+      .where(eq(enrollments.id, activeEnrollment.id));
+
+    // Prepare questions - shuffle if enabled or if this is a reassignment
     let preparedQuestions = quizQuestions.map(q => ({
       id: q.id,
       questionText: q.questionText,
@@ -248,9 +289,16 @@ export async function POST(
       bloomsLevel: q.bloomsLevel,
     }));
 
-    if (quiz.shuffleQuestions) {
+    // For reassignments, always shuffle regardless of quiz setting
+    const shouldShuffle = quiz.shuffleQuestions || activeEnrollment.isReassignment;
+    
+    if (shouldShuffle) {
       // Use attemptId as seed for consistent shuffle per attempt
-      preparedQuestions = shuffleArray(preparedQuestions, attemptId);
+      // For reassignments, add enrollment id to make shuffle different from original
+      const seed = activeEnrollment.isReassignment 
+        ? attemptId + activeEnrollment.id 
+        : attemptId;
+      preparedQuestions = shuffleArray(preparedQuestions, seed);
     } else {
       preparedQuestions.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
     }
@@ -265,7 +313,9 @@ export async function POST(
         questions: preparedQuestions
       },
       attemptId,
-      remainingTime: quiz.duration * 60 // Full time in seconds
+      remainingTime: quiz.duration * 60, // Full time in seconds
+      isReassignment: activeEnrollment.isReassignment || false,
+      reassignmentReason: activeEnrollment.reassignmentReason || null
     });
 
   } catch (error) {

@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import { redisCache, redisClient } from "@/lib/redis";
+import { redisClient } from "@/lib/redis";
 
 // Cache interface
 interface CacheClient {
@@ -137,7 +137,7 @@ class HybridCache implements CacheClient {
   private async initializeRedis() {
     try {
       await redisClient.connect();
-      const isConnected = await redisClient.ping();
+      const isConnected = redisClient.isReady();
       this.useRedis = isConnected;
       
       if (this.useRedis) {
@@ -157,7 +157,8 @@ class HybridCache implements CacheClient {
     // Try Redis first if available
     if (this.useRedis && redisClient.isReady()) {
       try {
-        const value = await redisCache.get<T>(key);
+        const stringValue = await redisClient.get(key);
+        const value = stringValue ? JSON.parse(stringValue) as T : null;
         
         // Log slow operations
         const fetchTime = Date.now() - startTime;
@@ -189,7 +190,7 @@ class HybridCache implements CacheClient {
     
     if (this.useRedis && redisClient.isReady()) {
       promises.push(
-        redisCache.set(key, value, effectiveTTL).then(() => undefined).catch((error) => {
+        redisClient.set(key, JSON.stringify(value), effectiveTTL).then(() => undefined).catch((error) => {
           logger.debug("Redis set error", error);
         })
       );
@@ -212,7 +213,7 @@ class HybridCache implements CacheClient {
     
     if (this.useRedis && redisClient.isReady()) {
       promises.push(
-        redisCache.delete(key).then(() => undefined).catch((error) => {
+        redisClient.del(key).then(() => undefined).catch((error) => {
           logger.debug("Redis delete error", error);
         })
       );
@@ -229,7 +230,7 @@ class HybridCache implements CacheClient {
     
     if (this.useRedis && redisClient.isReady() && !pattern) {
       promises.push(
-        redisCache.flush().then(() => undefined).catch((error) => {
+        redisClient.flushAll().then(() => undefined).catch((error) => {
           logger.debug("Redis flush error", error);
         })
       );
@@ -243,7 +244,7 @@ class HybridCache implements CacheClient {
     // Check Redis first if available
     if (this.useRedis && redisClient.isReady()) {
       try {
-        const value = await redisCache.get(key);
+        const value = await redisClient.get(key);
         if (value !== null) {
           return true;
         }
@@ -258,7 +259,7 @@ class HybridCache implements CacheClient {
 
   getMetrics() {
     const memoryMetrics = this.inMemory.getMetrics();
-    const redisMetrics = redisCache.getMetrics();
+    const redisMetrics = redisClient.getMetrics();
     
     return {
       redis: redisMetrics,

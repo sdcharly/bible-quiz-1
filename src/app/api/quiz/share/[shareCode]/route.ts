@@ -1,0 +1,170 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { quizShareLinks, quizzes, enrollments, user, educatorStudents, invitations } from "@/lib/schema";
+import { eq, and } from "drizzle-orm";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import * as crypto from "crypto";
+
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ shareCode: string }> }
+) {
+  try {
+    const params = await context.params;
+    const shareCode = params.shareCode;
+
+    // Find the share link
+    const [shareLink] = await db
+      .select()
+      .from(quizShareLinks)
+      .where(eq(quizShareLinks.shareCode, shareCode));
+
+    if (!shareLink) {
+      return NextResponse.json(
+        { error: "Invalid share link" },
+        { status: 404 }
+      );
+    }
+
+    // Check if link has expired
+    if (shareLink.expiresAt && new Date(shareLink.expiresAt) < new Date()) {
+      return NextResponse.json(
+        { error: "This share link has expired" },
+        { status: 410 }
+      );
+    }
+
+    // Increment click count
+    await db
+      .update(quizShareLinks)
+      .set({ 
+        clickCount: (shareLink.clickCount || 0) + 1,
+        updatedAt: new Date()
+      })
+      .where(eq(quizShareLinks.id, shareLink.id));
+
+    // Get quiz details
+    const [quiz] = await db
+      .select()
+      .from(quizzes)
+      .where(eq(quizzes.id, shareLink.quizId));
+
+    if (!quiz || quiz.status !== 'published') {
+      return NextResponse.json(
+        { error: "Quiz not available" },
+        { status: 404 }
+      );
+    }
+
+    // Get educator info
+    const [educator] = await db
+      .select({
+        name: user.name,
+        email: user.email
+      })
+      .from(user)
+      .where(eq(user.id, quiz.educatorId));
+
+    // Check if user is authenticated
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    interface QuizShareResponse {
+      id: string;
+      title: string;
+      description: string | null;
+      totalQuestions: number;
+      duration: number;
+      educatorName: string;
+      isEnrolled: boolean;
+      requiresAuth: boolean;
+      hasEducatorRelation?: boolean;
+      invitationToken?: string;
+    }
+    
+    const response: QuizShareResponse = {
+      id: quiz.id,
+      title: quiz.title,
+      description: quiz.description,
+      totalQuestions: quiz.totalQuestions,
+      duration: quiz.duration,
+      educatorName: educator?.name || "Educator",
+      isEnrolled: false,
+      requiresAuth: !session?.user
+    };
+
+    if (session?.user) {
+      // Check if user is a student
+      if (session.user.role !== 'student') {
+        return NextResponse.json(
+          { error: "Only students can access quiz through share links" },
+          { status: 403 }
+        );
+      }
+
+      const studentId = session.user.id;
+
+      // Check if student is enrolled in the quiz
+      const [enrollment] = await db
+        .select()
+        .from(enrollments)
+        .where(
+          and(
+            eq(enrollments.quizId, quiz.id),
+            eq(enrollments.studentId, studentId)
+          )
+        );
+
+      response.isEnrolled = !!enrollment;
+
+      // Check if student is connected to educator
+      const [educatorRelation] = await db
+        .select()
+        .from(educatorStudents)
+        .where(
+          and(
+            eq(educatorStudents.studentId, studentId),
+            eq(educatorStudents.educatorId, quiz.educatorId)
+          )
+        );
+
+      response.hasEducatorRelation = !!educatorRelation;
+    } else {
+      // For non-authenticated users, we need to create an invitation token
+      // so they can sign up and get auto-enrolled
+      const invitationToken = crypto.randomBytes(32).toString('hex');
+      const invitationId = crypto.randomUUID();
+      
+      // Get user's email from query params if provided (for pre-filled signup)
+      // Ignore UTM parameters  
+      const email = req.nextUrl.searchParams.get('email');
+      
+      if (email) {
+        // Create invitation for this specific email
+        await db.insert(invitations).values({
+          id: invitationId,
+          educatorId: quiz.educatorId,
+          quizId: quiz.id,
+          email: email.toLowerCase().trim(),
+          token: invitationToken,
+          status: 'pending',
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          createdAt: new Date()
+        });
+        
+        response.invitationToken = invitationToken;
+      }
+    }
+
+    return NextResponse.json(response);
+
+  } catch (error) {
+    console.error("Error fetching quiz info:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch quiz information" },
+      { status: 500 }
+    );
+  }
+}

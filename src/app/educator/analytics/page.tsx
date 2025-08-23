@@ -13,15 +13,11 @@ import {
   Users,
   BookOpen,
   Trophy,
-  Clock,
   CheckCircle,
-  XCircle,
   AlertTriangle,
   Target,
   Brain,
   Award,
-  Calendar,
-  Filter,
   Download,
 } from "lucide-react";
 

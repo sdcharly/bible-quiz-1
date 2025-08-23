@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest) {
     // Get cache metrics
     const cacheMetrics = Cache.getMetrics();
     
-    // Test Redis connection
+    // Test Redis connection and get actual latency
     let redisStatus = {
       connected: false,
       latency: 0,
@@ -26,11 +26,19 @@ export async function GET(_req: NextRequest) {
     };
 
     try {
-      const start = Date.now();
-      const isConnected = await redisClient.ping();
+      const isConnected = redisClient.isReady();
+      let latency = 0;
+      
+      // Perform actual Redis ping to get real latency
+      if (isConnected) {
+        const start = Date.now();
+        await redisClient.get('ping:test');
+        latency = Date.now() - start;
+      }
+      
       redisStatus = {
         connected: isConnected,
-        latency: Date.now() - start,
+        latency: latency,
         error: null,
       };
     } catch (error) {
@@ -48,7 +56,7 @@ export async function GET(_req: NextRequest) {
       },
       configuration: {
         redisUrl: process.env.REDIS_URL ? "Configured" : "Not configured",
-        upstashUrl: process.env.UPSTASH_REDIS_REST_URL ? "Configured" : "Not configured",
+        upstashUrl: process.env.UPSTASH_REDIS_REST_URL ? "Configured (Serverless Redis)" : "Not configured",
         kvUrl: process.env.KV_URL ? "Configured" : "Not configured",
       },
       recommendations: getRecommendations(redisStatus.connected, cacheMetrics),
@@ -136,8 +144,13 @@ export async function POST(req: NextRequest) {
 function getRecommendations(isRedisConnected: boolean, metrics: ReturnType<typeof Cache.getMetrics>): string[] {
   const recommendations: string[] = [];
 
-  if (!isRedisConnected) {
-    recommendations.push("Redis is not connected. Configure REDIS_URL or UPSTASH_REDIS_REST_URL for better performance.");
+  // Check if any Redis configuration exists
+  const hasRedisConfig = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.KV_URL;
+  
+  if (!hasRedisConfig) {
+    recommendations.push("No Redis configuration found. Add REDIS_URL or UPSTASH_REDIS_REST_URL for persistent caching.");
+  } else if (!isRedisConnected) {
+    recommendations.push("Redis is configured but not connected. Check your Redis credentials and network connectivity.");
   }
 
   if (metrics?.memory?.hitRate) {
@@ -148,10 +161,15 @@ function getRecommendations(isRedisConnected: boolean, metrics: ReturnType<typeo
   }
 
   if (metrics?.redis?.avgLatency) {
-    const latency = parseFloat(metrics.redis.avgLatency);
+    const latency = parseInt(metrics.redis.avgLatency);
     if (latency > 100) {
-      recommendations.push(`Redis latency is high (${metrics.redis.avgLatency}). Consider using a Redis instance closer to your application.`);
+      recommendations.push(`Redis latency is high (${latency}ms). Consider using a Redis instance closer to your application.`);
     }
+  }
+
+  // Check if we have enough data for meaningful metrics
+  if (metrics?.redis?.totalOps !== undefined && metrics.redis.totalOps < 10) {
+    recommendations.push("Limited cache operations detected. Metrics will become more accurate with usage.");
   }
 
   if (recommendations.length === 0) {

@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { adminSettings, activityLogs } from "@/lib/schema";
+import { adminSettings } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { requireAdminAuth, logActivity } from "@/lib/admin-auth";
+import { getAdminSession, requireAdminAuth, logActivity } from "@/lib/admin-auth";
 import { clearMaintenanceCache } from "@/lib/maintenance";
+import { logger } from "@/lib/logger";
 
 export async function GET() {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/settings/system/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing GET src/app/api/admin/settings/system/route.ts`);
+
   try {
     // Use proper admin authentication
     const adminSession = await requireAdminAuth();
@@ -30,6 +42,17 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/settings/system/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing POST src/app/api/admin/settings/system/route.ts`);
+
   try {
     // Use proper admin authentication
     const adminSession = await requireAdminAuth();

@@ -2,8 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { getAdminSession } from "@/lib/admin-auth";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
+  // Verify admin authentication
+  const session = await getAdminSession();
+  if (!session) {
+    logger.warn("Unauthorized admin API access attempt to src/app/api/admin/check-user/route.ts");
+    return NextResponse.json(
+      { error: "Unauthorized - Admin access required" },
+      { status: 401 }
+    );
+  }
+  logger.log(`Admin ${session.email} accessing GET src/app/api/admin/check-user/route.ts`);
+
   try {
     const { searchParams } = new URL(req.url);
     const email = searchParams.get("email");

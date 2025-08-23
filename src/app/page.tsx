@@ -3,13 +3,10 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { 
-  BookOpenIcon, 
   UserGroupIcon, 
   ClockIcon, 
   ChartBarIcon, 
   DocumentTextIcon, 
-  CheckCircleIcon,
-  AcademicCapIcon,
   SparklesIcon,
   HeartIcon
 } from "@heroicons/react/24/outline";

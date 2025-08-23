@@ -9,8 +9,7 @@ import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, Search, UserCheck, UserX, Shield, 
   BookOpen, Users, Mail, Phone, Calendar, 
-  Edit, Ban, Unlock, ChevronDown, ChevronUp,
-  AlertTriangle
+  Edit, Ban, Unlock, ChevronDown, ChevronUp
 } from "lucide-react";
 
 interface Educator {
@@ -61,24 +60,6 @@ export default function EducatorsManagement({ educators }: EducatorsManagementPr
     return matchesSearch && matchesFilter;
   });
 
-  const handleUpdatePermissions = async (educatorId: string, permissions: Record<string, unknown>) => {
-    try {
-      const response = await fetch(`/api/admin/educators/${educatorId}/permissions`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ permissions }),
-      });
-
-      if (response.ok) {
-        window.location.reload();
-      } else {
-        const data = await response.json();
-        alert(`Failed to update permissions: ${data.error}`);
-      }
-    } catch (error) {
-      alert(`Error updating permissions: ${error}`);
-    }
-  };
 
   const handleSuspend = async (educatorId: string) => {
     if (!confirm("Are you sure you want to suspend this educator?")) return;
