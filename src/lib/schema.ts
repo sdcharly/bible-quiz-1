@@ -144,6 +144,20 @@ export const quizzes = pgTable("quizzes", {
   totalQuestions: integer("total_questions").notNull(),
   passingScore: real("passing_score").default(70),
   shuffleQuestions: boolean("shuffle_questions").default(false),
+  
+  // Phase 1: New columns for deferred time support
+  timeConfiguration: jsonb("time_configuration").$type<{
+    startTime?: string;
+    timezone?: string;
+    duration?: number;
+    configuredAt?: string;
+    configuredBy?: string;
+    isLegacy?: boolean;
+  }>(),
+  schedulingStatus: text("scheduling_status").default("legacy"),
+  scheduledBy: text("scheduled_by"),
+  scheduledAt: timestamp("scheduled_at"),
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

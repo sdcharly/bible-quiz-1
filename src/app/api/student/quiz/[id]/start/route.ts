@@ -277,10 +277,34 @@ export async function POST(
     // Check if quiz has started
     const now = new Date();
     if (quiz.startTime && now < quiz.startTime) {
+      // Format the start time in a user-friendly way
+      // Include timezone information from the quiz
+      const startTimeFormatted = quiz.startTime.toLocaleString('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: quiz.timezone || 'UTC'
+      });
+      
+      // Calculate time until quiz starts
+      const timeUntilStart = quiz.startTime.getTime() - now.getTime();
+      const hoursUntilStart = Math.floor(timeUntilStart / (1000 * 60 * 60));
+      const minutesUntilStart = Math.floor((timeUntilStart % (1000 * 60 * 60)) / (1000 * 60));
+      
+      let timeMessage = '';
+      if (hoursUntilStart > 0) {
+        timeMessage = `(in ${hoursUntilStart} hour${hoursUntilStart > 1 ? 's' : ''} and ${minutesUntilStart} minute${minutesUntilStart !== 1 ? 's' : ''})`;
+      } else if (minutesUntilStart > 0) {
+        timeMessage = `(in ${minutesUntilStart} minute${minutesUntilStart !== 1 ? 's' : ''})`;
+      } else {
+        timeMessage = '(starting soon)';
+      }
+      
       return NextResponse.json(
         { 
           error: "Quiz not started",
-          message: `This quiz will start at ${quiz.startTime.toLocaleString()}`
+          message: `This quiz will start at ${startTimeFormatted} ${timeMessage}`,
+          startTime: quiz.startTime.toISOString(),
+          timezone: quiz.timezone || 'UTC'
         },
         { status: 425 }
       );

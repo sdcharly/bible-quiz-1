@@ -113,17 +113,24 @@ export default function OptimizedQuizTakingPage() {
             setAttemptId(data.attemptId);
             setLoading(false);
           } else {
-            alert(data.message || "Cannot start quiz");
-            router.push("/student/quizzes");
+            if (mounted) {
+              setLoading(false);
+              alert(data.message || "Cannot start quiz");
+              router.push("/student/quizzes");
+            }
           }
         } else {
           const data = await response.json();
-          alert(data.message || "Failed to load quiz");
-          router.push("/student/quizzes");
+          if (mounted) {
+            setLoading(false);
+            alert(data.message || "Failed to load quiz");
+            router.push("/student/quizzes");
+          }
         }
       } catch (error) {
         logger.error("Error loading quiz:", error);
         if (mounted) {
+          setLoading(false);
           alert("Network error. Please check your connection and try again.");
           router.push("/student/quizzes");
         }
@@ -304,7 +311,7 @@ export default function OptimizedQuizTakingPage() {
   }, []);
 
   // Early returns for loading and error states
-  if (loading) {
+  if (loading || !quiz) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
