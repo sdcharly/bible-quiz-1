@@ -301,13 +301,13 @@ export function migrateLegacyQuizTime(quiz: QuizSchedulingInfo & Record<string, 
       ...quiz,
       schedulingStatus: 'legacy',
       timeConfiguration: quiz.timeConfiguration || {
-        startTime: quiz.startTime?.toISOString(),
-        timezone: quiz.timezone,
+        startTime: quiz.startTime instanceof Date ? quiz.startTime.toISOString() : undefined,
+        timezone: quiz.timezone || 'UTC',
         duration: quiz.duration,
-        configuredAt: quiz.createdAt?.toISOString(),
-        configuredBy: quiz.educatorId,
+        configuredAt: quiz.createdAt instanceof Date ? quiz.createdAt.toISOString() : null,
+        configuredBy: quiz.educatorId || null,
         isLegacy: true
-      }
+      } as TimeConfiguration
     };
   }
   return quiz;
