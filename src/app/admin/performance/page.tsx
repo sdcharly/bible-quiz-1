@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/loading";
@@ -21,7 +22,8 @@ import {
   Globe,
   Gauge,
   Wifi,
-  WifiOff
+  WifiOff,
+  ArrowLeft
 } from "lucide-react";
 
 interface WebVitalsData {
@@ -52,6 +54,7 @@ interface ApplicationMetrics {
 }
 
 export default function PerformanceDashboard() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [webVitals, setWebVitals] = useState<WebVitalsData[]>([]);
   const [dbMetrics, setDbMetrics] = useState<DatabaseMetrics | null>(null);
@@ -425,14 +428,27 @@ export default function PerformanceDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Performance Dashboard</h1>
-              <p className="text-gray-600 mt-2">Monitor application and database performance metrics</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.back()}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <Gauge className="h-6 w-6 text-purple-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  Performance Dashboard
+                </h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Monitor application and database performance metrics</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-200">
@@ -458,7 +474,9 @@ export default function PerformanceDashboard() {
             </div>
           </div>
         </div>
+      </header>
 
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Web Vitals Section */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -906,7 +924,7 @@ export default function PerformanceDashboard() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
