@@ -99,3 +99,4 @@ scripts/                 # Development scripts
 - Always check the TODO list before starting new work
 - Run tests after making changes
 - the production domain of this app is https://biblequiz.textr.in
+- Must always check for type errors,Hook dependency issues after you made change in the code. I dont want to fail on deployment.

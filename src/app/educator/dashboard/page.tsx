@@ -64,6 +64,7 @@ export default function EducatorDashboard() {
     activeQuizzes: 0,
     totalStudents: 0,
     totalDocuments: 0,
+    totalGroups: 0,
   });
   const [performanceData, setPerformanceData] = useState<PerformanceData>({
     averageScore: 0,
@@ -135,6 +136,15 @@ export default function EducatorDashboard() {
         setStats(prev => ({
           ...prev,
           totalDocuments: docsData.documents?.length || 0
+        }));
+      }
+
+      const groupsResponse = await fetch('/api/educator/groups');
+      if (groupsResponse.ok) {
+        const groupsData = await groupsResponse.json();
+        setStats(prev => ({
+          ...prev,
+          totalGroups: groupsData.groups?.length || 0
         }));
       }
     } catch (error) {
@@ -267,6 +277,12 @@ export default function EducatorDashboard() {
               </p>
             </div>
             <div className="flex gap-3">
+              <Link href="/educator/groups">
+                <Button variant="outline">
+                  <UserGroupIcon className="h-4 w-4 mr-2" />
+                  Manage Groups
+                </Button>
+              </Link>
               <Link href="/educator/students">
                 <Button variant="outline">
                   <UserGroupIcon className="h-4 w-4 mr-2" />
@@ -404,12 +420,44 @@ export default function EducatorDashboard() {
                   </div>
                 </div>
               </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <UserGroupIcon className="h-8 w-8 text-purple-600 opacity-60" />
+                  <div>
+                    <p className="text-2xl font-heading font-bold">{stats.totalGroups}</p>
+                    <p className="text-xs font-body text-gray-600">Student Groups</p>
+                  </div>
+                </div>
+                {stats.totalGroups > 0 && (
+                  <Link href="/educator/groups">
+                    <ChevronRightIcon className="h-4 w-4 text-purple-600 hover:text-purple-700" />
+                  </Link>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <Link href="/educator/groups">
+            <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-purple-500">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <UserGroupIcon className="h-8 w-8 text-purple-600 mb-2" />
+                    <h3 className="font-heading font-semibold">Student Groups</h3>
+                    <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">
+                      Organize disciples
+                    </p>
+                  </div>
+                  <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
           <Link href="/educator/analytics">
             <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-amber-500">
               <CardContent className="p-6">
@@ -418,7 +466,7 @@ export default function EducatorDashboard() {
                     <ChartBarIcon className="h-8 w-8 text-amber-600 mb-2" />
                     <h3 className="font-heading font-semibold">Wisdom Analytics</h3>
                     <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">
-                      View enlightenment insights
+                      View insights
                     </p>
                   </div>
                   <ChevronRightIcon className="h-5 w-5 text-gray-400" />

@@ -85,6 +85,13 @@
       "when": 1755924056233,
       "tag": "0011_mixed_paper_doll",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1755928221239,
+      "tag": "0012_living_sumo",
+      "breakpoints": true
     }
   ]
 }

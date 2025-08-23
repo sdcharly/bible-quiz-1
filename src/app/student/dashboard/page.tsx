@@ -6,6 +6,7 @@ import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { isStudent } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
+import { GroupInfo } from "@/components/student/GroupInfo";
 import { 
   BookOpen,
   Trophy,
@@ -154,6 +155,11 @@ export default function StudentDashboard() {
               <Calendar className="h-12 w-12 text-purple-600 opacity-20" />
             </div>
           </div>
+        </div>
+
+        {/* Groups Section */}
+        <div className="mt-8">
+          <GroupInfo />
         </div>
 
         {/* Main Content Grid */}

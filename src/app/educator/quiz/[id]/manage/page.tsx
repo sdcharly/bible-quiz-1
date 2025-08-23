@@ -89,6 +89,14 @@ export default function QuizManagePage() {
   const [enrollmentStats, setEnrollmentStats] = useState({ total: 0, enrolled: 0 });
   const [sendNotifications, setSendNotifications] = useState(true);
   
+  // Group assignment states
+  const [showGroupAssign, setShowGroupAssign] = useState(false);
+  const [groups, setGroups] = useState<{id: string, name: string, memberCount: number}[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [excludedGroupStudents, setExcludedGroupStudents] = useState<Set<string>>(new Set());
+  const [groupMembers, setGroupMembers] = useState<{studentId: string, name: string, email: string}[]>([]);
+  const [assigningGroup, setAssigningGroup] = useState(false);
+  
   // Reassignment states
   const [showReassignDialog, setShowReassignDialog] = useState(false);
   const [reassignmentStudents, setReassignmentStudents] = useState<ReassignmentStudent[]>([]);
@@ -98,9 +106,14 @@ export default function QuizManagePage() {
   const [loadingReassignment, setLoadingReassignment] = useState(false);
 
   useEffect(() => {
-    fetchQuizDetails();
-    fetchEnrolledStudents();
-    fetchAvailableStudents();
+    const loadData = async () => {
+      await fetchQuizDetails();
+      await fetchEnrolledStudents();
+      await fetchAvailableStudents();
+      await fetchGroups();
+    };
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizId]);
 
   const fetchQuizDetails = async () => {
@@ -139,6 +152,69 @@ export default function QuizManagePage() {
       console.error("Error fetching available students:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchGroups = async () => {
+    try {
+      const response = await fetch("/api/educator/groups");
+      if (response.ok) {
+        const data = await response.json();
+        setGroups(data.groups || []);
+      }
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+    }
+  };
+
+  const fetchGroupMembers = async (groupId: string) => {
+    try {
+      const response = await fetch(`/api/educator/groups/${groupId}/members`);
+      if (response.ok) {
+        const data = await response.json();
+        setGroupMembers(data.members || []);
+      }
+    } catch (error) {
+      console.error("Error fetching group members:", error);
+    }
+  };
+
+  const handleGroupAssign = async () => {
+    if (!selectedGroupId) {
+      alert("Please select a group");
+      return;
+    }
+
+    setAssigningGroup(true);
+    try {
+      const response = await fetch(`/api/educator/quiz/${quizId}/assign-group`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupId: selectedGroupId,
+          sendNotifications,
+          excludedStudentIds: Array.from(excludedGroupStudents)
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(data.message);
+        setShowGroupAssign(false);
+        setSelectedGroupId("");
+        setExcludedGroupStudents(new Set());
+        setGroupMembers([]);
+        fetchEnrolledStudents();
+        fetchAvailableStudents();
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to assign quiz to group");
+      }
+    } catch (error) {
+      console.error("Error assigning quiz to group:", error);
+      alert("Error assigning quiz to group");
+    } finally {
+      setAssigningGroup(false);
     }
   };
 
@@ -366,11 +442,20 @@ export default function QuizManagePage() {
                 Reassign Quiz
               </Button>
               <Button 
+                onClick={() => setShowGroupAssign(true)}
+                variant="outline"
+                size="sm"
+                disabled={groups.length === 0}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Assign to Group
+              </Button>
+              <Button 
                 onClick={() => setShowBulkEnroll(true)}
                 size="sm"
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                <Users className="h-4 w-4 mr-2" />
+                <UserPlus className="h-4 w-4 mr-2" />
                 Assign Students
               </Button>
             </div>
@@ -803,6 +888,122 @@ export default function QuizManagePage() {
                   </Button>
                 </div>
               </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Group Assignment Dialog */}
+        <Dialog open={showGroupAssign} onOpenChange={setShowGroupAssign}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Assign Quiz to Group</DialogTitle>
+              <DialogDescription>
+                Assign this quiz to all members of a group at once
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Group Selection */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Select Group</label>
+                <select
+                  className="w-full px-3 py-2 border rounded-md"
+                  value={selectedGroupId}
+                  onChange={(e) => {
+                    setSelectedGroupId(e.target.value);
+                    if (e.target.value) {
+                      fetchGroupMembers(e.target.value);
+                    } else {
+                      setGroupMembers([]);
+                    }
+                  }}
+                >
+                  <option value="">Choose a group...</option>
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name} ({group.memberCount} members)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Group Members Preview */}
+              {groupMembers.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Group Members ({groupMembers.length})
+                  </label>
+                  <div className="border rounded-lg max-h-48 overflow-y-auto p-2">
+                    {groupMembers.map((member) => (
+                      <div 
+                        key={member.studentId}
+                        className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded"
+                      >
+                        <Checkbox
+                          checked={!excludedGroupStudents.has(member.studentId)}
+                          onCheckedChange={(checked) => {
+                            const newExcluded = new Set(excludedGroupStudents);
+                            if (checked) {
+                              newExcluded.delete(member.studentId);
+                            } else {
+                              newExcluded.add(member.studentId);
+                            }
+                            setExcludedGroupStudents(newExcluded);
+                          }}
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium">{member.name}</div>
+                          <div className="text-sm text-gray-500">{member.email}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {excludedGroupStudents.size > 0 && (
+                    <p className="text-sm text-yellow-600 mt-2">
+                      {excludedGroupStudents.size} student(s) will be excluded from this assignment
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Notification Option */}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="groupNotifications"
+                  checked={sendNotifications}
+                  onCheckedChange={(checked) => setSendNotifications(checked as boolean)}
+                />
+                <label 
+                  htmlFor="groupNotifications" 
+                  className="text-sm font-medium leading-none"
+                >
+                  Send email notifications to group members
+                </label>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setShowGroupAssign(false);
+                setSelectedGroupId("");
+                setExcludedGroupStudents(new Set());
+                setGroupMembers([]);
+              }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleGroupAssign}
+                disabled={assigningGroup || !selectedGroupId}
+              >
+                {assigningGroup ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Assigning...
+                  </>
+                ) : (
+                  `Assign to Group`
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

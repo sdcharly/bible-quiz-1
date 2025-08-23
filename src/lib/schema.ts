@@ -164,6 +164,31 @@ export const questions = pgTable("questions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Student groups for better organization (moved before enrollments for reference)
+export const studentGroups = pgTable("student_groups", {
+  id: text("id").primaryKey(),
+  educatorId: text("educator_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  theme: text("theme").notNull().default("biblical"), // Theme for group naming
+  color: text("color").default("#3B82F6"), // For UI distinction
+  maxSize: integer("max_size").default(30),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Group enrollments for tracking group-based quiz assignments (moved before enrollments for reference)
+export const groupEnrollments = pgTable("group_enrollments", {
+  id: text("id").primaryKey(),
+  groupId: text("group_id").notNull().references(() => studentGroups.id, { onDelete: "cascade" }),
+  quizId: text("quiz_id").notNull().references(() => quizzes.id, { onDelete: "cascade" }),
+  enrolledBy: text("enrolled_by").notNull().references(() => user.id),
+  enrolledAt: timestamp("enrolled_at").notNull().defaultNow(),
+  sendNotifications: boolean("send_notifications").default(true),
+  excludedStudentIds: jsonb("excluded_student_ids").$type<string[]>().default([]), // Students to exclude from this group enrollment
+});
+
 export const enrollments = pgTable("enrollments", {
   id: text("id").primaryKey(),
   quizId: text("quiz_id").notNull().references(() => quizzes.id, { onDelete: "cascade" }),
@@ -172,6 +197,8 @@ export const enrollments = pgTable("enrollments", {
   status: enrollmentStatusEnum("status").notNull().default("enrolled"),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
+  // Group enrollment tracking
+  groupEnrollmentId: text("group_enrollment_id").references(() => groupEnrollments.id),
   // Reassignment tracking fields
   isReassignment: boolean("is_reassignment").default(false),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -266,4 +293,17 @@ export const quizShareLinks = pgTable("quiz_share_links", {
   clickCount: integer("click_count").default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Group members (many-to-many relationship)
+export const groupMembers = pgTable("group_members", {
+  id: text("id").primaryKey(),
+  groupId: text("group_id").notNull().references(() => studentGroups.id, { onDelete: "cascade" }),
+  studentId: text("student_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  joinedAt: timestamp("joined_at").notNull().defaultNow(),
+  role: text("role").notNull().default("member"), // member, leader (future)
+  isActive: boolean("is_active").default(true),
+  addedBy: text("added_by").notNull().references(() => user.id),
+  removedAt: timestamp("removed_at"),
+  removedBy: text("removed_by").references(() => user.id),
 });
