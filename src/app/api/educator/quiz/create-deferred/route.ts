@@ -95,14 +95,10 @@ export async function POST(req: NextRequest) {
         duration,
         configuredAt: null,
         configuredBy: null,
-        isLegacy: false
+        isLegacy: false,
+        // If time was provided (shouldn't happen in deferred mode), store it but don't use it
+        ...(startTime ? { providedStartTime: startTime, providedTimezone: timezone } : {})
       };
-      
-      // If time was provided (shouldn't happen in deferred mode), store it but don't use it
-      if (startTime) {
-        timeConfiguration.providedStartTime = startTime;
-        timeConfiguration.providedTimezone = timezone;
-      }
     } else {
       // LEGACY MODE: Require time at creation (backward compatible)
       if (!startTime) {
