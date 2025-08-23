@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { TimezoneSelector } from "@/components/ui/timezone-selector";
 import { authClient } from "@/lib/auth-client";
 import { getTimezoneInfo } from "@/lib/timezone";
@@ -170,40 +172,43 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email Address
-              </label>
-              <input
+              </Label>
+              <Input
+                id="email"
                 type="email"
                 value={user?.email || ""}
                 disabled
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                className="mt-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
               />
               <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Full Name
-              </label>
-              <input
+              </Label>
+              <Input
+                id="name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-amber-500 focus:border-amber-500 dark:bg-gray-800 dark:text-white"
+                className="mt-1 focus:ring-amber-500 focus:border-amber-500 dark:bg-gray-800 dark:text-white"
                 placeholder="Enter your full name"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <Label htmlFor="phone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Phone Number
-              </label>
-              <input
+              </Label>
+              <Input
+                id="phone"
                 type="tel"
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-amber-500 focus:border-amber-500 dark:bg-gray-800 dark:text-white"
+                className="mt-1 focus:ring-amber-500 focus:border-amber-500 dark:bg-gray-800 dark:text-white"
                 placeholder="+91 98765 43210"
               />
             </div>

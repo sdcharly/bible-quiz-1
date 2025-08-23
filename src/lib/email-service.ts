@@ -561,6 +561,417 @@ United in Christ, growing in wisdom
     return { subject, html, text };
   },
 
+  // Quiz enrollment notification (for both individual and group enrollments)
+  quizEnrollmentNotification: (
+    studentName: string, 
+    educatorName: string, 
+    quizTitle: string, 
+    quizDescription: string | null,
+    questionCount: number,
+    duration: number,
+    startTime: Date,
+    groupName?: string
+  ) => {
+    const subject = `📜 New Biblical Quest: "${quizTitle}" Awaits You!`;
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { 
+            font-family: 'Georgia', 'Times New Roman', serif; 
+            line-height: 1.6; 
+            color: #451a03;
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            margin: 0;
+            padding: 20px;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(146, 64, 14, 0.1);
+            overflow: hidden;
+          }
+          .header { 
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center;
+            position: relative;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(146, 64, 14, 0.3);
+          }
+          .content { 
+            background-color: #fffbeb; 
+            padding: 30px; 
+            border-left: 4px solid #f59e0b;
+            border-right: 4px solid #f59e0b;
+          }
+          .content h2 {
+            color: #92400e;
+            font-size: 22px;
+            margin-top: 0;
+          }
+          .quiz-details {
+            background: linear-gradient(135deg, #fff 0%, #fef3c7 100%);
+            padding: 20px;
+            border-left: 4px solid #d97706;
+            margin: 20px 0;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(146, 64, 14, 0.1);
+          }
+          .quiz-details h3 {
+            color: #92400e;
+            margin-top: 0;
+            font-size: 20px;
+          }
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #fed7aa;
+          }
+          .detail-row:last-child {
+            border-bottom: none;
+          }
+          .detail-label {
+            font-weight: bold;
+            color: #78350f;
+          }
+          .detail-value {
+            color: #92400e;
+          }
+          .scripture-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #d97706;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+            color: #78350f;
+            border-radius: 4px;
+          }
+          .group-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 10px 0;
+          }
+          .button { 
+            display: inline-block; 
+            padding: 14px 32px; 
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(217, 119, 6, 0.3);
+            transition: all 0.3s ease;
+          }
+          .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(217, 119, 6, 0.4);
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px;
+            background: #fef3c7;
+            color: #92400e; 
+            font-size: 14px;
+            border-top: 2px solid #f59e0b;
+          }
+          .divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>📖 Sacred Quest Assignment</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">A New Biblical Challenge Awaits</p>
+          </div>
+          <div class="content">
+            <h2>Blessed Greetings, ${studentName}!</h2>
+            
+            <p>Your spiritual guide, <strong>${educatorName}</strong>, has lovingly prepared a new quest to deepen your understanding of God's Word.</p>
+            
+            ${groupName ? `<div class="group-badge">🕊️ Assigned to: ${groupName} Fellowship</div>` : ''}
+            
+            <div class="quiz-details">
+              <h3>📜 ${quizTitle}</h3>
+              ${quizDescription ? `<p style="color: #78350f; margin: 10px 0;">${quizDescription}</p>` : ''}
+              
+              <div class="detail-row">
+                <span class="detail-label">📊 Number of Questions:</span>
+                <span class="detail-value">${questionCount}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">⏱️ Duration:</span>
+                <span class="detail-value">${duration} minutes</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">📅 Start Time:</span>
+                <span class="detail-value">${startTime.toLocaleString()}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">🎯 Enrolled by:</span>
+                <span class="detail-value">${educatorName}</span>
+              </div>
+            </div>
+            
+            <div class="scripture-box">
+              <p>"Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth." - 2 Timothy 2:15</p>
+            </div>
+            
+            <p style="color: #78350f;">This sacred assessment will be available in your study hall when the appointed time arrives. Prepare your heart and mind for this blessed opportunity to demonstrate your growing wisdom in Scripture.</p>
+            
+            <div style="text-align: center;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard" class="button" style="color: white; text-decoration: none;">📚 Visit Your Study Hall</a>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p style="text-align: center; color: #b45309; font-style: italic;">
+              "Let the word of Christ dwell in you richly in all wisdom" - Colossians 3:16
+            </p>
+          </div>
+          <div class="footer">
+            <p style="margin: 5px 0;">✝️ May your studies be blessed with divine understanding</p>
+            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+            <p style="margin: 5px 0; font-size: 12px;">Growing in faith through sacred learning</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+Blessed Greetings, ${studentName}!
+
+Your spiritual guide, ${educatorName}, has lovingly prepared a new quest: "${quizTitle}"
+
+${groupName ? `Assigned to: ${groupName} Fellowship\n` : ''}
+${quizDescription ? `\n${quizDescription}\n` : ''}
+
+Quest Details:
+- Number of Questions: ${questionCount}
+- Duration: ${duration} minutes
+- Start Time: ${startTime.toLocaleString()}
+- Enrolled by: ${educatorName}
+
+"Study to shew thyself approved unto God" - 2 Timothy 2:15
+
+Visit your study hall when the quest becomes available:
+${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard
+
+May your studies be blessed with divine understanding.
+
+Scrolls of Wisdom - Your Biblical Knowledge Quest
+Growing in faith through sacred learning
+    `;
+
+    return { subject, html, text };
+  },
+
+  // Quiz reassignment notification
+  quizReassignmentNotification: (
+    studentName: string,
+    educatorName: string,
+    quizTitle: string,
+    reason: string,
+    newDeadline?: Date
+  ) => {
+    const subject = `🔄 Sacred Quest Renewed: "${quizTitle}" - A Second Blessing`;
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { 
+            font-family: 'Georgia', 'Times New Roman', serif; 
+            line-height: 1.6; 
+            color: #451a03;
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            margin: 0;
+            padding: 20px;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(146, 64, 14, 0.1);
+            overflow: hidden;
+          }
+          .header { 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center;
+            position: relative;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(5, 150, 105, 0.3);
+          }
+          .content { 
+            background-color: #fffbeb; 
+            padding: 30px; 
+            border-left: 4px solid #10b981;
+            border-right: 4px solid #10b981;
+          }
+          .content h2 {
+            color: #92400e;
+            font-size: 22px;
+            margin-top: 0;
+          }
+          .reason-box {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            padding: 15px;
+            border-left: 4px solid #10b981;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .deadline-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            padding: 15px;
+            border-left: 4px solid #f59e0b;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .scripture-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #d97706;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+            color: #78350f;
+            border-radius: 4px;
+          }
+          .button { 
+            display: inline-block; 
+            padding: 14px 32px; 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+          }
+          .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(16, 185, 129, 0.4);
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px;
+            background: #dcfce7;
+            color: #14532d; 
+            font-size: 14px;
+            border-top: 2px solid #10b981;
+          }
+          .divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #10b981, transparent);
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🕊️ Grace Extended</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">A New Opportunity Awaits</p>
+          </div>
+          <div class="content">
+            <h2>Beloved ${studentName},</h2>
+            
+            <p>Good news! Your spiritual mentor, <strong>${educatorName}</strong>, has graciously granted you another opportunity to complete the sacred quest.</p>
+            
+            <h3 style="color: #92400e; margin-top: 20px;">📜 ${quizTitle}</h3>
+            
+            <div class="reason-box">
+              <p style="margin: 0; color: #14532d;"><strong>Reason for this blessing:</strong></p>
+              <p style="margin: 5px 0 0 0; color: #166534;">${reason}</p>
+            </div>
+            
+            ${newDeadline ? `
+            <div class="deadline-box">
+              <p style="margin: 0; color: #78350f;"><strong>⏰ New Completion Time:</strong></p>
+              <p style="margin: 5px 0 0 0; color: #92400e;">${newDeadline.toLocaleString()}</p>
+            </div>
+            ` : ''}
+            
+            <div class="scripture-box">
+              <p>"The Lord is gracious and compassionate, slow to anger and rich in love." - Psalm 145:8</p>
+            </div>
+            
+            <p style="color: #78350f;">This renewed quest offers you a fresh opportunity to demonstrate your growing understanding of Scripture. The questions will be presented in a different order, providing a new perspective on the sacred material.</p>
+            
+            <p style="color: #78350f; font-weight: bold;">Remember: Each attempt is a chance to grow stronger in faith and wisdom.</p>
+            
+            <div style="text-align: center;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard" class="button" style="color: white; text-decoration: none;">🎯 Begin Your Renewed Quest</a>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p style="text-align: center; color: #b45309; font-style: italic;">
+              "His mercies are new every morning; great is thy faithfulness." - Lamentations 3:23
+            </p>
+          </div>
+          <div class="footer">
+            <p style="margin: 5px 0;">✝️ Walking in grace and second chances</p>
+            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+            <p style="margin: 5px 0; font-size: 12px;">Every attempt brings you closer to wisdom</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+Beloved ${studentName},
+
+Good news! ${educatorName} has graciously granted you another opportunity to complete: "${quizTitle}"
+
+Reason for this blessing: ${reason}
+
+${newDeadline ? `New Completion Time: ${newDeadline.toLocaleString()}\n` : ''}
+
+"The Lord is gracious and compassionate, slow to anger and rich in love." - Psalm 145:8
+
+This renewed quest offers a fresh opportunity to demonstrate your biblical understanding.
+
+Begin your renewed quest at:
+${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard
+
+Walking in grace and second chances.
+
+Scrolls of Wisdom - Your Biblical Knowledge Quest
+Every attempt brings you closer to wisdom
+    `;
+
+    return { subject, html, text };
+  },
+
   // Educator approval notification
   educatorApprovalNotification: (educatorName: string, _educatorEmail: string) => {
     const subject = `🎉 Hallelujah! Your Educator Account Has Been Approved`;

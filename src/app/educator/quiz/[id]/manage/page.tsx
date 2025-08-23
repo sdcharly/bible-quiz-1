@@ -9,6 +9,13 @@ import { formatDateInTimezone } from "@/lib/timezone";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -160,7 +167,17 @@ export default function QuizManagePage() {
       const response = await fetch("/api/educator/groups");
       if (response.ok) {
         const data = await response.json();
-        setGroups(data.groups || []);
+        // Ensure each group has memberCount, default to 0 if missing
+        const groupsWithCounts = (data.groups || []).map((group: {
+          id: string;
+          name: string;
+          memberCount?: number;
+          [key: string]: unknown;
+        }) => ({
+          ...group,
+          memberCount: group.memberCount || 0
+        }));
+        setGroups(groupsWithCounts);
       }
     } catch (error) {
       console.error("Error fetching groups:", error);
@@ -206,6 +223,8 @@ export default function QuizManagePage() {
         setGroupMembers([]);
         fetchEnrolledStudents();
         fetchAvailableStudents();
+        // Refresh groups to update member counts
+        fetchGroups();
       } else {
         const error = await response.json();
         alert(error.error || "Failed to assign quiz to group");
@@ -442,7 +461,10 @@ export default function QuizManagePage() {
                 Reassign Quiz
               </Button>
               <Button 
-                onClick={() => setShowGroupAssign(true)}
+                onClick={() => {
+                  fetchGroups(); // Refresh groups when opening dialog
+                  setShowGroupAssign(true);
+                }}
                 variant="outline"
                 size="sm"
                 disabled={groups.length === 0}
@@ -906,25 +928,28 @@ export default function QuizManagePage() {
               {/* Group Selection */}
               <div>
                 <label className="text-sm font-medium mb-2 block">Select Group</label>
-                <select
-                  className="w-full px-3 py-2 border rounded-md"
+                <Select
                   value={selectedGroupId}
-                  onChange={(e) => {
-                    setSelectedGroupId(e.target.value);
-                    if (e.target.value) {
-                      fetchGroupMembers(e.target.value);
+                  onValueChange={(value) => {
+                    setSelectedGroupId(value);
+                    if (value) {
+                      fetchGroupMembers(value);
                     } else {
                       setGroupMembers([]);
                     }
                   }}
                 >
-                  <option value="">Choose a group...</option>
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name} ({group.memberCount} members)
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose a group..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {groups.map((group) => (
+                      <SelectItem key={group.id} value={group.id}>
+                        {group.name} ({group.memberCount} members)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Group Members Preview */}

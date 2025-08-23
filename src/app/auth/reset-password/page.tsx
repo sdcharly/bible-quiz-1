@@ -4,6 +4,8 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { BookOpenIcon as BookOpenSolid } from "@heroicons/react/24/solid";
 import { ArrowPathIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
@@ -173,18 +175,18 @@ function ResetPasswordContent() {
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   New Password
-                </label>
+                </Label>
                 <div className="mt-1 relative">
-                  <input
+                  <Input
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                    className="pr-10 dark:bg-gray-800 dark:text-white focus:ring-amber-500 focus:border-amber-500"
                     placeholder="Enter new password"
                     minLength={8}
                   />
@@ -203,18 +205,18 @@ function ResetPasswordContent() {
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Confirm Password
-                </label>
+                </Label>
                 <div className="mt-1 relative">
-                  <input
+                  <Input
                     id="confirmPassword"
                     name="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                    className="pr-10 dark:bg-gray-800 dark:text-white focus:ring-amber-500 focus:border-amber-500"
                     placeholder="Confirm new password"
                     minLength={8}
                   />

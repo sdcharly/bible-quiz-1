@@ -5,7 +5,7 @@ import { eq, and, inArray, notInArray } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import { sendEmail } from "@/lib/email-service";
+import { sendEmail, emailTemplates } from "@/lib/email-service";
 
 export async function POST(
   req: NextRequest,
@@ -173,23 +173,22 @@ export async function POST(
 
       for (const member of newEnrollments) {
         try {
+          const emailContent = emailTemplates.quizEnrollmentNotification(
+            member.name,
+            educatorData[0]?.name || 'Your Educator',
+            quiz[0].title,
+            quiz[0].description,
+            quiz[0].totalQuestions,
+            quiz[0].duration,
+            new Date(quiz[0].startTime),
+            group[0].name
+          );
+          
           await sendEmail({
             to: member.email,
-            subject: `You've been enrolled in: ${quiz[0].title}`,
-            html: `
-              <h2>Quiz Enrollment Notification</h2>
-              <p>Dear ${member.name},</p>
-              <p>You have been enrolled in the following quiz as part of the <strong>${group[0].name}</strong> group:</p>
-              <h3>${quiz[0].title}</h3>
-              <p><strong>Description:</strong> ${quiz[0].description || 'N/A'}</p>
-              <p><strong>Number of Questions:</strong> ${quiz[0].totalQuestions}</p>
-              <p><strong>Duration:</strong> ${quiz[0].duration} minutes</p>
-              <p><strong>Start Time:</strong> ${new Date(quiz[0].startTime).toLocaleString()}</p>
-              <p><strong>Enrolled by:</strong> ${educatorData[0]?.name || 'Your Educator'}</p>
-              <br>
-              <p>You can access the quiz from your student dashboard when it becomes available.</p>
-              <p>Best wishes for your studies!</p>
-            `
+            subject: emailContent.subject,
+            html: emailContent.html,
+            text: emailContent.text
           });
           notificationsSent++;
         } catch (emailError) {

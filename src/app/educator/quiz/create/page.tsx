@@ -4,15 +4,30 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
   DocumentTextIcon,
   CheckCircleIcon,
   ArrowPathIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
   BookmarkIcon,
+  CheckIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/solid";
 import { TimezoneSelector } from "@/components/ui/timezone-selector";
 import { useTimezone } from "@/hooks/useTimezone";
@@ -71,6 +86,9 @@ function CreateQuizContent() {
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isCompletingRef = useRef(false);
   const isSubmittingRef = useRef(false);
+  const hasShownErrorRef = useRef(false);
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 3;
   const [documents, setDocuments] = useState<Document[]>([]);
   const [config, setConfig] = useState<QuizConfig>({
     title: "",
@@ -80,7 +98,7 @@ function CreateQuizContent() {
     duration: 30,
     passingScore: 70,
     difficulty: "intermediate",
-    bloomsLevels: ["knowledge", "comprehension"],
+    bloomsLevels: ["knowledge", "comprehension"], // Default 2 levels pre-selected
     topics: [],
     books: [],
     chapters: [],
@@ -132,6 +150,22 @@ function CreateQuizContent() {
   
   const [selectedBook, setSelectedBook] = useState<string>("");
   const [chapterInput, setChapterInput] = useState<string>("");
+  const [showBloomsGuidance, setShowBloomsGuidance] = useState(false);
+  
+  // Validation helper to check what's missing
+  const getValidationStatus = () => {
+    const issues = [];
+    if (!config.title) issues.push("Quiz title");
+    if (config.documentIds.length === 0) issues.push("At least one document");
+    if (!selectedBook) issues.push("Biblical book");
+    if (!chapterInput) issues.push("Chapter selection");
+    if (config.bloomsLevels.length < 2) issues.push("At least 2 complexity levels");
+    if (!config.startTime) issues.push("Start date/time");
+    if (!isQuizTimeValid(config.startTime, userTimezone)) issues.push("Valid future time (5+ minutes)");
+    return issues;
+  };
+  
+  const validationIssues = getValidationStatus();
 
   useEffect(() => {
     fetchDocuments();
@@ -162,14 +196,18 @@ function CreateQuizContent() {
   const pollJobStatus = async (jobId: string, quizId: string) => {
     const maxAttempts = 1800; // Poll for up to 30 minutes (suitable for AI workflows)
     let attempts = 0;
+    let consecutiveErrors = 0;
+    const MAX_CONSECUTIVE_ERRORS = 5;
     
     // Clear any existing interval
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
     }
     
-    // Reset completion flag
+    // Reset flags
     isCompletingRef.current = false;
+    hasShownErrorRef.current = false;
+    retryCountRef.current = 0;
     
     pollIntervalRef.current = setInterval(async () => {
       attempts++;
@@ -251,32 +289,85 @@ function CreateQuizContent() {
             alert("Quiz generation is taking longer than expected. You can check back later or try again.");
           }
         } else if (response.status === 404) {
-          // Don't show error if we're in the process of completing
-          if (!isCompletingRef.current) {
+          consecutiveErrors++;
+          console.log(`[POLL-QUIZ] 404 error, consecutive errors: ${consecutiveErrors}`);
+          
+          // Only show error after multiple consecutive 404s and if not completing
+          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS && !isCompletingRef.current && !hasShownErrorRef.current) {
+            hasShownErrorRef.current = true;
+            
             if (pollIntervalRef.current) {
               clearInterval(pollIntervalRef.current);
               pollIntervalRef.current = null;
             }
-            setLoading(false);
-            isSubmittingRef.current = false;
-            setGenerationProgress(0);
-            alert("Quiz generation job expired. Please try again.");
+            
+            // Try to recreate the job or continue with existing quiz
+            const retryGeneration = confirm(
+              "The quiz generation service is having trouble. Would you like to retry? " +
+              "(Click Cancel to proceed with sample questions that you can edit later)"
+            );
+            
+            if (retryGeneration && retryCountRef.current < MAX_RETRIES) {
+              retryCountRef.current++;
+              console.log(`[POLL-QUIZ] Retrying generation, attempt ${retryCountRef.current}`);
+              
+              // Reset state for retry
+              setLoading(false);
+              isSubmittingRef.current = false;
+              setGenerationProgress(0);
+              setJobId(null);
+              
+              // Automatically retry submission
+              setTimeout(() => {
+                handleSubmit();
+              }, 1000);
+            } else {
+              // Give up and redirect to the quiz that was created
+              setLoading(false);
+              isSubmittingRef.current = false;
+              setGenerationProgress(0);
+              router.push(`/educator/quiz/${quizId}/review`);
+            }
+          } else if (consecutiveErrors < MAX_CONSECUTIVE_ERRORS) {
+            // Continue polling, might be a temporary issue
+            console.log(`[POLL-QUIZ] Ignoring 404, will retry...`);
           }
+        } else {
+          // Reset consecutive errors on successful response
+          consecutiveErrors = 0;
         }
       } catch (error) {
+        consecutiveErrors++;
+        console.error(`[POLL-QUIZ] Error polling status (consecutive: ${consecutiveErrors}):`, error);
+        
         // Don't process errors if we're completing
         if (!isCompletingRef.current) {
-          console.error("Error polling status:", error);
-          // Continue polling unless max attempts reached
-          if (attempts >= maxAttempts) {
+          // Only show error after multiple failures or max attempts
+          if ((consecutiveErrors >= MAX_CONSECUTIVE_ERRORS || attempts >= maxAttempts) && !hasShownErrorRef.current) {
+            hasShownErrorRef.current = true;
+            
             if (pollIntervalRef.current) {
               clearInterval(pollIntervalRef.current);
               pollIntervalRef.current = null;
             }
+            
+            // Check if quiz was actually created
+            try {
+              const checkResponse = await fetch(`/api/educator/quiz/${quizId}`);
+              if (checkResponse.ok) {
+                // Quiz exists, just redirect
+                console.log(`[POLL-QUIZ] Quiz exists, redirecting despite polling errors`);
+                router.push(`/educator/quiz/${quizId}/review`);
+                return;
+              }
+            } catch (checkError) {
+              console.error(`[POLL-QUIZ] Failed to check quiz existence:`, checkError);
+            }
+            
             setLoading(false);
             isSubmittingRef.current = false;
             setGenerationProgress(0);
-            alert("Failed to check quiz generation status. Please try again.");
+            alert("Connection issues detected. The quiz may have been created. Please check your quizzes list.");
           }
         }
       }
@@ -345,33 +436,33 @@ function CreateQuizContent() {
   const complexityLevels = [
     { 
       value: "knowledge", 
-      label: "Basic Recall",
-      description: "Remember facts and basic concepts"
+      label: "📚 Basic Recall",
+      description: "Remember facts, dates, events, and basic biblical concepts"
     },
     { 
       value: "comprehension", 
-      label: "Understanding",
-      description: "Explain ideas and concepts"
+      label: "💡 Understanding",
+      description: "Explain meanings, interpret scripture, and summarize lessons"
     },
     { 
       value: "application", 
-      label: "Practical Application",
-      description: "Apply knowledge to new situations"
+      label: "🎯 Practical Application",
+      description: "Apply biblical principles to real-life situations"
     },
     { 
       value: "analysis", 
-      label: "Critical Thinking",
-      description: "Draw connections and analyze information"
+      label: "🧠 Critical Thinking",
+      description: "Compare passages, identify themes, and examine context"
     },
     { 
       value: "synthesis", 
-      label: "Creative Thinking",
-      description: "Combine ideas to form new understanding"
+      label: "✨ Creative Thinking",
+      description: "Connect multiple scriptures to form deeper insights"
     },
     { 
       value: "evaluation", 
-      label: "Expert Evaluation",
-      description: "Make judgments and defend opinions"
+      label: "⚖️ Expert Evaluation",
+      description: "Judge interpretations and defend theological positions"
     },
   ];
 
@@ -519,52 +610,52 @@ function CreateQuizContent() {
               </h2>
               
               <div>
-                <label className="block text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
+                <Label className="text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
                   Sacred Quest Title
-                </label>
-                <input
+                </Label>
+                <Input
                   type="text"
                   value={config.title}
                   onChange={(e) => setConfig({ ...config, title: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200"
+                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500"
                   placeholder="e.g., Wisdom of Solomon Quest"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
+                <Label className="text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
                   Divine Description
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   value={config.description}
                   onChange={(e) => setConfig({ ...config, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200 resize-none"
+                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500 resize-none"
                   placeholder="Describe the sacred journey and learning objectives..."
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
+                  <Label className="text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
                     Sacred Date
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     type="date"
                     value={getDateFromStartTime()}
                     onChange={(e) => updateDateTime(e.target.value, getTimeFromStartTime())}
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200"
+                    className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
+                  <Label className="text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
                     Divine Hour
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     type="time"
                     value={getTimeFromStartTime()}
                     onChange={(e) => updateDateTime(getDateFromStartTime(), e.target.value)}
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200"
+                    className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500"
                   />
                 </div>
                 <div>
@@ -580,21 +671,25 @@ function CreateQuizContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
+                  <Label className="text-sm font-heading font-medium text-gray-900 dark:text-white mb-2">
                     Quest Duration
-                  </label>
-                  <select
-                    value={config.duration}
-                    onChange={(e) => setConfig({ ...config, duration: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200"
+                  </Label>
+                  <Select
+                    value={config.duration.toString()}
+                    onValueChange={(value) => setConfig({ ...config, duration: parseInt(value) })}
                   >
-                    <option value={15}>15 minutes</option>
-                    <option value={30}>30 minutes</option>
-                    <option value={45}>45 minutes</option>
-                    <option value={60}>1 hour</option>
-                    <option value={90}>1.5 hours</option>
-                    <option value={120}>2 hours</option>
-                  </select>
+                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="15">15 minutes</SelectItem>
+                      <SelectItem value="30">30 minutes</SelectItem>
+                      <SelectItem value="45">45 minutes</SelectItem>
+                      <SelectItem value="60">1 hour</SelectItem>
+                      <SelectItem value="90">1.5 hours</SelectItem>
+                      <SelectItem value="120">2 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
@@ -701,44 +796,108 @@ function CreateQuizContent() {
 
           {step === 3 && (
             <div className="space-y-5">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-                Quiz Configuration
-              </h2>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                    Quiz Configuration
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Configure your biblical quiz parameters
+                  </p>
+                </div>
+                
+                {/* Completion Status Legend */}
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 min-w-[250px]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <InformationCircleIcon className="h-4 w-4 text-blue-500" />
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Requirements Checklist</span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs">
+                      {selectedBook ? (
+                        <CheckIcon className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <XMarkIcon className="h-3 w-3 text-red-500" />
+                      )}
+                      <span className={selectedBook ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}>
+                        Biblical Book Selected
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      {chapterInput ? (
+                        <CheckIcon className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <XMarkIcon className="h-3 w-3 text-red-500" />
+                      )}
+                      <span className={chapterInput ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}>
+                        Chapters Specified
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      {config.bloomsLevels.length >= 2 ? (
+                        <CheckIcon className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <XMarkIcon className="h-3 w-3 text-red-500" />
+                      )}
+                      <span className={config.bloomsLevels.length >= 2 ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}>
+                        2+ Complexity Levels
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      {config.bloomsLevels.length >= 3 ? (
+                        <CheckIcon className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <InformationCircleIcon className="h-3 w-3 text-amber-500" />
+                      )}
+                      <span className={config.bloomsLevels.length >= 3 ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}>
+                        3rd Level (Recommended)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Biblical Book and Chapters - Required */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                    Biblical Book <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedBook}
-                    onChange={(e) => {
-                      setSelectedBook(e.target.value);
-                      setConfig({ ...config, books: e.target.value ? [e.target.value] : [] });
-                    }}
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select a book...</option>
-                    <optgroup label="Old Testament">
-                      {biblicalBooks.slice(0, 39).map(book => (
-                        <option key={book} value={book}>{book}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="New Testament">
-                      {biblicalBooks.slice(39).map(book => (
-                        <option key={book} value={book}>{book}</option>
-                      ))}
-                    </optgroup>
-                  </select>
+              <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-4 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <BookmarkIcon className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-300">Scripture Selection</h3>
+                  <span className="text-xs text-amber-600 dark:text-amber-400">(Required)</span>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  <Label className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Biblical Book <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={selectedBook}
+                    onValueChange={(value) => {
+                      setSelectedBook(value);
+                      setConfig({ ...config, books: value ? [value] : [] });
+                    }}
+                    required
+                  >
+                    <SelectTrigger className={`bg-white dark:bg-gray-800 ${!selectedBook ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'} focus:ring-amber-500 focus:border-amber-500 h-10`}>
+                      <SelectValue placeholder="Select a book..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400">Old Testament</div>
+                      {biblicalBooks.slice(0, 39).map(book => (
+                        <SelectItem key={book} value={book}>{book}</SelectItem>
+                      ))}
+                      <div className="px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 border-t mt-1 pt-2">New Testament</div>
+                      {biblicalBooks.slice(39).map(book => (
+                        <SelectItem key={book} value={book}>{book}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Chapters <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     type="text"
                     value={chapterInput}
                     onChange={(e) => {
@@ -746,108 +905,197 @@ function CreateQuizContent() {
                       setConfig({ ...config, chapters: e.target.value ? [e.target.value] : [] });
                     }}
                     placeholder="e.g., 1-10 or 2,3,5"
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className={`bg-white dark:bg-gray-800 ${!chapterInput ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'} focus:ring-amber-500 focus:border-amber-500 h-10`}
                     required
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Enter chapter ranges (1-10) or specific chapters (2,3,5)
-                  </p>
+                  <div className="flex items-start gap-2 mt-1">
+                    <InformationCircleIcon className="h-3 w-3 text-gray-400 mt-0.5" />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Enter chapter ranges (1-10) or specific chapters (2,3,5)
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Quiz Settings */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                    Number of Questions
-                  </label>
-                  <input
-                    type="number"
-                    value={config.questionCount || ""}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value) || 10;
-                      // Enforce max limit of 25 questions
-                      const limitedValue = Math.min(value, 25);
-                      setConfig({ ...config, questionCount: limitedValue });
-                    }}
-                    min="5"
-                    max="25"
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Choose between 5 and 25 questions
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                    Overall Difficulty
-                  </label>
-                  <select
-                    value={config.difficulty}
-                    onChange={(e) => setConfig({ ...config, difficulty: e.target.value as "easy" | "intermediate" | "hard" })}
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                  >
-                    <option value="easy">Easy - Basic understanding</option>
-                    <option value="intermediate">Medium - Balanced challenge</option>
-                    <option value="hard">Hard - Deep knowledge required</option>
-                  </select>
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <ArrowPathIcon className="h-4 w-4" />
+                  Quiz Settings
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                      Number of Questions
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        value={config.questionCount || ""}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 10;
+                          // Enforce max limit of 25 questions
+                          const limitedValue = Math.min(value, 25);
+                          setConfig({ ...config, questionCount: limitedValue });
+                        }}
+                        min={5}
+                        max={25}
+                        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500 pr-16 h-10"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">
+                        5-25
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      AI will generate this many questions
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                      Overall Difficulty
+                    </Label>
+                    <Select
+                      value={config.difficulty}
+                      onValueChange={(value) => setConfig({ ...config, difficulty: value as "easy" | "intermediate" | "hard" })}
+                    >
+                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500 h-10">
+                        <SelectValue placeholder="Select difficulty" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">
+                          <div className="flex items-center gap-2">
+                            <span className="text-green-600">●</span>
+                            Easy - Basic understanding
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="intermediate">
+                          <div className="flex items-center gap-2">
+                            <span className="text-amber-600">●</span>
+                            Medium - Balanced challenge
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="hard">
+                          <div className="flex items-center gap-2">
+                            <span className="text-red-600">●</span>
+                            Hard - Deep knowledge required
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Sets the overall complexity level
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Question Complexity */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
-                  Question Complexity Types
-                </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  Select the types of thinking skills you want to test
-                </p>
-                <div className="space-y-2">
-                  {complexityLevels.map((level) => (
-                    <label 
-                      key={level.value} 
-                      className="flex items-start p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-700 cursor-pointer transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={config.bloomsLevels.includes(level.value)}
-                        onChange={(e) => {
-                          const newLevels = e.target.checked
-                            ? [...config.bloomsLevels, level.value]
-                            : config.bloomsLevels.filter(l => l !== level.value);
-                          setConfig({ ...config, bloomsLevels: newLevels });
-                        }}
-                        className="mt-1 mr-3 h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
-                      />
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {level.label}
-                        </span>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {level.description}
-                        </p>
-                      </div>
+              <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-white">
+                      Question Complexity Types
                     </label>
-                  ))}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Select thinking skills to test (minimum 2 required)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {config.bloomsLevels.length < 2 && (
+                      <span className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                        <ExclamationTriangleIcon className="h-3 w-3" />
+                        Select at least 2
+                      </span>
+                    )}
+                    {config.bloomsLevels.length === 2 && (
+                      <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <InformationCircleIcon className="h-3 w-3" />
+                        Consider adding a 3rd
+                      </span>
+                    )}
+                    {config.bloomsLevels.length >= 3 && (
+                      <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                        <CheckCircleIcon className="h-3 w-3" />
+                        Great selection!
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  {complexityLevels.map((level, index) => {
+                    const isDefault = level.value === "knowledge" || level.value === "comprehension";
+                    const isRecommended = level.value === "application";
+                    const isChecked = config.bloomsLevels.includes(level.value);
+                    
+                    return (
+                      <label 
+                        key={level.value} 
+                        className={`flex items-start p-3 bg-white dark:bg-gray-800 border rounded-lg cursor-pointer transition-all ${
+                          isChecked 
+                            ? 'border-amber-500 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20' 
+                            : isDefault && !isChecked
+                            ? 'border-red-300 dark:border-red-700'
+                            : isRecommended && !isChecked && config.bloomsLevels.length === 2
+                            ? 'border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/10'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+                        }`}
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            const newLevels = checked
+                              ? [...config.bloomsLevels, level.value]
+                              : config.bloomsLevels.filter(l => l !== level.value);
+                            setConfig({ ...config, bloomsLevels: newLevels });
+                          }}
+                          className="mt-1 mr-3 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {level.label}
+                            </span>
+                            {isDefault && (
+                              <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 rounded-full">
+                                Default
+                              </span>
+                            )}
+                            {isRecommended && config.bloomsLevels.length === 2 && !isChecked && (
+                              <span className="text-xs px-1.5 py-0.5 bg-amber-100 dark:bg-amber-800 text-amber-700 dark:text-amber-300 rounded-full animate-pulse">
+                                Recommended
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            {level.description}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Shuffle Option */}
-              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+              {/* Additional Options */}
+              <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-green-800 dark:text-green-300 mb-3 flex items-center gap-2">
+                  <CheckCircleIcon className="h-4 w-4" />
+                  Additional Options
+                </h3>
                 <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={config.shuffleQuestions}
-                    onChange={(e) => setConfig({ ...config, shuffleQuestions: e.target.checked })}
-                    className="mr-3 h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                    onCheckedChange={(checked) => setConfig({ ...config, shuffleQuestions: !!checked })}
+                    className="mr-3 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
                   />
                   <div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
                       Randomize Question Order
                     </span>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      Each student will receive questions in a different order
+                      Each student will receive questions in a different order to prevent cheating
                     </p>
                   </div>
                 </label>
@@ -856,57 +1104,86 @@ function CreateQuizContent() {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
-            <Button
-              variant="ghost"
-              onClick={() => setStep(Math.max(1, step - 1))}
-              disabled={step === 1}
-              size="sm"
-            >
-              <ArrowLeftIcon className="h-4 w-4 mr-1" />
-              Previous
-            </Button>
+          <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
+            {/* Validation Summary for Step 3 */}
+            {step === 3 && validationIssues.length > 0 && (
+              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                      Complete the following to enable quiz creation:
+                    </p>
+                    <ul className="mt-1 text-xs text-yellow-700 dark:text-yellow-400 list-disc list-inside">
+                      {validationIssues.map((issue, idx) => (
+                        <li key={idx}>{issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
             
-            {step < 3 ? (
+            <div className="flex justify-between items-center">
               <Button
-                onClick={() => setStep(Math.min(3, step + 1))}
-                disabled={
-                  (step === 1 && !config.title) ||
-                  (step === 2 && config.documentIds.length === 0)
-                }
+                variant="ghost"
+                onClick={() => setStep(Math.max(1, step - 1))}
+                disabled={step === 1}
                 size="sm"
               >
-                Next
-                <ArrowRightIcon className="h-4 w-4 ml-1" />
+                <ArrowLeftIcon className="h-4 w-4 mr-1" />
+                Previous
               </Button>
-            ) : (
-              <Button
-                  onClick={handleSubmit}
+            
+              {step < 3 ? (
+                <Button
+                  onClick={() => setStep(Math.min(3, step + 1))}
                   disabled={
-                    loading || 
-                    !config.title || 
-                    config.documentIds.length === 0 || 
-                    !selectedBook || 
-                    !chapterInput || 
-                    config.bloomsLevels.length === 0 ||
-                    !config.startTime ||
-                    !isQuizTimeValid(config.startTime, userTimezone)
+                    (step === 1 && !config.title) ||
+                    (step === 2 && config.documentIds.length === 0)
                   }
                   size="sm"
                 >
-                  {loading ? (
-                    <>
-                      <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <BookmarkIcon className="h-4 w-4 mr-2" />
-                      Create Quiz
-                    </>
-                  )}
+                  Next
+                  <ArrowRightIcon className="h-4 w-4 ml-1" />
                 </Button>
-            )}
+              ) : (
+                <div className="flex items-center gap-2">
+                  {validationIssues.length > 0 && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {validationIssues.length} requirement{validationIssues.length !== 1 ? 's' : ''} remaining
+                    </span>
+                  )}
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={
+                      loading || 
+                      !config.title || 
+                      config.documentIds.length === 0 || 
+                      !selectedBook || 
+                      !chapterInput || 
+                      config.bloomsLevels.length < 2 || // Changed to require minimum 2
+                      !config.startTime ||
+                      !isQuizTimeValid(config.startTime, userTimezone)
+                    }
+                    size="sm"
+                    className={validationIssues.length === 0 ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                  >
+                    {loading ? (
+                      <>
+                        <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <BookmarkIcon className="h-4 w-4 mr-2" />
+                        Create Quiz
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

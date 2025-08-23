@@ -167,6 +167,7 @@ export async function POST(req: NextRequest) {
     
     const webhookPayload = {
       jobId,  // Important: Include jobId for callback
+      quizId,  // Include quizId so n8n can send it back in callback
       callbackUrl,  // Important: backend service will POST results here
       documentIds,
       documentMetadata,

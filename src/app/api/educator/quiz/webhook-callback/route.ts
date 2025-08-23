@@ -40,25 +40,52 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the job from store
-    const job = jobStore.get(jobId);
+    let job = jobStore.get(jobId);
+    
+    // If job not found, try to recover from the callback data
     if (!job) {
-      logger.error(`Job not found: ${jobId}`);
+      logger.warn(`Job not found in store: ${jobId}`);
       
-      // If this is an error callback and job doesn't exist, log it but don't fail
-      if (status === 'error' || error) {
-        logger.error(`Received error callback for non-existent job ${jobId}: ${error}`);
-        return NextResponse.json({
-          success: false,
+      // Check if we have enough data to proceed anyway
+      if (body.quizId && status === 'success' && questionsData && questionsData.length > 0) {
+        logger.log(`Attempting to recover job ${jobId} with quizId ${body.quizId}`);
+        
+        // Recreate a minimal job object to continue processing
+        job = {
           jobId,
-          message: "Error callback received for unknown job",
-          error: error || "Unknown error"
-        });
+          quizId: body.quizId,
+          status: 'processing',
+          progress: 90,
+          message: 'Processing webhook callback',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          webhookPayload: body.webhookPayload || {}
+        };
+        
+        // Re-add to store temporarily for completion
+        jobStore.create(jobId, body.quizId, job.webhookPayload);
+        job = jobStore.get(jobId)!;
+      } else {
+        // If this is an error callback and job doesn't exist, log it but don't fail hard
+        if (status === 'error' || error) {
+          logger.error(`Received error callback for non-existent job ${jobId}: ${error}`);
+          return NextResponse.json({
+            success: false,
+            jobId,
+            message: "Error callback received - job may have expired",
+            error: error || "Job expired before callback"
+          });
+        }
+        
+        return NextResponse.json(
+          { 
+            error: "Job not found or expired. The quiz may have been created already. Please check your quizzes list.",
+            jobId,
+            recoverable: false
+          },
+          { status: 404 }
+        );
       }
-      
-      return NextResponse.json(
-        { error: "Job not found or expired" },
-        { status: 404 }
-      );
     }
 
     // Update job status based on callback

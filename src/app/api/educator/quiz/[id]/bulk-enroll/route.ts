@@ -166,14 +166,15 @@ export async function POST(
       
       // Send emails to all newly enrolled students
       const emailPromises = enrolledStudentDetails.map(async (student) => {
-        const baseUrl = shortUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'https://biblequiz.textr.in'}/quiz/share/${shareCode}`;
-        const quizUrl = `${baseUrl}?utm_source=email&utm_medium=bulk_enrollment&utm_campaign=quiz_assignment`;
-        
-        const emailContent = emailTemplates.existingUserInvitation(
-          educator?.name || "Your Educator",
+        const emailContent = emailTemplates.quizEnrollmentNotification(
           student.name || "Student",
+          educator?.name || "Your Educator",
           quiz[0].title,
-          quizUrl
+          quiz[0].description,
+          quiz[0].totalQuestions,
+          quiz[0].duration,
+          new Date(quiz[0].startTime)
+          // No group name for individual bulk enrollments
         );
         
         return sendEmail({

@@ -194,33 +194,19 @@ export async function POST(
       
       // Send reassignment emails
       const emailPromises = reassignedStudentDetails.map(async (student) => {
-        const baseUrl = shortUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'https://biblequiz.textr.in'}/quiz/share/${shareCode}`;
-        const quizUrl = `${baseUrl}?utm_source=email&utm_medium=reassignment&utm_campaign=quiz_reassignment`;
-        
-        const emailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Quiz Reassignment Notice</h2>
-            <p>Hi ${student.name},</p>
-            <p>${educator?.name || "Your educator"} has reassigned the quiz "<strong>${quiz[0].title}</strong>" to you.</p>
-            <p><strong>Reason:</strong> ${reason}</p>
-            ${newDeadline ? `<p><strong>New Deadline:</strong> ${new Date(newDeadline).toLocaleString()}</p>` : ''}
-            <p>This is a new opportunity to complete the quiz. The questions will be in a different order from the original assignment.</p>
-            <div style="margin: 30px 0;">
-              <a href="${quizUrl}" style="background-color: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
-                Take Quiz Now
-              </a>
-            </div>
-            <p style="color: #666; font-size: 14px;">
-              Or copy this link: ${quizUrl}
-            </p>
-          </div>
-        `;
+        const emailContent = emailTemplates.quizReassignmentNotification(
+          student.name || "Student",
+          educator?.name || "Your Educator",
+          quiz[0].title,
+          reason,
+          newDeadline ? new Date(newDeadline) : undefined
+        );
         
         return sendEmail({
           to: student.email,
-          subject: `Quiz Reassigned: ${quiz[0].title}`,
-          html: emailHtml,
-          text: `Quiz "${quiz[0].title}" has been reassigned to you. Reason: ${reason}. Take it here: ${quizUrl}`,
+          subject: emailContent.subject,
+          html: emailContent.html,
+          text: emailContent.text,
         });
       });
       

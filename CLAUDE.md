@@ -93,6 +93,41 @@ scripts/                 # Development scripts
 └── utils/              # Utility scripts (future)
 ```
 
+## UI Component Guidelines (CRITICAL)
+
+**NEVER use raw HTML form elements. ALWAYS use shadcn/ui components.**
+
+### ❌ FORBIDDEN - Raw HTML Elements:
+```tsx
+<input type="text" />
+<input type="email" />
+<select></select>
+<textarea></textarea>
+<button></button>
+```
+
+### ✅ REQUIRED - ShadCN Components:
+```tsx
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+
+// Use these instead
+<Input type="email" />
+<Select><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem /></SelectContent></Select>
+<Textarea />
+<Button />
+<Checkbox />
+<Label />
+```
+
+**Why**: Ensures consistent theming, accessibility, type safety, and maintainability across the entire application.
+
+**Audit Report**: See `/docs/technical/SHADCN_COMPONENT_USAGE_AUDIT.md` for current issues that need fixing.
+
 ## Important Notes:
 - Keep documentation organized in the `/docs` folder
 - Don't create unnecessary files in the root directory

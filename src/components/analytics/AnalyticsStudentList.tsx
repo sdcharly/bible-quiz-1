@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { 
   Users, TrendingUp, TrendingDown, Search, ChevronLeft, ChevronRight 
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { logger } from "@/lib/logger";
 
 interface StudentPerformance {
@@ -133,15 +140,19 @@ export default function AnalyticsStudentList({ students: initialStudents }: Prop
           />
         </div>
         <div className="flex gap-2">
-          <select
+          <Select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as "name" | "score" | "activity")}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700"
+            onValueChange={(value) => setSortBy(value as "name" | "score" | "activity")}
           >
-            <option value="score">Sort by Score</option>
-            <option value="name">Sort by Name</option>
-            <option value="activity">Sort by Activity</option>
-          </select>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Sort by..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="score">Sort by Score</SelectItem>
+              <SelectItem value="name">Sort by Name</SelectItem>
+              <SelectItem value="activity">Sort by Activity</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant="outline"
             size="sm"

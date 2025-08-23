@@ -68,12 +68,12 @@ export async function GET(req: NextRequest) {
         isActive: studentGroups.isActive,
         createdAt: studentGroups.createdAt,
         updatedAt: studentGroups.updatedAt,
-        memberCount: sql<number>`(
+        memberCount: sql<number>`COALESCE((
           SELECT COUNT(*)::int 
           FROM ${groupMembers} gm
           WHERE gm.group_id = ${studentGroups.id} 
           AND gm.is_active = true
-        )`.as('memberCount')
+        ), 0)`.as('memberCount')
       })
       .from(studentGroups)
       .where(

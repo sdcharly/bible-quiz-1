@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { BookOpenIcon as BookOpenSolid, AcademicCapIcon } from "@heroicons/react/24/solid";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
@@ -125,10 +127,10 @@ export default function EducatorSignUpPage() {
           )}
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Full Name
-              </label>
-              <input
+              </Label>
+              <Input
                 id="name"
                 name="name"
                 type="text"
@@ -136,15 +138,15 @@ export default function EducatorSignUpPage() {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 dark:bg-gray-800 dark:text-white focus:ring-amber-500 focus:border-amber-500"
                 placeholder="Guide Solomon"
               />
             </div>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email Address
-              </label>
-              <input
+              </Label>
+              <Input
                 id="email"
                 name="email"
                 type="email"
@@ -152,30 +154,30 @@ export default function EducatorSignUpPage() {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 dark:bg-gray-800 dark:text-white focus:ring-amber-500 focus:border-amber-500"
                 placeholder="guide@temple.edu"
               />
             </div>
             <div>
-              <label htmlFor="institution" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="institution" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Sacred Institution / Temple
-              </label>
-              <input
+              </Label>
+              <Input
                 id="institution"
                 name="institution"
                 type="text"
                 required
                 value={formData.institution}
                 onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 dark:bg-gray-800 dark:text-white focus:ring-amber-500 focus:border-amber-500"
                 placeholder="Temple of Learning"
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password
-              </label>
-              <input
+              </Label>
+              <Input
                 id="password"
                 name="password"
                 type="password"
@@ -183,15 +185,15 @@ export default function EducatorSignUpPage() {
                 required
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 dark:bg-gray-800 dark:text-white focus:ring-amber-500 focus:border-amber-500"
                 placeholder="••••••••"
               />
             </div>
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Confirm Password
-              </label>
-              <input
+              </Label>
+              <Input
                 id="confirmPassword"
                 name="confirmPassword"
                 type="password"
@@ -199,7 +201,7 @@ export default function EducatorSignUpPage() {
                 required
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                className="mt-1 dark:bg-gray-800 dark:text-white focus:ring-amber-500 focus:border-amber-500"
                 placeholder="••••••••"
               />
             </div>

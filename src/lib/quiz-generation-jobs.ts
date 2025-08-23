@@ -18,7 +18,8 @@ export interface QuizGenerationJob {
 
 class QuizGenerationJobStore {
   private jobs: Map<string, QuizGenerationJob> = new Map();
-  private readonly JOB_EXPIRY_MS = 60 * 60 * 1000; // 60 minutes (extended for thorough biblical content processing)
+  private readonly JOB_EXPIRY_MS = 120 * 60 * 1000; // 120 minutes (2 hours for complex AI processing)
+  private readonly MIN_JOB_LIFETIME_MS = 15 * 60 * 1000; // Minimum 15 minutes before allowing expiry
 
   create(jobId: string, quizId: string, webhookPayload: Record<string, unknown>): QuizGenerationJob {
     const job: QuizGenerationJob = {
@@ -34,10 +35,27 @@ class QuizGenerationJobStore {
     
     this.jobs.set(jobId, job);
     
-    // Auto-cleanup old jobs
+    // Auto-cleanup old jobs (but only if they're completed or failed)
     setTimeout(() => {
-      this.delete(jobId);
-    }, this.JOB_EXPIRY_MS);
+      const currentJob = this.jobs.get(jobId);
+      if (currentJob && (currentJob.status === 'completed' || currentJob.status === 'failed')) {
+        this.delete(jobId);
+      } else if (currentJob && currentJob.status === 'processing') {
+        // Give processing jobs more time
+        setTimeout(() => {
+          const jobToCheck = this.jobs.get(jobId);
+          if (jobToCheck && jobToCheck.status !== 'completed') {
+            // Mark as failed if still not complete
+            this.update(jobId, {
+              status: 'failed',
+              error: 'Job timed out after extended processing time'
+            });
+            // Clean up after marking as failed
+            setTimeout(() => this.delete(jobId), 5 * 60 * 1000); // 5 more minutes
+          }
+        }, this.JOB_EXPIRY_MS);
+      }
+    }, this.MIN_JOB_LIFETIME_MS);
     
     return job;
   }
@@ -86,7 +104,15 @@ class QuizGenerationJobStore {
   cleanup(): void {
     const now = Date.now();
     for (const [jobId, job] of this.jobs.entries()) {
-      if (now - job.createdAt.getTime() > this.JOB_EXPIRY_MS) {
+      const jobAge = now - job.createdAt.getTime();
+      
+      // Don't delete jobs that are still processing unless they're really old
+      if (job.status === 'processing' && jobAge < this.JOB_EXPIRY_MS) {
+        continue;
+      }
+      
+      // Delete completed/failed jobs after normal expiry
+      if (jobAge > this.JOB_EXPIRY_MS) {
         this.jobs.delete(jobId);
       }
     }
