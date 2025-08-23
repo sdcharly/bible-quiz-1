@@ -117,10 +117,10 @@ export default function ActivityLogsView({ logs }: ActivityLogsViewProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("/admin/dashboard")}
+                onClick={() => router.back()}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                Back
               </Button>
               <Activity className="h-6 w-6 text-indigo-600" />
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">

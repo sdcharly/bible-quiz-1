@@ -65,10 +65,11 @@ interface EducatorDetailsProps {
   educator: EducatorInfo;
 }
 
-export default function EducatorDetails({ educator }: EducatorDetailsProps) {
+export default function EducatorDetails({ educator: initialEducator }: EducatorDetailsProps) {
   const router = useRouter();
+  const [educator, setEducator] = useState(initialEducator);
   const [isEditing, setIsEditing] = useState(false);
-  const [permissions, setPermissions] = useState(educator.permissions || {});
+  const [permissions, setPermissions] = useState(initialEducator.permissions || {});
   const [isSaving, setIsSaving] = useState(false);
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
 
@@ -82,8 +83,11 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        setEducator(prev => ({ ...prev, permissions }));
         setIsEditing(false);
-        window.location.reload();
+        // Show success message (you could add a toast here)
+        alert("Permissions updated successfully");
       } else {
         const data = await response.json();
         alert(`Failed to update permissions: ${data.error}`);
@@ -117,7 +121,18 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
       });
 
       if (response.ok) {
-        window.location.reload();
+        const data = await response.json();
+        // Update the educator status based on the action
+        const statusMap = {
+          reject: "rejected",
+          suspend: "suspended", 
+          reactivate: "approved"
+        };
+        setEducator(prev => ({ 
+          ...prev, 
+          approvalStatus: statusMap[action as keyof typeof statusMap] || prev.approvalStatus 
+        }));
+        alert(`Educator ${action}ed successfully`);
       } else {
         const data = await response.json();
         alert(`Failed to ${action} educator: ${data.error}`);
@@ -128,7 +143,10 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
   };
 
   const handleApprovalComplete = (_templateId: string) => {
-    window.location.reload();
+    // Update the educator status to approved
+    setEducator(prev => ({ ...prev, approvalStatus: "approved" }));
+    setShowApprovalDialog(false);
+    alert("Educator approved successfully");
   };
 
   const getStatusBadge = (status: string | null) => {
@@ -167,7 +185,7 @@ export default function EducatorDetails({ educator }: EducatorDetailsProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("/admin/educators")}
+                onClick={() => router.back()}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Educators

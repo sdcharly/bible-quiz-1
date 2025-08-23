@@ -71,7 +71,8 @@ export default function EducatorsManagement({ educators }: EducatorsManagementPr
       });
 
       if (response.ok) {
-        window.location.reload();
+        alert("Educator suspended successfully");
+        router.refresh();
       } else {
         const data = await response.json();
         alert(`Failed to suspend educator: ${data.error}`);
@@ -89,7 +90,8 @@ export default function EducatorsManagement({ educators }: EducatorsManagementPr
       });
 
       if (response.ok) {
-        window.location.reload();
+        alert("Educator reactivated successfully");
+        router.refresh();
       } else {
         const data = await response.json();
         alert(`Failed to reactivate educator: ${data.error}`);
@@ -133,10 +135,10 @@ export default function EducatorsManagement({ educators }: EducatorsManagementPr
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("/admin/dashboard")}
+                onClick={() => router.back()}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                Back
               </Button>
               <Shield className="h-6 w-6 text-red-600" />
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">

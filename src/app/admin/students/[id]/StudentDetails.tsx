@@ -126,7 +126,7 @@ export default function StudentDetails({ student }: StudentDetailsProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("/admin/students")}
+                onClick={() => router.back()}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Students

@@ -52,7 +52,8 @@ export default function StudentsManagement({ students }: StudentsManagementProps
       });
 
       if (response.ok) {
-        window.location.reload();
+        alert("Student deleted successfully");
+        router.refresh();
       } else {
         const data = await response.json();
         alert(`Failed to delete student: ${data.error}`);
@@ -80,10 +81,10 @@ export default function StudentsManagement({ students }: StudentsManagementProps
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("/admin/dashboard")}
+                onClick={() => router.back()}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                Back
               </Button>
               <GraduationCap className="h-6 w-6 text-blue-600" />
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">

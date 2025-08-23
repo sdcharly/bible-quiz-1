@@ -176,7 +176,7 @@ export default function SystemConfiguration({ adminEmail, initialSettings }: Sys
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => router.push("/admin/dashboard")}
+                onClick={() => router.back()}
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>

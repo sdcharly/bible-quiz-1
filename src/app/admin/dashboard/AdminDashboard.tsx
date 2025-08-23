@@ -106,9 +106,9 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
       
       if (response.ok) {
         console.log("Educator approved successfully:", data);
+        alert("Educator approved successfully");
+        // Use router.refresh() to update server components
         router.refresh();
-        // Force a hard refresh to ensure data is updated
-        window.location.reload();
       } else {
         console.error("Failed to approve educator:", data);
         alert(`Failed to approve educator: ${data.error || "Unknown error"}`);
@@ -131,9 +131,9 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
       
       if (response.ok) {
         console.log("Educator rejected successfully:", data);
+        alert("Educator rejected successfully");
+        // Use router.refresh() to update server components
         router.refresh();
-        // Force a hard refresh to ensure data is updated
-        window.location.reload();
       } else {
         console.error("Failed to reject educator:", data);
         alert(`Failed to reject educator: ${data.error || "Unknown error"}`);
@@ -167,8 +167,8 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
       if (response.ok) {
         console.log("Student attached successfully:", data);
         alert(`Student successfully attached to educator`);
+        // Use router.refresh() to update server components
         router.refresh();
-        window.location.reload();
       } else {
         console.error("Failed to attach student:", data);
         alert(`Failed to attach student: ${data.error || "Unknown error"}`);
