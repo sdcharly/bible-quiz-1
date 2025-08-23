@@ -96,6 +96,20 @@ function StudentSignUpForm() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: invitationToken }),
         });
+        
+        // Check if there's a pending quiz share in session storage
+        const pendingQuizShare = sessionStorage.getItem('pendingQuizShare');
+        if (pendingQuizShare) {
+          sessionStorage.removeItem('pendingQuizShare');
+          router.push(`/quiz/share/${pendingQuizShare}`);
+          return;
+        }
+        
+        // If invitation has a quizId, redirect to that quiz
+        if (invitationData?.quizId) {
+          router.push(`/student/quiz/${invitationData.quizId}`);
+          return;
+        }
       }
       
       router.push("/student/dashboard");

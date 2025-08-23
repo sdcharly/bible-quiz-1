@@ -70,7 +70,7 @@ export default function QuizSharePage() {
       
       if (quizInfo.invitationToken) {
         // New user - redirect to signup with invitation
-        router.push(`/auth/signup?token=${quizInfo.invitationToken}`);
+        router.push(`/auth/signup?invitation=${quizInfo.invitationToken}`);
       } else {
         // Existing user - redirect to signin
         router.push(`/auth/signin?redirect=/quiz/share/${shareCode}`);
