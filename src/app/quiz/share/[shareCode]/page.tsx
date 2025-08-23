@@ -72,8 +72,8 @@ export default function QuizSharePage() {
         // New user - redirect to signup with invitation
         router.push(`/auth/signup?token=${quizInfo.invitationToken}`);
       } else {
-        // Existing user - redirect to login
-        router.push(`/auth/login?redirect=/quiz/share/${shareCode}`);
+        // Existing user - redirect to signin
+        router.push(`/auth/signin?redirect=/quiz/share/${shareCode}`);
       }
       return;
     }

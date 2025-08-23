@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { BookOpenIcon as BookOpenSolid } from "@heroicons/react/24/solid";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { getDefaultDashboardPath } from "@/lib/roles";
 
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -30,21 +32,26 @@ export default function SignInPage() {
       });
       
       if (data?.user) {
-        // Fetch the user's role from database
-        const roleResponse = await fetch("/api/auth/get-user-role", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: data.user.id,
-            email: data.user.email,
-          }),
-        });
-        
-        const roleData = await roleResponse.json();
-        const dashboardPath = getDefaultDashboardPath(roleData.role || "student");
-        router.push(dashboardPath);
+        // Check if there's a redirect URL
+        if (redirect) {
+          router.push(redirect);
+        } else {
+          // Fetch the user's role from database
+          const roleResponse = await fetch("/api/auth/get-user-role", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              userId: data.user.id,
+              email: data.user.email,
+            }),
+          });
+          
+          const roleData = await roleResponse.json();
+          const dashboardPath = getDefaultDashboardPath(roleData.role || "student");
+          router.push(dashboardPath);
+        }
       }
     } catch (err) {
       setError((err as Error).message || "Invalid email or password");
@@ -58,7 +65,7 @@ export default function SignInPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/dashboard",
+        callbackURL: redirect || "/dashboard",
       });
     } catch (err) {
       setError((err as Error).message || "Failed to sign in with Google");
@@ -94,6 +101,11 @@ export default function SignInPage() {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {redirect && !error && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 px-4 py-3 rounded-md text-sm">
+              Please sign in to access the shared quiz.
+            </div>
+          )}
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md text-sm">
               {error}
@@ -233,5 +245,20 @@ export default function SignInPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <ArrowPathIcon className="h-8 w-8 animate-spin mx-auto text-amber-600" />
+          <p className="mt-2 text-amber-700">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SignInForm />
+    </Suspense>
   );
 }
