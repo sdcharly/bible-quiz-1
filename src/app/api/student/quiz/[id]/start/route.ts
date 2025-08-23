@@ -274,9 +274,22 @@ export async function POST(
 
     // Quiz details already fetched above
 
+    // CRITICAL: Check if quiz has a scheduled time first
+    if (!quiz.startTime) {
+      // For deferred scheduling quizzes that haven't been scheduled yet
+      return NextResponse.json(
+        { 
+          error: "Quiz time not set",
+          message: "This quiz has not been scheduled yet. Please check back later or contact your educator.",
+          schedulingStatus: quiz.schedulingStatus || 'unknown'
+        },
+        { status: 425 }
+      );
+    }
+
     // Check if quiz has started
     const now = new Date();
-    if (quiz.startTime && now < quiz.startTime) {
+    if (now < quiz.startTime) {
       // Format the start time in a user-friendly way
       // Include timezone information from the quiz
       const startTimeFormatted = quiz.startTime.toLocaleString('en-US', {
@@ -307,6 +320,19 @@ export async function POST(
           timezone: quiz.timezone || 'UTC'
         },
         { status: 425 }
+      );
+    }
+
+    // Check if quiz has ended
+    const endTime = new Date(quiz.startTime.getTime() + quiz.duration * 60 * 1000);
+    if (now > endTime) {
+      return NextResponse.json(
+        { 
+          error: "Quiz has ended",
+          message: "This quiz has already ended and is no longer available.",
+          endTime: endTime.toISOString()
+        },
+        { status: 410 } // 410 Gone
       );
     }
 
