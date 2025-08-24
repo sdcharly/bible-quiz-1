@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSafeAlert } from "@/components/ui/safe-alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,7 @@ interface EducatorsManagementProps {
 
 export default function EducatorsManagement({ educators }: EducatorsManagementProps) {
   const router = useRouter();
+  const { safeAlert } = useSafeAlert();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [expandedEducator, setExpandedEducator] = useState<string | null>(null);

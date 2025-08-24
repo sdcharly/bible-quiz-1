@@ -102,7 +102,8 @@ export async function POST(
       .select({
         studentId: groupMembers.studentId,
         name: user.name,
-        email: user.email
+        email: user.email,
+        timezone: user.timezone
       })
       .from(groupMembers)
       .innerJoin(user, eq(groupMembers.studentId, user.id))
@@ -181,7 +182,9 @@ export async function POST(
             quiz[0].totalQuestions,
             quiz[0].duration,
             quiz[0].startTime ? new Date(quiz[0].startTime) : null,
-            group[0].name
+            group[0].name,
+            undefined, // No quiz URL for group enrollments yet
+            member.timezone // Pass student's timezone for proper time display
           );
           
           await sendEmail({

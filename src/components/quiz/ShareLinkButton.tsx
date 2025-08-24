@@ -65,7 +65,7 @@ export function ShareLinkButton({
           variant: "destructive"
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching share link:", error);
       toast({
         title: "Error",
@@ -99,7 +99,7 @@ export function ShareLinkButton({
           variant: "destructive"
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error regenerating link:", error);
       toast({
         title: "Error",
@@ -120,7 +120,7 @@ export function ShareLinkButton({
         description: "Link copied to clipboard",
       });
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
         description: "Failed to copy link",

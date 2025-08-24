@@ -758,6 +758,34 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
                     <BarChart className="h-4 w-4 mr-2" />
                     System Configuration
                   </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => router.push("/admin/documents")}
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Document Management
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => router.push("/admin/groups")}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    View All Groups
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => router.push("/admin/educators")}
+                  >
+                    <GraduationCap className="h-4 w-4 mr-2" />
+                    View All Educators
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => router.push("/admin/students")}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    View All Students
+                  </Button>
                 </div>
               </CardContent>
             </Card>

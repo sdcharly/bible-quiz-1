@@ -236,6 +236,8 @@ export function convertUserTimezoneToUTC(dateTimeString: string, userTimezone: s
     let offsetMinutes = 0;
     if (userTimezone === 'Asia/Kolkata' || userTimezone === 'Asia/Calcutta') {
       offsetMinutes = 330; // IST is UTC+5:30
+    } else if (userTimezone === 'UTC' || userTimezone === 'GMT') {
+      offsetMinutes = 0; // UTC has no offset
     } else {
       // For other timezones, calculate the offset
       // Create a date in the browser's local timezone first

@@ -20,10 +20,10 @@ export async function POST() {
       headers: await headers()
     });
 
-    if (!session?.user) {
+    if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
+        { error: "Admin access required" },
+        { status: 403 }
       );
     }
 

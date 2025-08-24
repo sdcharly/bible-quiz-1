@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertCircle, Calendar, Clock, CheckCircle } from "lucide-react";
 import { useTimezone } from "@/hooks/useTimezone";
 import { validateStartTime } from "@/lib/quiz-scheduling";
+import { convertUserTimezoneToUTC } from "@/lib/timezone";
 
 interface SchedulingModalProps {
   isOpen: boolean;
@@ -57,16 +58,54 @@ export function SchedulingModal({
   // Initialize form with existing schedule or defaults
   useEffect(() => {
     if (existingSchedule?.startTime) {
-      const date = new Date(existingSchedule.startTime);
-      setStartDate(date.toISOString().split('T')[0]);
-      setStartTime(date.toTimeString().substring(0, 5));
-      setTimezone(existingSchedule.timezone || userTimezone);
+      // The startTime is stored in UTC, convert it to the quiz's timezone for display
+      const utcDate = new Date(existingSchedule.startTime);
+      const displayTimezone = existingSchedule.timezone || userTimezone;
+      
+      // Format the date in the quiz's timezone
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: displayTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      
+      const parts = formatter.formatToParts(utcDate);
+      const dateParts: any = {};
+      parts.forEach(part => {
+        dateParts[part.type] = part.value;
+      });
+      
+      setStartDate(`${dateParts.year}-${dateParts.month}-${dateParts.day}`);
+      setStartTime(`${dateParts.hour}:${dateParts.minute}`);
+      setTimezone(displayTimezone);
       setDuration(existingSchedule.duration || defaultDuration);
     } else {
-      // Set default to current time + 1 hour
+      // Set default to current time + 1 hour in user's timezone
       const future = new Date(Date.now() + 60 * 60 * 1000);
-      setStartDate(future.toISOString().split('T')[0]);
-      setStartTime(future.toTimeString().substring(0, 5));
+      
+      // Format future date in user's timezone
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: userTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      
+      const parts = formatter.formatToParts(future);
+      const dateParts: any = {};
+      parts.forEach(part => {
+        dateParts[part.type] = part.value;
+      });
+      
+      setStartDate(`${dateParts.year}-${dateParts.month}-${dateParts.day}`);
+      setStartTime(`${dateParts.hour}:${dateParts.minute}`);
       setTimezone(userTimezone);
     }
   }, [existingSchedule, userTimezone, defaultDuration]);
@@ -86,8 +125,11 @@ export function SchedulingModal({
     setError(null);
 
     try {
+      // Convert the local time to UTC based on the selected timezone
+      const utcDate = convertUserTimezoneToUTC(dateTimeString, timezone);
+      
       await onSchedule({
-        startTime: dateTimeString,
+        startTime: utcDate.toISOString(),
         timezone,
         duration
       });

@@ -38,8 +38,8 @@ export function QuizNotification({ quiz, type, onDismiss }: QuizNotificationProp
           message: quiz.startTime 
             ? `"${quiz.title}" has been scheduled for ${new Date(quiz.startTime).toLocaleString('en-US', {
                 dateStyle: 'medium',
-                timeStyle: 'short',
-                timeZone: quiz.timezone
+                timeStyle: 'short'
+                // Use browser's default timezone (user's local timezone)
               })}`
             : `"${quiz.title}" has been scheduled. Check the details for the exact time.`,
           bgColor: "bg-green-50 dark:bg-green-900/20",
@@ -54,8 +54,8 @@ export function QuizNotification({ quiz, type, onDismiss }: QuizNotificationProp
           message: quiz.startTime
             ? `"${quiz.title}" has been rescheduled to ${new Date(quiz.startTime).toLocaleString('en-US', {
                 dateStyle: 'medium',
-                timeStyle: 'short',
-                timeZone: quiz.timezone
+                timeStyle: 'short'
+                // Use browser's default timezone (user's local timezone)
               })}`
             : `"${quiz.title}" time has been updated. Please check the new schedule.`,
           bgColor: "bg-amber-50 dark:bg-amber-900/20",

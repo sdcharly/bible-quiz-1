@@ -456,7 +456,8 @@ United in Christ, growing in wisdom
     duration: number,
     startTime: Date | null,
     groupName?: string,
-    quizUrl?: string
+    quizUrl?: string,
+    studentTimezone?: string
   ) => {
     const subject = `📜 New Biblical Quest: "${quizTitle}" Awaits You!`;
     
@@ -610,7 +611,27 @@ United in Christ, growing in wisdom
               </div>
               <div class="detail-row">
                 <span class="detail-label">📅 Start Time:</span>
-                <span class="detail-value">${startTime ? startTime.toLocaleString() : 'To be announced'}</span>
+                <span class="detail-value">${
+                  startTime 
+                    ? studentTimezone 
+                      ? // Use student's preferred timezone if available
+                        startTime.toLocaleString('en-US', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                          timeZone: studentTimezone
+                        }) + ` (${studentTimezone})`
+                      : // Default to IST for new users with UTC in brackets
+                        startTime.toLocaleString('en-US', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                          timeZone: 'Asia/Kolkata'
+                        }) + ' IST (' +
+                        startTime.toLocaleString('en-US', {
+                          timeStyle: 'short',
+                          timeZone: 'UTC'
+                        }) + ' UTC)'
+                    : 'To be announced'
+                }</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">🎯 Enrolled by:</span>
@@ -660,7 +681,27 @@ ${quizDescription ? `\n${quizDescription}\n` : ''}
 Quest Details:
 - Number of Questions: ${questionCount}
 - Duration: ${duration} minutes
-- Start Time: ${startTime ? startTime.toLocaleString() : 'To be announced'}
+- Start Time: ${
+      startTime 
+        ? studentTimezone 
+          ? // Use student's preferred timezone if available
+            startTime.toLocaleString('en-US', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+              timeZone: studentTimezone
+            }) + ` (${studentTimezone})`
+          : // Default to IST for new users with UTC in brackets
+            startTime.toLocaleString('en-US', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+              timeZone: 'Asia/Kolkata'
+            }) + ' IST (' +
+            startTime.toLocaleString('en-US', {
+              timeStyle: 'short',
+              timeZone: 'UTC'
+            }) + ' UTC)'
+        : 'To be announced'
+    }
 - Enrolled by: ${educatorName}
 
 "Study to shew thyself approved unto God" - 2 Timothy 2:15

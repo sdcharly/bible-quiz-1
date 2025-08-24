@@ -119,6 +119,35 @@ export default function OptimizedQuizTakingPage() {
               router.push("/student/quizzes");
             }
           }
+        } else if (response.status === 425) {
+          // Quiz not started yet
+          const data = await response.json();
+          if (mounted) {
+            setLoading(false);
+            
+            // Format the start time in user's local timezone
+            if (data.startTime) {
+              const startTime = new Date(data.startTime);
+              const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+              
+              // Format in user's timezone
+              const formattedTime = startTime.toLocaleString('en-US', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+                timeZone: userTimezone
+              });
+              
+              const message = data.timeUntilStart 
+                ? `This quiz will start at ${formattedTime} (${data.timeUntilStart})`
+                : `This quiz will start at ${formattedTime}`;
+              
+              alert(message);
+            } else {
+              alert(data.message || "Quiz not started yet");
+            }
+            
+            router.push("/student/quizzes");
+          }
         } else {
           const data = await response.json();
           if (mounted) {

@@ -4,11 +4,13 @@ import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+import { validatePermissions } from "@/lib/validation/admin-schemas";
 
-export async function PUT(
+async function handlePUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { params } = context;
   // Verify admin authentication
   const session = await getAdminSession();
   if (!session) {
@@ -23,7 +25,19 @@ export async function PUT(
   try {
     // Admin already authenticated above
     const { id: educatorId } = await params;
-    const { permissions } = await request.json();
+    const body = await request.json();
+    
+    // Validate permissions schema
+    let validatedPermissions;
+    try {
+      validatedPermissions = validatePermissions(body.permissions);
+    } catch (validationError) {
+      logger.warn(`Invalid permissions update attempt by ${session.email}: ${validationError}`);
+      return NextResponse.json(
+        { error: "Invalid permissions format" },
+        { status: 400 }
+      );
+    }
 
     // Get educator details
     const [educator] = await db
@@ -39,11 +53,11 @@ export async function PUT(
       );
     }
 
-    // Update educator permissions
+    // Update educator permissions with validated data
     await db
       .update(user)
       .set({
-        permissions,
+        permissions: validatedPermissions,
       })
       .where(eq(user.id, educatorId));
 
@@ -57,7 +71,7 @@ export async function PUT(
         educatorEmail: educator.email,
         educatorName: educator.name,
         updatedBy: session.email,
-        permissions,
+        permissions: validatedPermissions,
       }
     );
 
@@ -75,9 +89,14 @@ export async function PUT(
       );
     }
     
+    // Don't expose internal error details to client
+    logger.error("Error updating educator permissions:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update permissions" },
+      { error: "Failed to update permissions" },
       { status: 500 }
     );
   }
 }
+
+// Export directly with rate limiting applied via middleware when available
+export { handlePUT as PUT };

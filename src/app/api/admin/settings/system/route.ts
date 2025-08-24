@@ -6,8 +6,62 @@ import { nanoid } from "nanoid";
 import { getAdminSession, requireAdminAuth, logActivity } from "@/lib/admin-auth";
 import { clearMaintenanceCache } from "@/lib/maintenance";
 import { logger } from "@/lib/logger";
+import { z } from "zod";
 
-export async function GET() {
+// Validation schema for system settings
+const SystemSettingsSchema = z.object({
+  settings: z.record(
+    z.string().min(1).max(100),
+    z.unknown() // Will validate specific types based on key
+  )
+}).strict();
+
+// Validate specific setting values based on key
+function validateSettingValue(key: string, value: unknown): unknown {
+  const validators: Record<string, z.ZodSchema> = {
+    system_config: z.object({
+      maintenanceMode: z.boolean().optional(),
+      maintenanceMessage: z.string().max(500).optional(),
+      sessionTimeout: z.number().min(300000).max(86400000).optional(), // 5 min to 24 hours
+      adminSessionTimeout: z.number().min(300000).max(86400000).optional(),
+      maxLoginAttempts: z.number().min(3).max(10).optional(),
+      lockoutDuration: z.number().min(300000).max(3600000).optional(), // 5 min to 1 hour
+    }).strict(),
+    quiz_defaults: z.object({
+      timeLimit: z.number().min(60).max(7200).optional(), // 1 min to 2 hours
+      questionsPerQuiz: z.number().min(5).max(100).optional(),
+      attemptsAllowed: z.number().min(1).max(10).optional(),
+    }).strict(),
+    registration_settings: z.object({
+      requireEmailVerification: z.boolean().optional(),
+      allowStudentSignup: z.boolean().optional(),
+      allowEducatorSignup: z.boolean().optional(),
+      requireApproval: z.boolean().optional(),
+    }).strict(),
+    email_settings: z.object({
+      enableNotifications: z.boolean().optional(),
+      fromEmail: z.string().email().optional(),
+      fromName: z.string().max(100).optional(),
+    }).strict(),
+    security_settings: z.object({
+      enforcePasswordPolicy: z.boolean().optional(),
+      minPasswordLength: z.number().min(8).max(32).optional(),
+      requireUppercase: z.boolean().optional(),
+      requireNumbers: z.boolean().optional(),
+      requireSpecialChars: z.boolean().optional(),
+      sessionExpiry: z.number().min(300000).max(86400000).optional(),
+    }).strict(),
+  };
+
+  const validator = validators[key];
+  if (!validator) {
+    throw new Error(`Unknown setting key: ${key}`);
+  }
+
+  return validator.parse(value);
+}
+
+async function handleGET() {
   // Verify admin authentication
   const session = await getAdminSession();
   if (!session) {
@@ -41,7 +95,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   // Verify admin authentication
   const session = await getAdminSession();
   if (!session) {
@@ -61,10 +115,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { settings } = await request.json();
+    const body = await request.json();
+    
+    // Validate request body structure
+    let validatedBody;
+    try {
+      validatedBody = SystemSettingsSchema.parse(body);
+    } catch (error) {
+      logger.warn(`Invalid settings format from ${adminSession.email}: ${error}`);
+      return NextResponse.json(
+        { error: "Invalid request format" },
+        { status: 400 }
+      );
+    }
 
-    // Update or insert each setting category
+    const { settings } = validatedBody;
+
+    // Validate and process each setting
+    const validatedSettings: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(settings)) {
+      try {
+        validatedSettings[key] = validateSettingValue(key, value);
+      } catch (error) {
+        logger.warn(`Invalid setting value for ${key} from ${adminSession.email}: ${error}`);
+        return NextResponse.json(
+          { error: `Invalid value for setting: ${key}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Update or insert each validated setting
+    for (const [key, value] of Object.entries(validatedSettings)) {
       const existing = await db
         .select()
         .from(adminSettings)
@@ -92,7 +174,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Clear maintenance cache if system_config was updated
-    if (settings.system_config) {
+    if (validatedSettings.system_config) {
       clearMaintenanceCache();
     }
 
@@ -104,7 +186,7 @@ export async function POST(request: NextRequest) {
       "system_config",
       {
         updatedBy: adminSession.email,
-        settingsUpdated: Object.keys(settings),
+        settingsUpdated: Object.keys(validatedSettings),
       }
     );
 
@@ -117,6 +199,9 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Export directly - rate limiting can be applied at middleware level
+export { handleGET as GET, handlePOST as POST };
 
 function getSettingDescription(key: string): string {
   const descriptions: Record<string, string> = {

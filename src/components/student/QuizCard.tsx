@@ -71,8 +71,8 @@ export function QuizCard({ quiz, onEnroll, onStartQuiz }: QuizCardProps) {
     const date = new Date(quiz.startTime);
     return date.toLocaleString('en-US', {
       dateStyle: 'medium',
-      timeStyle: 'short',
-      timeZone: quiz.timezone || 'UTC'
+      timeStyle: 'short'
+      // Use browser's default timezone (user's local timezone)
     });
   };
 

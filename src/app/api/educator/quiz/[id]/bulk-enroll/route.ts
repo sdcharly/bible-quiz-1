@@ -104,12 +104,13 @@ export async function POST(
       await db.insert(enrollments).values(enrollmentRecords);
     }
 
-    // Get student details for response
+    // Get student details for response (including timezone for emails)
     const enrolledStudentDetails = await db
       .select({
         id: user.id,
         name: user.name,
         email: user.email,
+        timezone: user.timezone,
       })
       .from(user)
       .where(inArray(user.id, newEnrollments));
@@ -177,7 +178,8 @@ export async function POST(
           quiz[0].duration,
           quiz[0].startTime ? new Date(quiz[0].startTime) : null,
           undefined, // No group name for individual bulk enrollments
-          quizUrl
+          quizUrl,
+          student.timezone // Pass student's timezone for proper time display
         );
         
         return sendEmail({
