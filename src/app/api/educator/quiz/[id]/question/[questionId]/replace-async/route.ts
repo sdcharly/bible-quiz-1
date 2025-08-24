@@ -78,7 +78,9 @@ export async function PUT(
         fileSize: doc.fileSize,
         mimeType: doc.mimeType,
         uploadDate: doc.uploadDate,
-        lightragDocumentId: processedData?.lightragDocumentId || processedData?.trackId || doc.filePath,
+        // Use the permanent document ID for LightRAG operations
+        // Do NOT use trackId as it's only for status checking
+        lightragDocumentId: processedData?.lightragDocumentId || processedData?.permanentDocId,
         lightragUrl: processedData?.lightragUrl,
         processedBy: processedData?.processedBy,
         status: doc.status
