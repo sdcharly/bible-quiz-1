@@ -94,6 +94,37 @@ if (isDebugEnabled()) { /* debug mode */ }
 
 ### API Documentation:
 - **LightRAG API**: `/docs/technical/LIGHTRAG_API_REFERENCE.md` - CRITICAL: Document processing pipeline and status checking
+- **LightRAG Troubleshooting**: `/docs/technical/LIGHTRAG_API_CRITICAL_FINDINGS.md` - Root cause analysis and fixes
+
+## LightRAG API Integration (CRITICAL)
+
+**API Documentation**: https://lightrag-6bki.onrender.com/openapi.json
+
+### Key Endpoints & Requirements:
+
+1. **Document Upload** (`POST /documents/upload`):
+   - Returns: `{ status, message, track_id }`
+   - **CRITICAL**: `track_id` is REQUIRED for all subsequent operations
+   - **NEVER** fallback to internal document IDs if `track_id` is missing
+
+2. **Check Status** (`GET /documents/track_status/{track_id}`):
+   - Returns: `{ track_id, documents: [], total_count, status_summary }`
+   - Document is ready when: `total_count > 0` or `documents` array has items
+   - Empty `documents` array means still processing or wrong ID
+
+3. **Delete Document** (`DELETE /documents/{document_id}`):
+   - Uses LightRAG's document ID, NOT our internal database ID
+
+### Common Issues:
+- **Documents stuck in "processing"**: Using wrong ID (internal instead of track_id)
+- **Delete not working**: Using internal ID instead of LightRAG document ID
+- **Status checks return empty**: LightRAG doesn't recognize our internal IDs
+
+### Debug Process:
+1. Check what `track_id` LightRAG returns on upload
+2. Verify we're storing the correct `track_id` in `processedData`
+3. Ensure status checks use LightRAG's `track_id`, not our document ID
+4. Monitor console.error logs for CRITICAL DEBUG messages
 
 ### Project Structure:
 ```
