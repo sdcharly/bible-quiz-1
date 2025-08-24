@@ -15,7 +15,8 @@ import {
   AlertCircle,
   Search,
   Filter,
-  Edit
+  Edit,
+  Sparkles
 } from "lucide-react";
 import DocumentEditModal from "@/components/document/DocumentEditModal";
 
@@ -269,13 +270,13 @@ export default function DocumentsPage() {
             {filteredDocuments.map((doc) => (
               <div
                 key={doc.id}
-                className={`rounded-lg border p-2 transition-colors ${
+                className={`rounded-lg border p-3 transition-colors ${
                   doc.status === "deleted" 
                     ? "bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700 opacity-60" 
-                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600/50"
                 }`}
               >
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-between gap-3">
                   {/* Document Info - Compact */}
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <FileText className={`h-4 w-4 flex-shrink-0 ${
@@ -313,42 +314,46 @@ export default function DocumentsPage() {
                   </div>
                   
                   {/* Status Badge and Actions - Compact */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <DocumentProcessingStatus
                       documentId={doc.id}
                       initialStatus={doc.status}
                       onStatusChange={handleStatusChange(doc.id)}
                       compact={true}
                     />
-                    {doc.status === "processed" && (
+                    
+                    {/* Action buttons separated with better spacing */}
+                    <div className="flex items-center gap-1 ml-2 border-l border-gray-200 dark:border-gray-600 pl-3">
+                      {doc.status === "processed" && (
+                        <Button
+                          onClick={() => router.push(`/educator/quiz/create?documentId=${doc.id}`)}
+                          className="h-8 px-4 text-xs font-medium bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-sm hover:shadow-md transition-all flex items-center gap-1"
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Create Quiz
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => router.push(`/educator/quiz/create?documentId=${doc.id}`)}
-                        className="h-7 px-2 text-xs"
+                        onClick={() => handleEditDocument(doc)}
+                        className="h-8 w-8 p-0 text-gray-400 hover:text-amber-600"
+                        title="Edit document name and remarks"
                       >
-                        Create Quiz
+                        <Edit className="h-3.5 w-3.5" />
                       </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditDocument(doc)}
-                      className="h-7 w-7 p-0 text-gray-400 hover:text-amber-600"
-                      title="Edit document name and remarks"
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    {doc.status !== "deleted" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(doc.id, doc.filename)}
-                        className="h-7 w-7 p-0 text-gray-400 hover:text-red-600"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
+                      {doc.status !== "deleted" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(doc.id, doc.filename)}
+                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                          title="Delete document"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
