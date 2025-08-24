@@ -166,6 +166,22 @@ export class LightRAGService {
           isProcessed = true;
           processingMessage = 'Document fully indexed and ready for queries';
           logger.log(`Document ${documentId} is fully processed and ready for queries`);
+          
+          // If we got a permanent document ID, update it in the database
+          if (trackStatus.documentId) {
+            console.error(`[CRITICAL] Updating document ${documentId} with permanent LightRAG ID: ${trackStatus.documentId}`);
+            const currentData = document.processedData as Record<string, unknown> | null;
+            await db.update(documents)
+              .set({
+                processedData: {
+                  ...currentData,
+                  lightragDocumentId: trackStatus.documentId,
+                  permanentDocId: trackStatus.documentId,
+                  trackId: trackId
+                }
+              })
+              .where(eq(documents.id, documentId));
+          }
         } else if (trackStatus.exists) {
           // Document exists but still being processed
           isProcessed = false;
@@ -331,6 +347,7 @@ export class LightRAGService {
     processed: boolean;
     status?: string;
     message?: string;
+    documentId?: string;
   }> {
     validateApiKey();
     try {
@@ -345,46 +362,48 @@ export class LightRAGService {
       if (response.ok) {
         const data = await response.json();
         
-        // Log key information about the track status
-        logger.log(`Document track status for ${trackId}: ${data.total_count || 0} documents, status_summary: ${JSON.stringify(data.status_summary)}`);
+        // CRITICAL DEBUG: Log the actual response structure
+        console.error(`[CRITICAL] Track status response for ${trackId}:`, JSON.stringify(data, null, 2));
         
         // The track_status endpoint returns { track_id, documents: [], total_count, status_summary }
-        // Check if there are documents associated with this track ID
         const hasDocuments = data.documents && data.documents.length > 0;
         const documentCount = data.total_count || 0;
         
-        // CRITICAL: Based on user feedback, documents are showing as "processing" in UI
-        // but are actually ready for use in LightRAG. The track_status endpoint may not
-        // be the right way to check if documents are ready for queries.
-        // 
-        // Strategy: If track_id exists in the response, it means the document was successfully
-        // uploaded and tracked. Since user confirmed documents are ready, we'll assume
-        // that existence of track_id means processing is complete.
-        const trackExists = !!data.track_id;
+        // Extract the permanent document ID if available
+        let permanentDocId = null;
+        let documentStatus = null;
         
-        // Consider document processed if:
-        // 1. Track ID exists (document was uploaded and is being tracked)
-        // 2. Has indexed documents (documentCount > 0 or hasDocuments)
-        // This is a more permissive approach based on user feedback
-        const isProcessed = trackExists; // Simplified: track existence = ready
+        if (hasDocuments && data.documents[0]) {
+          permanentDocId = data.documents[0].id; // This is the "doc-xxx" ID
+          documentStatus = data.documents[0].status;
+          console.error(`[CRITICAL] Found permanent doc ID: ${permanentDocId}, status: ${documentStatus}`);
+        }
         
-        // Check status summary for any additional indicators
+        // Check status_summary for processed documents
         const statusSummary = data.status_summary || {};
-        const hasProcessedStatus = Object.keys(statusSummary).some(key => 
-          ['processed', 'completed', 'success', 'ready', 'indexed'].includes(key.toLowerCase())
-        );
+        const processedCount = statusSummary.PROCESSED || statusSummary.processed || 0;
+        const hasProcessedInSummary = processedCount > 0;
         
-        const finalProcessed = isProcessed || hasProcessedStatus;
+        console.error(`[CRITICAL] Status summary:`, statusSummary);
+        console.error(`[CRITICAL] Has processed in summary: ${hasProcessedInSummary}, count: ${processedCount}`);
         
-        logger.log(`Track ${trackId} processed status: ${finalProcessed} (hasDocuments: ${hasDocuments}, count: ${documentCount})`);
+        // Document is processed if:
+        // 1. We have documents in the array (they exist in LightRAG)
+        // 2. Status summary shows PROCESSED > 0
+        // 3. Individual document status is "PROCESSED"
+        const isProcessed = hasDocuments || hasProcessedInSummary || 
+                          (documentStatus && ['PROCESSED', 'processed', 'ready'].includes(documentStatus));
+        
+        logger.log(`Track ${trackId} processed: ${isProcessed} (docs: ${documentCount}, permanentId: ${permanentDocId})`);
         
         return {
           exists: true,
-          processed: finalProcessed,
-          status: finalProcessed ? 'ready' : 'tracking',
-          message: finalProcessed ? 
-            `Document ready for use (track ID: ${data.track_id})` : 
-            'Track ID exists but processing may be incomplete'
+          processed: isProcessed,
+          status: isProcessed ? 'ready' : 'tracking',
+          message: isProcessed ? 
+            `Document ready (ID: ${permanentDocId || trackId})` : 
+            'Document still processing',
+          documentId: permanentDocId // Return the permanent document ID
         };
       } else if (response.status === 404) {
         return {
