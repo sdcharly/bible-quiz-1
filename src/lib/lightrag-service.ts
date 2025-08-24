@@ -876,6 +876,17 @@ export class LightRAGService {
       }
 
       const data = await response.json();
+      
+      // CRITICAL DEBUG: Log exactly what LightRAG returns
+      console.error(`[CRITICAL] LightRAG upload response for ${file.name}:`, JSON.stringify(data, null, 2));
+      console.error(`[CRITICAL] Response has track_id: ${!!data.track_id}`);
+      console.error(`[CRITICAL] track_id value: "${data.track_id}"`);
+      
+      // Check if we got the expected fields
+      if (!data.track_id) {
+        console.error(`[ERROR] LightRAG upload response missing track_id! Full response:`, data);
+      }
+      
       logger.log(`Upload response for ${file.name}:`, data);
 
       return data;

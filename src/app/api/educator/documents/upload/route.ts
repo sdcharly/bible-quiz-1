@@ -79,7 +79,41 @@ export async function POST(req: NextRequest) {
       
       if (uploadResult.success && uploadResult.uploadResponse) {
         const response = uploadResult.uploadResponse;
-        const trackId = response.track_id || documentId;
+        
+        // Critical debug logging to identify the issue
+        console.error(`[CRITICAL DEBUG] Upload response from LightRAG:`, JSON.stringify(response, null, 2));
+        console.error(`[CRITICAL DEBUG] Track ID in response: "${response.track_id}"`);
+        console.error(`[CRITICAL DEBUG] Our document ID: "${documentId}"`);
+        
+        // CRITICAL: Only use LightRAG's track_id, never fallback to internal ID
+        if (!response.track_id) {
+          console.error(`[CRITICAL ERROR] LightRAG did not return a track_id! Cannot track document status.`);
+          
+          // Mark as failed since we can't track it
+          await db.update(documents)
+            .set({ 
+              status: "failed",
+              processedData: {
+                error: "No track_id received from LightRAG - cannot track document",
+                lightragResponse: response,
+                timestamp: new Date().toISOString()
+              }
+            })
+            .where(eq(documents.id, documentId));
+          
+          return NextResponse.json({
+            success: false,
+            error: "Document upload failed: No tracking ID received from LightRAG",
+            details: {
+              message: "LightRAG did not return a track_id. The document cannot be tracked or used.",
+              response: response
+            }
+          }, { status: 500 });
+        }
+        
+        const trackId = response.track_id;
+        console.error(`[CRITICAL DEBUG] Using LightRAG track ID: "${trackId}"`);
+        
         
         // Determine final status based on upload response
         let finalStatus: "processing" | "processed" | "failed" = "processing";
