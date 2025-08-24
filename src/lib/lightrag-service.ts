@@ -285,6 +285,61 @@ export class LightRAGService {
       }
 
       const doc = document[0];
+      
+      // Get the trackId from processedData to check actual status
+      const processedData = doc.processedData as { 
+        trackId?: string;
+        lightragDocumentId?: string;
+        [key: string]: unknown;
+      } | null;
+      
+      const trackId = processedData?.trackId;
+      
+      // If we have a trackId and document is not yet processed, check actual status from LightRAG
+      if (trackId && doc.status !== "processed" && doc.status !== "failed") {
+        logger.log(`Checking LightRAG status for document ${documentId} using trackId: ${trackId}`);
+        
+        try {
+          const trackStatus = await this.checkDocumentTrackStatus(trackId);
+          
+          // If document is now processed in LightRAG, update our database
+          if (trackStatus.processed && trackStatus.documentId) {
+            logger.log(`Document ${documentId} is now processed in LightRAG with docId: ${trackStatus.documentId}`);
+            
+            // Update document status to processed
+            await db.update(documents)
+              .set({
+                status: 'processed',
+                processingCompletedAt: new Date(),
+                processedData: {
+                  ...processedData,
+                  lightragDocumentId: trackStatus.documentId,
+                  permanentDocId: trackStatus.documentId,
+                  trackId: trackId,
+                  processedAt: new Date().toISOString()
+                }
+              })
+              .where(eq(documents.id, documentId));
+            
+            return {
+              status: "processed",
+              isComplete: true,
+              isFailed: false,
+              isProcessing: false,
+              progress: 100,
+              latestMessage: trackStatus.message || "Document processing complete",
+              processingStarted: doc.processingStartedAt,
+              processingCompleted: new Date(),
+              lastChecked: new Date().toISOString()
+            };
+          }
+        } catch (error) {
+          logger.error(`Error checking track status for ${trackId}:`, error);
+          // Continue with existing status if track check fails
+        }
+      }
+      
+      // Return existing status from database
       const status = doc.lightragProcessingStatus as {
         busy: boolean;
         jobName?: string;
@@ -309,7 +364,7 @@ export class LightRAGService {
         latestMessage: status?.latestMessage,
         processingStarted: doc.processingStartedAt,
         processingCompleted: doc.processingCompletedAt,
-        lastChecked: status?.lastChecked
+        lastChecked: status?.lastChecked || new Date().toISOString()
       };
     } catch (error) {
       logger.error(`Error getting document ${documentId} processing progress:`, error);

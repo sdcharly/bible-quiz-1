@@ -43,6 +43,7 @@ import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/feature-flags";
 interface Document {
   id: string;
   filename: string;
+  displayName?: string | null;
   status: string;
   uploadDate: string;
   fileSize: number;
@@ -721,18 +722,25 @@ function CreateQuizContent() {
                         />
                         <div className="flex-1">
                           <div className="flex items-center">
-                            <BookOpen className="h-5 w-5 mr-2 text-amber-600" />
-                            <span className="font-medium text-gray-800 dark:text-gray-200">
-                              {doc.filename}
-                            </span>
+                            <BookOpen className="h-5 w-5 mr-2 text-amber-600 flex-shrink-0" />
+                            <div className="min-w-0">
+                              <span className="font-medium text-gray-800 dark:text-gray-200 block truncate">
+                                {doc.displayName || doc.filename}
+                              </span>
+                              {doc.displayName && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 block truncate">
+                                  📁 {doc.filename}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Uploaded {new Date(doc.uploadDate).toLocaleDateString()}
-                            {" • "}
-                            {(doc.fileSize / 1024).toFixed(1)} KB
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2">
+                            <span>Uploaded {new Date(doc.uploadDate).toLocaleDateString()}</span>
+                            <span>•</span>
+                            <span>{(doc.fileSize / 1024).toFixed(1)} KB</span>
                           </div>
                         </div>
-                        <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                        <CheckCircleIcon className="h-5 w-5 text-green-500 flex-shrink-0" />
                       </label>
                     ))}
                   </div>

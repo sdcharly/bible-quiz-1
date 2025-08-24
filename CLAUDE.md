@@ -100,30 +100,56 @@ if (isDebugEnabled()) { /* debug mode */ }
 
 **API Documentation**: https://lightrag-6bki.onrender.com/openapi.json
 
+### CRITICAL: LightRAG ID System
+
+**There are TWO different IDs in LightRAG:**
+
+1. **Track ID** (e.g., `track-xxxxx`):
+   - Returned immediately on upload: `{ status, message, track_id }`
+   - Used ONLY for checking upload/processing status
+   - Temporary ID for tracking the processing job
+   - Use with: `GET /documents/track_status/{track_id}`
+
+2. **Document ID** (e.g., `doc-xxxxx`):
+   - Generated AFTER processing is complete
+   - Found in track_status response: `documents[0].id`
+   - Permanent ID for the document
+   - Use for ALL future operations (query, delete, reference)
+   - Use with: `DELETE /documents/{document_id}`, queries, etc.
+
+### Correct ID Usage Flow:
+1. **Upload**: Get `track_id` from response
+2. **Check Status**: Use `track_id` with `/documents/track_status/{track_id}`
+3. **Processing Complete**: Extract `document_id` from `documents[0].id`
+4. **Store Both**: Save `track_id` for status checks, `document_id` for operations
+5. **Future Use**: Always use `document_id` for queries, deletion, references
+
 ### Key Endpoints & Requirements:
 
 1. **Document Upload** (`POST /documents/upload`):
    - Returns: `{ status, message, track_id }`
-   - **CRITICAL**: `track_id` is REQUIRED for all subsequent operations
-   - **NEVER** fallback to internal document IDs if `track_id` is missing
+   - Save the `track_id` immediately for status checking
 
 2. **Check Status** (`GET /documents/track_status/{track_id}`):
+   - **MUST use track_id, NOT document_id**
    - Returns: `{ track_id, documents: [], total_count, status_summary }`
-   - Document is ready when: `total_count > 0` or `documents` array has items
-   - Empty `documents` array means still processing or wrong ID
+   - Document ready when: `documents` array has items with `id` field
+   - Extract `documents[0].id` as the permanent document_id
 
 3. **Delete Document** (`DELETE /documents/{document_id}`):
-   - Uses LightRAG's document ID, NOT our internal database ID
+   - **MUST use document_id from documents array, NOT track_id**
+   - This is the permanent document ID
 
 ### Common Issues:
-- **Documents stuck in "processing"**: Using wrong ID (internal instead of track_id)
-- **Delete not working**: Using internal ID instead of LightRAG document ID
-- **Status checks return empty**: LightRAG doesn't recognize our internal IDs
+- **Documents stuck in "processing"**: Using document_id for status check instead of track_id
+- **Status check returns empty**: Wrong ID type (using doc-xxx instead of track-xxx)
+- **Delete not working**: Using track_id instead of document_id
+- **"Document not found"**: Mixing up the two ID types
 
 ### Debug Process:
-1. Check what `track_id` LightRAG returns on upload
-2. Verify we're storing the correct `track_id` in `processedData`
-3. Ensure status checks use LightRAG's `track_id`, not our document ID
+1. Check `processedData.trackId` for status checks
+2. Check `processedData.lightragDocumentId` for operations
+3. Verify correct ID type for each API call
 4. Monitor console.error logs for CRITICAL DEBUG messages
 
 ### Project Structure:

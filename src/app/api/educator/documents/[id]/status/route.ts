@@ -138,16 +138,14 @@ export async function POST(
       });
     }
 
-    // Force update document processing status
-    const isComplete = await LightRAGService.updateDocumentProcessingStatus(documentId);
+    // Force check the current status from LightRAG
     const progress = await LightRAGService.getDocumentProcessingProgress(documentId);
 
     return NextResponse.json({
       success: true,
       data: {
         ...progress,
-        refreshed: true,
-        isComplete
+        refreshed: true
       }
     });
 
