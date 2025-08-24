@@ -5,7 +5,19 @@ import { withMiddleware } from "@/lib/api-middleware";
 
 async function handleLogin(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    let email, password;
+    
+    try {
+      const body = await request.json();
+      email = body.email;
+      password = body.password;
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      return NextResponse.json(
+        { success: false, error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
 
     if (!email || !password) {
       return NextResponse.json(

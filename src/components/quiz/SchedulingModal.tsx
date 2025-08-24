@@ -74,7 +74,7 @@ export function SchedulingModal({
       });
       
       const parts = formatter.formatToParts(utcDate);
-      const dateParts: any = {};
+      const dateParts: Record<string, string> = {};
       parts.forEach(part => {
         dateParts[part.type] = part.value;
       });
@@ -99,7 +99,7 @@ export function SchedulingModal({
       });
       
       const parts = formatter.formatToParts(future);
-      const dateParts: any = {};
+      const dateParts: Record<string, string> = {};
       parts.forEach(part => {
         dateParts[part.type] = part.value;
       });

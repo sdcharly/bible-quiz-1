@@ -73,14 +73,25 @@ export default function EducatorsManagement({ educators }: EducatorsManagementPr
       });
 
       if (response.ok) {
-        alert("Educator suspended successfully");
+        safeAlert({
+          title: "Success",
+          description: "Educator suspended successfully",
+        });
         router.refresh();
       } else {
         const data = await response.json();
-        alert(`Failed to suspend educator: ${data.error}`);
+        safeAlert({
+          title: "Error",
+          description: "Failed to suspend educator",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      alert(`Error suspending educator: ${error}`);
+      safeAlert({
+        title: "Error",
+        description: "Error suspending educator",
+        variant: "destructive",
+      });
     }
   };
 
@@ -92,14 +103,25 @@ export default function EducatorsManagement({ educators }: EducatorsManagementPr
       });
 
       if (response.ok) {
-        alert("Educator reactivated successfully");
+        safeAlert({
+          title: "Success",
+          description: "Educator reactivated successfully",
+        });
         router.refresh();
       } else {
         const data = await response.json();
-        alert(`Failed to reactivate educator: ${data.error}`);
+        safeAlert({
+          title: "Error",
+          description: "Failed to reactivate educator",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      alert(`Error reactivating educator: ${error}`);
+      safeAlert({
+        title: "Error",
+        description: "Error reactivating educator",
+        variant: "destructive",
+      });
     }
   };
 

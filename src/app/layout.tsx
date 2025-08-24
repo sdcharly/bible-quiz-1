@@ -26,6 +26,23 @@ export const metadata: Metadata = {
     shortcut: '/favicon-16x16.png',
     apple: '/apple-touch-icon.png',
   },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f59e0b' },
+    { media: '(prefers-color-scheme: dark)', color: '#d97706' },
+  ],
+  manifest: '/manifest.json',
+  openGraph: {
+    title: 'Scrolls of Wisdom - Biblical Knowledge Quest',
+    description: 'Embark on a divine journey through scripture with AI-powered wisdom quests.',
+    type: 'website',
+    locale: 'en_US',
+  },
 };
 
 export default function RootLayout({

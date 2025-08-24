@@ -27,8 +27,8 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 
 export async function createAdminSession(adminId: string, email: string): Promise<string> {
   // Get session timeout from configuration
-  const sessionConfig = await getSessionConfig();
-  const sessionDuration = sessionConfig.adminSessionTimeout || DEFAULT_SESSION_DURATION;
+  const sessionConfig = await getSessionConfig('admin');
+  const sessionDuration = sessionConfig.absoluteTimeout || DEFAULT_SESSION_DURATION;
   
   const session: AdminSession = {
     id: adminId,

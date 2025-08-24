@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { quizzes, enrollments, quizAttempts, educatorStudents } from "@/lib/schema";
-import { eq, and, ne, inArray } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { withPerformance } from "@/lib/api-performance";
+import { logger } from "@/lib/logger";
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
+    const startTime = Date.now();
     // Get session
     const session = await auth.api.getSession({
       headers: await headers()
@@ -43,33 +46,42 @@ export async function GET(req: NextRequest) {
 
     const educatorIds = studentEducators.map(se => se.educatorId);
 
-    // Fetch only published quizzes from associated educators
-    const educatorQuizzes = await db
-      .select()
-      .from(quizzes)
-      .where(
-        and(
-          eq(quizzes.status, "published"),
-          inArray(quizzes.educatorId, educatorIds)
-        )
-      );
+    // Fetch data in parallel for better performance
+    const [educatorQuizzes, studentEnrollments, studentAttempts] = await Promise.all([
+      // Fetch only published quizzes from associated educators
+      db
+        .select()
+        .from(quizzes)
+        .where(
+          and(
+            eq(quizzes.status, "published"),
+            inArray(quizzes.educatorId, educatorIds)
+          )
+        ),
+      // Fetch student enrollments
+      db
+        .select()
+        .from(enrollments)
+        .where(eq(enrollments.studentId, studentId)),
+      // Fetch student attempts
+      db
+        .select()
+        .from(quizAttempts)
+        .where(eq(quizAttempts.studentId, studentId))
+    ]);
 
-    // Fetch student enrollments
-    const studentEnrollments = await db
-      .select()
-      .from(enrollments)
-      .where(eq(enrollments.studentId, studentId));
-
-    // Fetch student attempts
-    const studentAttempts = await db
-      .select()
-      .from(quizAttempts)
-      .where(eq(quizAttempts.studentId, studentId));
+    // Create lookup maps for O(1) access
+    const enrollmentMap = new Map(studentEnrollments.map(e => [e.quizId, e]));
+    const attemptMap = new Map(
+      studentAttempts
+        .filter(a => a.status === "completed")
+        .map(a => [a.quizId, a])
+    );
 
     // Map quiz data with enrollment and attempt status
     const quizzesWithStatus = educatorQuizzes.map(quiz => {
-      const enrollment = studentEnrollments.find(e => e.quizId === quiz.id);
-      const attempt = studentAttempts.find(a => a.quizId === quiz.id && a.status === "completed");
+      const enrollment = enrollmentMap.get(quiz.id);
+      const attempt = attemptMap.get(quiz.id);
       
       return {
         id: quiz.id,
@@ -87,14 +99,34 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    const responseTime = Date.now() - startTime;
+    logger.debug("Student quizzes fetched", { 
+      count: quizzesWithStatus.length, 
+      responseTime 
+    });
+
     return NextResponse.json({
       quizzes: quizzesWithStatus,
+    }, {
+      headers: {
+        "Cache-Control": "private, max-age=10",
+        "X-Response-Time": String(responseTime),
+      }
     });
   } catch (error) {
-    console.error("Error fetching quizzes:", error);
+    logger.error("Error fetching quizzes", error);
     return NextResponse.json(
       { error: "Failed to fetch quizzes" },
       { status: 500 }
     );
   }
 }
+
+// Export with performance optimizations
+export const GET = withPerformance(getHandler as (...args: unknown[]) => Promise<NextResponse>, {
+  cache: true,
+  cacheKey: "student-quizzes",
+  cacheTTL: 10000, // Cache for 10 seconds
+  rateLimit: true,
+  maxRequests: 200, // Allow 200 requests per minute per IP
+});

@@ -46,15 +46,28 @@ export default function AdminDocumentsPage() {
   const fetchDocuments = async () => {
     try {
       const response = await fetch("/api/admin/documents/list-all");
+      const data = await response.json();
+      
       if (response.ok) {
-        const data = await response.json();
         setDocuments(data.documents || []);
+        console.log(`Fetched ${data.documents?.length || 0} documents`);
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch documents",
-          variant: "destructive"
-        });
+        console.error("API Error:", data.error);
+        setDocuments([]);
+        
+        if (response.status === 401 || response.status === 403) {
+          toast({
+            title: "Authentication Required",
+            description: "Please ensure you're logged in as an admin",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: data.error || "Failed to fetch documents",
+            variant: "destructive"
+          });
+        }
       }
     } catch (error) {
       console.error("Error fetching documents:", error);
