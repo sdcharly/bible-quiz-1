@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
               status: response.status,
               message: response.message,
               trackId: trackId,
-              lightragDocumentId: trackId,
+              // Don't set lightragDocumentId yet - it will be set when processing completes
               fileName: file.name,
               fileType: file.type,
               fileSize: file.size,
