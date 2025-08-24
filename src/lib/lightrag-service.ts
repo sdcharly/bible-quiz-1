@@ -162,26 +162,30 @@ export class LightRAGService {
         logger.log(`Checking track status for document ${documentId}, trackId: ${trackId}`);
         const trackStatus = await this.checkDocumentTrackStatus(trackId);
         
+        // ALWAYS update permanent document ID if we got one
+        if (trackStatus.documentId && trackStatus.documentId.startsWith('doc-')) {
+          console.error(`[CRITICAL] Found permanent LightRAG doc ID: ${trackStatus.documentId} for document ${documentId}`);
+          const currentData = document.processedData as Record<string, unknown> | null;
+          
+          // Update the database with the permanent document ID
+          await db.update(documents)
+            .set({
+              processedData: {
+                ...currentData,
+                lightragDocumentId: trackStatus.documentId,
+                permanentDocId: trackStatus.documentId,
+                trackId: trackId
+              }
+            })
+            .where(eq(documents.id, documentId));
+          
+          console.error(`[CRITICAL] Updated document ${documentId} with permanent ID: ${trackStatus.documentId}`);
+        }
+        
         if (trackStatus.processed) {
           isProcessed = true;
           processingMessage = 'Document fully indexed and ready for queries';
           logger.log(`Document ${documentId} is fully processed and ready for queries`);
-          
-          // If we got a permanent document ID, update it in the database
-          if (trackStatus.documentId) {
-            console.error(`[CRITICAL] Updating document ${documentId} with permanent LightRAG ID: ${trackStatus.documentId}`);
-            const currentData = document.processedData as Record<string, unknown> | null;
-            await db.update(documents)
-              .set({
-                processedData: {
-                  ...currentData,
-                  lightragDocumentId: trackStatus.documentId,
-                  permanentDocId: trackStatus.documentId,
-                  trackId: trackId
-                }
-              })
-              .where(eq(documents.id, documentId));
-          }
         } else if (trackStatus.exists) {
           // Document exists but still being processed
           isProcessed = false;

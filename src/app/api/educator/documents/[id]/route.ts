@@ -52,7 +52,30 @@ export async function DELETE(
 
     // Get the LightRAG document ID from metadata
     const processedData = document.processedData as Record<string, unknown> | null;
-    const lightragDocumentId = processedData?.trackId || processedData?.lightragDocumentId;
+    
+    // Prioritize permanent doc ID (doc-xxx), then lightragDocumentId, then trackId
+    const permanentDocId = processedData?.permanentDocId as string | undefined;
+    const lightragDocId = processedData?.lightragDocumentId as string | undefined;
+    const trackId = processedData?.trackId as string | undefined;
+    
+    // CRITICAL: Only use IDs that start with "doc-" for deletion
+    let lightragDocumentId: string | undefined;
+    
+    if (permanentDocId && permanentDocId.startsWith('doc-')) {
+      lightragDocumentId = permanentDocId;
+    } else if (lightragDocId && lightragDocId.startsWith('doc-')) {
+      lightragDocumentId = lightragDocId;
+    } else if (trackId && trackId.startsWith('doc-')) {
+      // Sometimes the track ID might actually be the doc ID
+      lightragDocumentId = trackId;
+    } else {
+      // No valid doc ID found
+      lightragDocumentId = undefined;
+      console.error(`[WARNING] No valid LightRAG document ID (doc-xxx) found for deletion`);
+    }
+    
+    console.error(`[CRITICAL] Deletion IDs - permanentDocId: ${permanentDocId}, lightragDocId: ${lightragDocId}, trackId: ${trackId}`);
+    console.error(`[CRITICAL] Using for deletion: ${lightragDocumentId}`);
     
     console.log("Document deletion attempt:", {
       localDocumentId: params.id,
@@ -65,7 +88,9 @@ export async function DELETE(
     const deletionWarnings: string[] = [];
 
     // Enhanced LightRAG deletion with safety checks
-    if (lightragDocumentId && (document.status === "processed" || document.status === "processing")) {
+    // Only attempt deletion if we have a valid doc ID (starts with "doc-")
+    if (lightragDocumentId && lightragDocumentId.startsWith('doc-') && 
+        (document.status === "processed" || document.status === "processing")) {
       try {
         console.log(`Attempting safe deletion of LightRAG document: ${lightragDocumentId}`);
         
@@ -112,7 +137,8 @@ export async function DELETE(
         }
       }
     } else if (document.status === "processed" && !lightragDocumentId) {
-      deletionWarnings.push("Document marked as processed but has no LightRAG ID - local deletion only");
+      deletionWarnings.push("Document marked as processed but has no valid LightRAG ID (doc-xxx) - local deletion only");
+      console.error(`[WARNING] Cannot delete from LightRAG: No valid document ID starting with 'doc-'`);
     } else if (document.status === "failed") {
       console.log("Document failed processing, safe to delete locally");
     } else if (document.status === "pending") {
