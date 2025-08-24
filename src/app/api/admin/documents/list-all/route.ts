@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { documents } from "@/lib/schema";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin-auth";
 import { sql } from "drizzle-orm";
 
 /**
@@ -13,29 +12,19 @@ export async function GET() {
   console.log("[Documents API] Starting request...");
   
   try {
-    // Get session
-    const session = await auth.api.getSession({
-      headers: await headers()
+    // Check for admin session (uses JWT token from admin login)
+    const adminSession = await getAdminSession();
+    
+    console.log("[Documents API] Admin session check:", {
+      hasAdminSession: !!adminSession,
+      adminEmail: adminSession?.email,
+      adminRole: adminSession?.role
     });
 
-    console.log("[Documents API] Session check:", {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      userRole: session?.user?.role
-    });
-
-    if (!session?.user) {
-      console.log("[Documents API] No session found");
+    if (!adminSession) {
+      console.log("[Documents API] No admin session found");
       return NextResponse.json(
-        { error: "Unauthorized - Admin access required", documents: [], totalDocuments: 0 },
-        { status: 401 }
-      );
-    }
-
-    if (session.user.role !== 'admin' && session.user.role !== 'super_admin') {
-      console.log("[Documents API] User role not admin:", session.user.role);
-      return NextResponse.json(
-        { error: "Forbidden - Admin role required", documents: [], totalDocuments: 0 },
+        { error: "Admin access required", documents: [], totalDocuments: 0 },
         { status: 403 }
       );
     }
