@@ -322,6 +322,8 @@ export default function QuizReviewPage() {
       
       try {
         const response = await fetch(`/api/educator/quiz/poll-status?jobId=${jobId}`);
+        console.log(`[REPLACE-POLL] Attempt ${pollAttempts} - Response status:`, response.status);
+        
         if (response.ok) {
           const status = await response.json();
           console.log(`[REPLACE-POLL] Job ${jobId} status:`, status.status, `progress:`, status.progress);
@@ -401,19 +403,34 @@ export default function QuizReviewPage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('[REPLACE-QUESTION] Response from replace-async:', data);
         
-        if (data.jobId) {
+        // Check if replacement completed immediately (synchronous)
+        if (data.success && data.questionId && !data.pollUrl) {
+          console.log('[REPLACE-QUESTION] Question replaced immediately');
+          setReplaceProgress(100);
+          setReplaceMessage("Question replaced successfully!");
+          await fetchQuizDetails();
+          setTimeout(() => {
+            setReplacingQuestion(null);
+            setReplaceJobId(null);
+            setReplaceProgress(0);
+            setReplaceMessage("");
+          }, 1500);
+        } else if (data.jobId) {
+          // Async flow - start polling
           setReplaceJobId(data.jobId);
           setReplaceProgress(5);
-          setReplaceMessage("Starting question generation...");
+          setReplaceMessage(data.message || "Starting question generation...");
           jobStartTimeRef.current = Date.now();
           
           // Start polling for job status updates
-          console.log('[REPLACE-QUESTION] Starting polling for job status updates');
+          console.log('[REPLACE-QUESTION] Starting polling for job:', data.jobId);
           pollReplaceJobStatus(data.jobId);
         } else {
-          // Fallback if no jobId (shouldn't happen with async endpoint)
-          alert("Failed to start question replacement");
+          // Unexpected response format
+          console.error('[REPLACE-QUESTION] Unexpected response format:', data);
+          alert("Failed to start question replacement - unexpected response");
           setReplacingQuestion(null);
         }
       } else {

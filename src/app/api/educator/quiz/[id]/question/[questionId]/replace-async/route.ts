@@ -179,7 +179,42 @@ export async function PUT(
           }, { status: 500 });
         }
 
-        // Update job as processing
+        // Check the webhook response
+        let webhookData;
+        try {
+          webhookData = await webhookResponse.json();
+          console.log(`[REPLACE-ASYNC] Webhook response data:`, webhookData);
+        } catch (e) {
+          // If response is not JSON, treat as acknowledgment
+          console.log(`[REPLACE-ASYNC] Webhook acknowledged (non-JSON response)`);
+          webhookData = {};
+        }
+        
+        // Check if n8n sent confirmation response (as per workflow)
+        if (webhookData.status === 'processing') {
+          console.log("Webhook acknowledged with processing status, expecting callback");
+          // This is the expected n8n response - continue with async flow
+        } else if (webhookData.success && webhookData.questionId) {
+          // n8n completed the replacement immediately (shouldn't happen with current workflow)
+          console.log("Webhook completed replacement immediately, returning success");
+          
+          // Mark job as completed
+          jobStore.update(jobId, {
+            status: 'completed',
+            progress: 100,
+            message: 'Question replaced successfully'
+          });
+          
+          // Return the success response directly
+          return NextResponse.json({
+            success: true,
+            jobId,
+            questionId: webhookData.questionId,
+            message: webhookData.message || "Question replaced successfully"
+          });
+        }
+        
+        // Update job status based on webhook response
         jobStore.update(jobId, {
           status: 'processing',
           progress: 10,
