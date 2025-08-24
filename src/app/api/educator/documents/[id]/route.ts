@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { documents, quizzes } from "@/lib/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { LightRAGService } from "@/lib/lightrag-service";
+import { logger } from "@/lib/logger";
 
 export async function DELETE(
   req: NextRequest,
@@ -188,6 +189,142 @@ export async function DELETE(
     console.error("Error deleting document:", error);
     return NextResponse.json(
       { error: "Failed to delete document" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const params = await context.params;
+    
+    // Get session
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    // Require authenticated educator
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+
+    const documentId = params.id;
+    const educatorId = session.user.id;
+
+    // Fetch the document
+    const document = await db
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.id, documentId),
+          eq(documents.educatorId, educatorId)
+        )
+      )
+      .limit(1);
+
+    if (document.length === 0) {
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      document: document[0]
+    });
+  } catch (error) {
+    logger.error("Error fetching document:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch document" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const params = await context.params;
+    
+    // Get session
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    // Require authenticated educator
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+
+    const documentId = params.id;
+    const educatorId = session.user.id;
+    const { displayName, remarks } = await request.json();
+
+    // Validate input
+    if (!displayName || typeof displayName !== 'string') {
+      return NextResponse.json(
+        { error: "Display name is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if document exists and belongs to educator
+    const existingDocument = await db
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.id, documentId),
+          eq(documents.educatorId, educatorId)
+        )
+      )
+      .limit(1);
+
+    if (existingDocument.length === 0) {
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      );
+    }
+
+    // Update the document
+    const updatedDocument = await db
+      .update(documents)
+      .set({
+        displayName: displayName.trim(),
+        remarks: remarks?.trim() || null,
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(documents.id, documentId),
+          eq(documents.educatorId, educatorId)
+        )
+      )
+      .returning();
+
+    logger.info(`Document metadata updated: ${documentId} by educator ${educatorId}`);
+
+    return NextResponse.json({
+      success: true,
+      document: updatedDocument[0]
+    });
+  } catch (error) {
+    logger.error("Error updating document metadata:", error);
+    return NextResponse.json(
+      { error: "Failed to update document" },
       { status: 500 }
     );
   }

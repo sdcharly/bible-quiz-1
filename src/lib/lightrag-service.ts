@@ -159,22 +159,25 @@ export class LightRAGService {
       
       if (trackId) {
         // Use track ID to check if document is fully processed
+        logger.force(`[DEBUG] Checking track status for document ${documentId}, trackId: ${trackId}`);
         const trackStatus = await this.checkDocumentTrackStatus(trackId);
+        
+        logger.force(`[DEBUG] Track status result for ${documentId}:`, trackStatus);
         
         if (trackStatus.processed) {
           isProcessed = true;
           processingMessage = 'Document fully indexed and ready for queries';
-          logger.log(`Document ${documentId} is fully processed and ready for queries`);
+          logger.force(`[DEBUG] Document ${documentId} is fully processed and ready for queries`);
         } else if (trackStatus.exists) {
           // Document exists but still being processed
           isProcessed = false;
           processingMessage = trackStatus.message || 'Document uploaded, indexing in progress...';
-          logger.log(`Document ${documentId} exists but still being indexed: ${trackStatus.status}`);
+          logger.force(`[DEBUG] Document ${documentId} exists but still being indexed: ${trackStatus.status}`);
         } else {
           // Track ID not found - might be an issue
           isProcessed = false;
           processingMessage = 'Document upload verification pending...';
-          logger.log(`Document ${documentId} track ID not found, status: ${trackStatus.status}`);
+          logger.force(`[DEBUG] Document ${documentId} track ID not found, status: ${trackStatus.status}`);
         }
       } else {
         // No document ID yet - still uploading or pending
@@ -343,17 +346,39 @@ export class LightRAGService {
 
       if (response.ok) {
         const data = await response.json();
-        // The track_status endpoint should return the document's processing status
-        // We need to check if the status indicates it's fully processed
-        const isProcessed = data.status === 'processed' || data.status === 'completed' || data.status === 'success';
         
-        logger.log(`Document track status for ${trackId}:`, data);
+        // Enhanced debug logging to see what LightRAG is actually returning
+        logger.force(`[DEBUG] Document track status for ${trackId}:`, data);
+        logger.force(`[DEBUG] Documents array:`, data.documents);
+        logger.force(`[DEBUG] Status summary:`, data.status_summary);
+        logger.force(`[DEBUG] Total count:`, data.total_count);
+        
+        // The track_status endpoint returns { track_id, documents: [], total_count, status_summary }
+        // Check if there are documents associated with this track ID
+        const hasDocuments = data.documents && data.documents.length > 0;
+        const documentCount = data.total_count || 0;
+        
+        // If there are documents, the track ID exists and likely means processing is complete
+        // If total_count > 0, it means documents have been processed and indexed
+        const isProcessed = documentCount > 0 || hasDocuments;
+        
+        // Check status summary for any indicators
+        const statusSummary = data.status_summary || {};
+        const hasProcessedStatus = Object.keys(statusSummary).some(key => 
+          ['processed', 'completed', 'success', 'ready', 'indexed'].includes(key.toLowerCase())
+        );
+        
+        const finalProcessed = isProcessed || hasProcessedStatus;
+        
+        logger.force(`[DEBUG] Determined processed status: ${finalProcessed} (hasDocuments: ${hasDocuments}, count: ${documentCount}, statusSummary: ${JSON.stringify(statusSummary)})`);
         
         return {
           exists: true,
-          processed: isProcessed,
-          status: data.status,
-          message: data.message || data.detail
+          processed: finalProcessed,
+          status: hasDocuments ? 'indexed' : 'tracking',
+          message: hasDocuments ? 
+            `Document indexed (${documentCount} documents found)` : 
+            'Track ID exists but no indexed documents found'
         };
       } else if (response.status === 404) {
         return {

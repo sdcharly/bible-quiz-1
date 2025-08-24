@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
+import { desc } from "drizzle-orm";
 import { getAdminSession } from "@/lib/admin-auth";
 import { logger } from "@/lib/logger";
 
@@ -31,7 +32,7 @@ export async function GET(_request: NextRequest) {
       createdAt: user.createdAt,
     })
     .from(user)
-    .orderBy(user.createdAt);
+    .orderBy(desc(user.createdAt));
 
     // Group users by role and approval status
     const summary = {

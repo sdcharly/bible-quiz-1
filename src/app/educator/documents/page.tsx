@@ -14,12 +14,16 @@ import {
   XCircle,
   AlertCircle,
   Search,
-  Filter
+  Filter,
+  Edit
 } from "lucide-react";
+import DocumentEditModal from "@/components/document/DocumentEditModal";
 
 interface Document {
   id: string;
   filename: string;
+  displayName?: string | null;
+  remarks?: string | null;
   fileSize: number;
   mimeType: string;
   status: "pending" | "processing" | "processed" | "failed" | "deleted";
@@ -47,6 +51,8 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     fetchDocuments();
@@ -149,8 +155,33 @@ export default function DocumentsPage() {
     );
   };
 
+  const handleEditDocument = (document: Document) => {
+    setEditingDocument(document);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateDocument = (documentId: string, updates: { displayName: string; remarks: string }) => {
+    setDocuments(prev =>
+      prev.map(doc =>
+        doc.id === documentId
+          ? { ...doc, displayName: updates.displayName, remarks: updates.remarks }
+          : doc
+      )
+    );
+    setIsEditModalOpen(false);
+    setEditingDocument(null);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingDocument(null);
+  };
+
   const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.filename.toLowerCase().includes(searchTerm.toLowerCase());
+    const displayName = doc.displayName || doc.filename;
+    const matchesSearch = displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (doc.remarks && doc.remarks.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesFilter = filterStatus === "all" || doc.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -251,20 +282,32 @@ export default function DocumentsPage() {
                       doc.status === "deleted" ? "text-gray-300" : "text-gray-400"
                     }`} />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
                         <h3 className={`text-sm font-medium truncate ${
                           doc.status === "deleted" 
                             ? "text-gray-500 dark:text-gray-600 line-through" 
                             : "text-gray-900 dark:text-white"
-                        }`} title={doc.filename}>
-                          {doc.filename}
+                        }`} title={doc.displayName || doc.filename}>
+                          {doc.displayName || doc.filename}
                         </h3>
-                        <span className="text-xs text-gray-500">
-                          {formatFileSize(doc.fileSize)}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(doc.uploadDate).toLocaleDateString()}
-                        </span>
+                        {doc.displayName && doc.displayName !== doc.filename && (
+                          <p className="text-xs text-gray-500 truncate" title={doc.filename}>
+                            Original: {doc.filename}
+                          </p>
+                        )}
+                        {doc.remarks && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 truncate" title={doc.remarks}>
+                            📝 {doc.remarks}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-500">
+                            {formatFileSize(doc.fileSize)}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(doc.uploadDate).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -287,6 +330,15 @@ export default function DocumentsPage() {
                         Create Quiz
                       </Button>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditDocument(doc)}
+                      className="h-7 w-7 p-0 text-gray-400 hover:text-amber-600"
+                      title="Edit document name and remarks"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
                     {doc.status !== "deleted" && (
                       <Button
                         variant="ghost"
@@ -304,6 +356,14 @@ export default function DocumentsPage() {
           </div>
         )}
       </div>
+
+      {/* Document Edit Modal */}
+      <DocumentEditModal
+        document={editingDocument}
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onUpdate={handleUpdateDocument}
+      />
     </div>
   );
 }

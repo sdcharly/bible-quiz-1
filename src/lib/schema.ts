@@ -110,6 +110,8 @@ export const documents = pgTable("documents", {
   fileSize: integer("file_size"),
   mimeType: text("mime_type"),
   processedData: jsonb("processed_data"),
+  displayName: text("display_name"), // Custom name for user reference
+  remarks: text("remarks"), // User notes/remarks about the document
   status: documentStatusEnum("status").notNull().default("pending"),
   lightragProcessingStatus: jsonb("lightrag_processing_status").$type<{
     busy: boolean;

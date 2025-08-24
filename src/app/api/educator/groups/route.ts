@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { studentGroups, groupMembers, user } from "@/lib/schema";
-import { eq, and, count, sql } from "drizzle-orm";
+import { eq, and, count, sql, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
           eq(studentGroups.isActive, true)
         )
       )
-      .orderBy(studentGroups.createdAt);
+      .orderBy(desc(studentGroups.createdAt));
 
     // Get total student count for this educator
     const totalStudents = await db

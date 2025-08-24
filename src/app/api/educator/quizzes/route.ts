@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { quizzes, enrollments } from "@/lib/schema";
-import { eq, count } from "drizzle-orm";
+import { eq, count, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       .select()
       .from(quizzes)
       .where(eq(quizzes.educatorId, educatorId))
-      .orderBy(quizzes.createdAt);
+      .orderBy(desc(quizzes.createdAt));
 
     // Get enrollment counts for each quiz
     const quizzesWithStats = await Promise.all(
