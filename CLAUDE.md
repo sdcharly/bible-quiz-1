@@ -93,7 +93,8 @@ if (isDebugEnabled()) { /* debug mode */ }
 - **URL System**: `/docs/technical/URL_SYSTEM_ARCHITECTURE.md` - Share links and short URLs
 
 ### API Documentation:
-- **LightRAG API**: `/docs/technical/LIGHTRAG_API_REFERENCE.md` - CRITICAL: Document processing pipeline and status checking
+- **LightRAG API Complete**: `/docs/technical/LIGHTRAG_API_COMPLETE.md` - Full API specification with all endpoints
+- **LightRAG API Reference**: `/docs/technical/LIGHTRAG_API_REFERENCE.md` - CRITICAL: Document processing pipeline and status checking
 - **LightRAG Troubleshooting**: `/docs/technical/LIGHTRAG_API_CRITICAL_FINDINGS.md` - Root cause analysis and fixes
 
 ## LightRAG API Integration (CRITICAL)
