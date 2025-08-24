@@ -155,7 +155,9 @@ export class LightRAGService {
         trackId?: string; 
         [key: string]: unknown; 
       } | null;
-      const trackId = processedData?.lightragDocumentId || processedData?.trackId;
+      // CRITICAL: Use trackId for status checks, NOT lightragDocumentId
+      // trackId is like "track-xxxxx", lightragDocumentId is like "doc-xxxxx"
+      const trackId = processedData?.trackId;
       
       if (trackId) {
         // Use track ID to check if document is fully processed
@@ -433,7 +435,13 @@ export class LightRAGService {
         let documentStatus = null;
         
         if (hasDocuments && data.documents[0]) {
-          permanentDocId = data.documents[0].id; // This is the "doc-xxx" ID
+          // CRITICAL: Ensure we get the FULL document ID, not a truncated version
+          const fullDocId = data.documents[0].id;
+          console.error(`[CRITICAL] Raw document ID from API: "${fullDocId}"`);
+          console.error(`[CRITICAL] Document ID length: ${fullDocId ? fullDocId.length : 0}`);
+          console.error(`[CRITICAL] Full document object:`, JSON.stringify(data.documents[0], null, 2));
+          
+          permanentDocId = fullDocId; // This is the "doc-xxx" ID
           documentStatus = data.documents[0].status;
           console.error(`[CRITICAL] Found permanent doc ID: ${permanentDocId}, status: ${documentStatus}`);
         }
