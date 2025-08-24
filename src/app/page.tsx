@@ -85,7 +85,7 @@ export default function HomePage() {
       <section className="px-6 py-16 sm:px-12 lg:px-24 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">
+            <h2 className="text-4xl font-heading font-bold mb-4">
               <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
                 Sacred Features
               </span>
@@ -180,7 +180,7 @@ export default function HomePage() {
       <section className="px-6 py-16 sm:px-12 lg:px-24">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">
+            <h2 className="text-4xl font-heading font-bold mb-4">
               <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
                 The Sacred Path
               </span>
@@ -278,7 +278,7 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="px-6 py-16 sm:px-12 lg:px-24 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 dark:from-amber-700 dark:via-orange-700 dark:to-amber-800">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">
+          <h2 className="text-4xl font-heading font-bold text-white mb-6">
             Ready to Begin Your Sacred Journey?
           </h2>
           <p className="text-xl text-amber-100 mb-8 leading-relaxed">

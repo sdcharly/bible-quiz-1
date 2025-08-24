@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, BookOpen, Clock, Users, AlertCircle } from "lucide-react";
+import { BookOpen, Clock, Users, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { BiblicalPageLoader, BiblicalLoader } from "@/components/ui/biblical-loader";
 
 interface QuizInfo {
   id: string;
@@ -122,14 +123,7 @@ export default function QuizSharePage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-amber-600" />
-          <p className="mt-2 text-amber-700">Loading quiz information...</p>
-        </div>
-      </div>
-    );
+    return <BiblicalPageLoader text="Loading quiz information..." />;
   }
 
   if (error) {
@@ -194,8 +188,8 @@ export default function QuizSharePage() {
 
               {/* Status Messages */}
               {quizInfo.requiresAuth && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-blue-800">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-amber-800">
                     {quizInfo.invitationToken 
                       ? "You'll need to create an account to take this quiz. Click below to get started!"
                       : "Please log in to access this quiz."}
@@ -220,10 +214,7 @@ export default function QuizSharePage() {
                   className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-8 py-3"
                 >
                   {enrolling ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Enrolling...
-                    </>
+                    <BiblicalLoader size="sm" text="Enrolling..." inline />
                   ) : quizInfo.requiresAuth ? (
                     quizInfo.invitationToken ? "Sign Up & Start Quiz" : "Log In to Start"
                   ) : quizInfo.isEnrolled ? (

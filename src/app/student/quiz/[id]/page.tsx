@@ -12,9 +12,9 @@ import {
   AlertTriangle,
   AlertCircle,
   Send,
-  Loader2,
 } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { BiblicalPageLoader, BiblicalLoader } from "@/components/ui/biblical-loader";
 
 interface Question {
   id: string;
@@ -312,11 +312,7 @@ export default function OptimizedQuizTakingPage() {
 
   // Early returns for loading and error states
   if (loading || !quiz) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-      </div>
-    );
+    return <BiblicalPageLoader text="Loading quiz..." />;
   }
 
   if (quizCompleted) {
@@ -497,7 +493,7 @@ export default function OptimizedQuizTakingPage() {
                   >
                     {submitting ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <BiblicalLoader size="sm" inline />
                         Submitting...
                       </>
                     ) : (
@@ -573,10 +569,7 @@ export default function OptimizedQuizTakingPage() {
                   className="w-full bg-green-600 hover:bg-green-700"
                 >
                   {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Submitting...
-                    </>
+                    <BiblicalLoader size="sm" text="Submitting..." inline />
                   ) : (
                     <>
                       <Send className="h-4 w-4 mr-2" />

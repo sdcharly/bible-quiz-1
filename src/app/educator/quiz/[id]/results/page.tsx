@@ -43,7 +43,6 @@ interface QuizStatistics {
 interface QuizResults {
   quizId: string;
   quizTitle: string;
-  passingScore: number;
   statistics: QuizStatistics;
   attempts: StudentAttempt[];
 }

@@ -397,7 +397,7 @@ export default function EducatorsManagement({ educators }: EducatorsManagementPr
                           {educator.approvalStatus === "suspended" && (
                             <Button
                               size="sm"
-                              className="bg-blue-600 hover:bg-blue-700"
+                              className="bg-amber-600 hover:bg-amber-700"
                               onClick={() => handleReactivate(educator.id)}
                             >
                               <Unlock className="h-4 w-4 mr-1" />

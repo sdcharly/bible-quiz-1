@@ -142,7 +142,6 @@ export const quizzes = pgTable("quizzes", {
   duration: integer("duration").notNull(), // in minutes
   status: quizStatusEnum("status").notNull().default("draft"),
   totalQuestions: integer("total_questions").notNull(),
-  passingScore: real("passing_score").default(70),
   shuffleQuestions: boolean("shuffle_questions").default(false),
   
   // Phase 1: New columns for deferred time support

@@ -190,7 +190,6 @@ export async function POST(req: NextRequest) {
       // Status
       status: "draft",
       totalQuestions: questionCount,
-      passingScore: 70,
       shuffleQuestions,
       createdAt: new Date(),
       updatedAt: new Date(),

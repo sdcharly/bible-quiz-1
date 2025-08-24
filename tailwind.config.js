@@ -58,7 +58,8 @@ module.exports = {
       },
       fontFamily: {
         sans: ['var(--font-body)', 'ui-sans-serif', 'system-ui'],
-        heading: ['var(--font-heading)', 'ui-serif', 'serif'],
+        heading: ['Georgia', 'Times New Roman', 'serif'],
+        body: ['var(--font-body)', 'ui-sans-serif', 'system-ui'],
       },
       keyframes: {
         'accordion-down': {

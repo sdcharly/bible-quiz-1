@@ -117,12 +117,12 @@ export function SchedulingModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="font-heading text-2xl text-amber-900 dark:text-amber-100">
             {isRescheduling ? "Reschedule Quiz" : "Schedule Quiz Time"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="font-body text-amber-700 dark:text-amber-300">
             Set when &ldquo;{quizTitle}&rdquo; will be available to students.
             {isRescheduling && (
               <span className="text-amber-600 dark:text-amber-400 block mt-2">
@@ -133,7 +133,7 @@ export function SchedulingModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-6 py-4">
           {error && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
               <div className="flex items-center text-red-700 dark:text-red-300">
@@ -143,9 +143,12 @@ export function SchedulingModal({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                <Calendar className="h-4 w-4 mr-1" />
+                Date <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="date"
                 type="date"
@@ -153,37 +156,45 @@ export function SchedulingModal({
                 onChange={(e) => setStartDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
                 disabled={loading}
+                className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500"
               />
             </div>
             <div>
-              <Label htmlFor="time">Time</Label>
+              <Label htmlFor="time" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                <Clock className="h-4 w-4 mr-1" />
+                Time <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="time"
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 disabled={loading}
+                className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500"
               />
             </div>
           </div>
 
           <div>
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+              Timezone
+            </Label>
             <TimezoneSelector
               value={timezone}
               onChange={setTimezone}
-              showLabel
+              showLabel={false}
               disabled={loading}
             />
           </div>
 
           <div>
-            <Label htmlFor="duration">Duration</Label>
+            <Label htmlFor="duration" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Duration</Label>
             <Select
               value={duration.toString()}
               onValueChange={(value) => setDuration(parseInt(value))}
               disabled={loading}
             >
-              <SelectTrigger id="duration">
+              <SelectTrigger id="duration" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -199,13 +210,13 @@ export function SchedulingModal({
 
           {/* Schedule Preview */}
           {preview && (
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
               <div className="space-y-2">
-                <div className="flex items-center text-blue-700 dark:text-blue-300 font-medium">
+                <div className="flex items-center text-amber-700 dark:text-amber-300 font-medium">
                   <Calendar className="h-4 w-4 mr-2" />
                   Schedule Preview
                 </div>
-                <div className="text-sm text-blue-600 dark:text-blue-400 space-y-1">
+                <div className="text-sm text-amber-600 dark:text-amber-400 space-y-1">
                   <div className="flex items-center">
                     <Clock className="h-3 w-3 mr-2" />
                     <span>
@@ -225,7 +236,7 @@ export function SchedulingModal({
                       })}
                     </span>
                   </div>
-                  <div className="text-xs mt-2 text-blue-500 dark:text-blue-500">
+                  <div className="text-xs mt-2 text-amber-500 dark:text-amber-500">
                     Timezone: {timezone}
                   </div>
                 </div>
@@ -235,12 +246,18 @@ export function SchedulingModal({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
+          <Button 
+            variant="outline" 
+            onClick={onClose} 
+            disabled={loading}
+            className="font-body border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-900/20"
+          >
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit} 
             disabled={loading || !startDate || !startTime}
+            className="font-body bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
           >
             {loading ? "Scheduling..." : isRescheduling ? "Update Schedule" : "Set Schedule"}
           </Button>

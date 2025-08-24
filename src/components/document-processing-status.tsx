@@ -5,12 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 interface DocumentProcessingStatusProps {
   documentId: string;
   initialStatus?: string;
   onStatusChange?: (status: string, isComplete: boolean) => void;
+  compact?: boolean;
 }
 
 interface ProcessingProgress {
@@ -34,7 +35,8 @@ interface ProcessingProgress {
 export function DocumentProcessingStatus({ 
   documentId, 
   initialStatus = "pending",
-  onStatusChange 
+  onStatusChange,
+  compact = false 
 }: DocumentProcessingStatusProps) {
   const [progress, setProgress] = useState<ProcessingProgress>({
     status: initialStatus,
@@ -167,6 +169,31 @@ export function DocumentProcessingStatus({
     return new Date(timestamp).toLocaleString();
   };
 
+  // Compact mode - just show badge
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1">
+        {getStatusBadge()}
+        {progress.isProcessing && progress.progress !== null && (
+          <span className="text-xs text-gray-500">{progress.progress}%</span>
+        )}
+        {progress.status !== "deleted" && !progress.isProcessing && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => fetchStatus(true)}
+            disabled={isRefreshing}
+            className="h-5 w-5 p-0"
+            title="Refresh status"
+          >
+            <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // Full mode - show all details
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">

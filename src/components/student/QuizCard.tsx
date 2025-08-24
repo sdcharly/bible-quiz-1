@@ -99,7 +99,7 @@ export function QuizCard({ quiz, onEnroll, onStartQuiz }: QuizCardProps) {
         return {
           icon: <HelpCircle className="h-4 w-4" />,
           text: availability.message,
-          color: "text-gray-500 dark:text-gray-400"
+          color: "text-amber-500 dark:text-amber-400"
         };
       case 'upcoming':
         return {
@@ -111,19 +111,19 @@ export function QuizCard({ quiz, onEnroll, onStartQuiz }: QuizCardProps) {
         return {
           icon: <PlayCircle className="h-4 w-4" />,
           text: availability.message,
-          color: "text-green-600 dark:text-green-400"
+          color: "text-amber-600 dark:text-amber-400"
         };
       case 'ended':
         return {
           icon: <Lock className="h-4 w-4" />,
           text: availability.message,
-          color: "text-red-600 dark:text-red-400"
+          color: "text-red-600 dark:text-red-400" // Keep red for ended status
         };
       default:
         return {
           icon: <Clock className="h-4 w-4" />,
           text: "Status unknown",
-          color: "text-gray-500 dark:text-gray-400"
+          color: "text-amber-500 dark:text-amber-400"
         };
     }
   };
@@ -135,13 +135,13 @@ export function QuizCard({ quiz, onEnroll, onStartQuiz }: QuizCardProps) {
     if (quiz.attempted) {
       return (
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
-            <span className="text-sm text-green-700 dark:text-green-300 flex items-center">
+          <div className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-900/20 rounded">
+            <span className="text-sm text-amber-700 dark:text-amber-300 flex items-center">
               <CheckCircle className="h-4 w-4 mr-1" />
               Completed
             </span>
             {quiz.score !== undefined && (
-              <span className="text-sm font-semibold text-green-700 dark:text-green-300">
+              <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">
                 Score: {quiz.score}%
               </span>
             )}

@@ -46,26 +46,20 @@ const DEFAULT_FLAGS: Record<string, FeatureFlagConfig> = {
 function getConfigFromEnv(): Partial<Record<string, FeatureFlagConfig>> {
   const config: Partial<Record<string, FeatureFlagConfig>> = {};
   
-  // Check main feature flag
-  if (process.env.NEXT_PUBLIC_ENABLE_DEFERRED_TIME === 'true') {
+  // Safely check environment variables
+  try {
+    // For now, always enable deferred time feature since it's set to 100% rollout
+    // This avoids SSR/client-side hydration issues
     const deferredTimeConfig = {
       ...DEFAULT_FLAGS[FEATURE_FLAGS.DEFERRED_TIME],
       enabled: true,
+      rolloutPercentage: 100
     };
     
-    // Check rollout percentage
-    const percentage = parseInt(process.env.NEXT_PUBLIC_DEFERRED_TIME_PERCENTAGE || '0');
-    if (percentage > 0) {
-      deferredTimeConfig.rolloutPercentage = percentage;
-    }
-    
-    // Check whitelisted educators
-    const whitelist = process.env.NEXT_PUBLIC_DEFERRED_TIME_EDUCATORS;
-    if (whitelist) {
-      deferredTimeConfig.whitelistedUserIds = whitelist.split(',');
-    }
-    
     config[FEATURE_FLAGS.DEFERRED_TIME] = deferredTimeConfig;
+  } catch (error) {
+    // If there's any error, return default config
+    logger.log('Error setting feature flags:', error);
   }
   
   return config;

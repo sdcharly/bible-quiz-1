@@ -1,19 +1,19 @@
-# 📚 SimpleQuiz Design System
+# 📚 SimpleQuiz Design System - Biblical Theme
 
-> A friendly, modern, and approachable design system for an engaging quiz learning experience
+> A warm, scholarly design system inspired by biblical wisdom and ancient texts
 
 ## Quick Start
 
-This design system provides a complete guide for building consistent, delightful UI across the SimpleQuiz application. It emphasizes friendliness, approachability, and modern youthful energy while maintaining excellent usability on all devices.
+This design system provides a complete guide for building consistent, meaningful UI across the SimpleQuiz application. It emphasizes warmth, wisdom, and scholarly elegance while maintaining excellent usability on all devices.
 
 ## Core Philosophy
 
-**"Learning should feel like a conversation with a supportive friend"**
+**"Learning scripture should feel like studying with a wise mentor"**
 
 Our design system creates an environment where:
-- Students feel encouraged, not intimidated
-- Educators feel empowered with modern tools
-- Everyone enjoys a smooth, delightful experience
+- Students feel guided through ancient wisdom
+- Educators feel empowered with scholarly tools
+- Everyone experiences a warm, inviting atmosphere
 - Mobile users get a first-class experience
 
 ## System Structure
@@ -29,14 +29,14 @@ Practical recipes and patterns for common UI scenarios
 
 ## Quick Reference
 
-### Brand Colors
-- **Primary**: `#3B82F6` (Friendly Blue)
-- **Secondary**: `#10B981` (Success Green)
-- **Accent**: `#8B5CF6` (Playful Purple)
+### Brand Colors - Biblical Theme
+- **Primary**: `#F59E0B` (Amber/Gold - wisdom, divinity)
+- **Secondary**: `#DC2626` (Deep Red - sacrifice, importance)
+- **Accent**: `#7C2D12` (Brown - earthiness, humility)
 
 ### Typography
-- **Headings**: Plus Jakarta Sans (modern, friendly)
-- **Body**: Inter (clean, readable)
+- **Headings**: Georgia, Playfair Display (classical, scholarly)
+- **Body**: Inter, system-ui (clean, readable)
 - **UI Elements**: System UI stack
 
 ### Spacing Scale
@@ -79,25 +79,31 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          50: '#EFF6FF',
-          500: '#3B82F6',
-          600: '#2563EB',
-          700: '#1D4ED8',
+          50: '#FFFBEB',
+          100: '#FEF3C7',
+          200: '#FDE68A',
+          300: '#FCD34D',
+          400: '#FBBF24',
+          500: '#F59E0B', // Main amber
+          600: '#D97706',
+          700: '#B45309',
+          800: '#92400E',
+          900: '#78350F',
         },
-        success: {
-          50: '#ECFDF5',
-          500: '#10B981',
-          600: '#059669',
+        secondary: {
+          50: '#FEF2F2',
+          500: '#DC2626', // Deep red
+          600: '#B91C1C',
         },
         accent: {
-          50: '#F5F3FF',
-          500: '#8B5CF6',
-          600: '#7C3AED',
+          50: '#FEF3E2',
+          500: '#7C2D12', // Brown
+          600: '#5C2410',
         }
       },
       fontFamily: {
-        'heading': ['Plus Jakarta Sans', 'system-ui'],
-        'body': ['Inter', 'system-ui'],
+        'heading': ['Georgia', 'Playfair Display', 'serif'],
+        'body': ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         'friendly': '12px',
@@ -114,9 +120,13 @@ module.exports = {
 ```css
 :root {
   /* Colors */
-  --color-primary: #3B82F6;
-  --color-success: #10B981;
-  --color-accent: #8B5CF6;
+  --color-primary: #F59E0B;  /* Amber */
+  --color-secondary: #DC2626; /* Deep Red */
+  --color-accent: #7C2D12;   /* Brown */
+  
+  /* Typography */
+  --font-heading: Georgia, 'Playfair Display', serif;
+  --font-body: Inter, system-ui, sans-serif;
   
   /* Spacing */
   --space-xs: 4px;
@@ -144,17 +154,19 @@ All components follow WCAG 2.1 AA standards:
 
 - **Figma Library**: [Coming Soon]
 - **Storybook**: [Coming Soon]
-- **Icon Set**: Lucide Icons (friendly, rounded style)
-- **Illustrations**: Unillustrations (when needed)
+- **Icon Set**: Lucide Icons (rounded style for warmth)
+- **Illustrations**: Biblical-themed when appropriate
 
 ## Version History
 
+- **v2.0.0** - Biblical theme implementation
+  - Complete amber/gold color system
+  - Georgia/Playfair Display for scholarly feel
+  - Warm, inviting component library
+  - Mobile-first approach maintained
+  
 - **v1.0.0** - Initial design system launch
-  - Complete color system with cool, friendly tones
-  - Mobile-first component library
-  - Accessibility guidelines
-  - Typography scale optimized for learning
 
 ---
 
-Built with 💙 for learners and educators
+Built with 📖 for biblical learning and wisdom

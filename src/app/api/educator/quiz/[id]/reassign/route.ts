@@ -194,12 +194,17 @@ export async function POST(
       
       // Send reassignment emails
       const emailPromises = reassignedStudentDetails.map(async (student) => {
+        const quizUrl = shortUrl || (shareCode ? `${process.env.NEXT_PUBLIC_APP_URL}/quiz/share/${shareCode}` : undefined);
+        
         const emailContent = emailTemplates.quizReassignmentNotification(
           student.name || "Student",
           educator?.name || "Your Educator",
           quiz[0].title,
           reason,
-          newDeadline ? new Date(newDeadline) : undefined
+          newDeadline ? new Date(newDeadline) : undefined,
+          quiz[0].totalQuestions,
+          quiz[0].duration,
+          quizUrl
         );
         
         return sendEmail({

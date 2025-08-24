@@ -323,7 +323,6 @@ export async function POST(req: NextRequest) {
       duration,
       status: "draft",
       totalQuestions: questionsData.length || questionCount,
-      passingScore: 70, // Default passing score since we're not collecting it from UI
       shuffleQuestions,
       createdAt: new Date(),
       updatedAt: new Date(),

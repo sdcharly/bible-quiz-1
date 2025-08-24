@@ -38,7 +38,6 @@ interface SystemSettings {
   };
   quiz_defaults: {
     defaultDuration: number;
-    defaultPassingScore: number;
     maxQuestionsPerQuiz: number;
     allowRetake: boolean;
     showResults: boolean;
@@ -388,15 +387,6 @@ export default function SystemConfiguration({ adminEmail, initialSettings }: Sys
                       type="number"
                       value={settings.quiz_defaults.defaultDuration}
                       onChange={(e) => updateSetting("quiz_defaults", "defaultDuration", parseInt(e.target.value))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="passingScore">Default Passing Score (%)</Label>
-                    <Input
-                      id="passingScore"
-                      type="number"
-                      value={settings.quiz_defaults.defaultPassingScore}
-                      onChange={(e) => updateSetting("quiz_defaults", "defaultPassingScore", parseInt(e.target.value))}
                     />
                   </div>
                   <div className="space-y-2">

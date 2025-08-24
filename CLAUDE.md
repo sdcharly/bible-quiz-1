@@ -65,6 +65,20 @@ if (isDebugEnabled()) { /* debug mode */ }
 - Debug endpoints blocked unless `NEXT_PUBLIC_ENABLE_DEBUG_ENDPOINTS=true`
 - Full configuration guide in `/docs/deployment/ENVIRONMENT_CONFIG.md`
 
+## URL System Documentation
+
+**IMPORTANT**: We use a dual URL system (share codes + short URLs) for quiz sharing.
+
+### Key Documentation:
+- **URL Architecture**: `/docs/technical/URL_SYSTEM_ARCHITECTURE.md` - Complete URL system design
+- **Quick Reference**: `/docs/technical/URL_QUICK_REFERENCE.md` - Developer cheat sheet
+
+### URL System Summary:
+- **Share URLs**: `/quiz/share/[8-char]` - Primary quiz links, created on publish
+- **Short URLs**: `/s/[6-char]` - Convenient redirects, created on demand
+- **Deferred Quizzes**: URLs always work, access controlled by `startTime`
+- **Priority**: Always display `shortUrl || shareUrl || dashboard` in UI
+
 ## Project Documentation
 
 ### Important Documents:
@@ -72,6 +86,14 @@ if (isDebugEnabled()) { /* debug mode */ }
 - **Security Audit**: `/docs/project-management/SECURITY_AUDIT_REPORT.md` - Security findings and fixes
 - **Environment Setup**: `/docs/deployment/ENVIRONMENT_CONFIG.md` - Deployment configuration
 - **Technical Docs**: `/docs/technical/` - Implementation details and fixes
+
+### UI/UX Standards:
+- **Theme Guide**: `/docs/technical/THEME_CONSISTENCY_GUIDE.md` - Biblical theme colors and components
+- **UI Sizing**: `/docs/technical/UI_SIZING_STANDARDS.md` - Consistent sizing and spacing standards
+- **URL System**: `/docs/technical/URL_SYSTEM_ARCHITECTURE.md` - Share links and short URLs
+
+### API Documentation:
+- **LightRAG API**: `/docs/technical/LIGHTRAG_API_REFERENCE.md` - CRITICAL: Document processing pipeline and status checking
 
 ### Project Structure:
 ```
@@ -83,7 +105,8 @@ docs/                    # All documentation
 │   └── SECURITY_AUDIT_REPORT.md
 └── technical/          # Technical implementation docs
     ├── WEBHOOK_FIX_SUMMARY.md
-    └── EMAIL_THEME_UPDATE.md
+    ├── EMAIL_THEME_UPDATE.md
+    └── EMAIL_TEMPLATE_GUIDELINES.md  # Email template best practices
 
 scripts/                 # Development scripts
 ├── tests/              # Manual test scripts (gitignored)
@@ -92,6 +115,24 @@ scripts/                 # Development scripts
 │   └── ...
 └── utils/              # Utility scripts (future)
 ```
+
+## Email Template Guidelines
+
+**IMPORTANT**: When creating or modifying email templates, follow the guidelines in `/docs/technical/EMAIL_TEMPLATE_GUIDELINES.md`
+
+### Key Email Template Rules:
+- **Use table-based layouts** (NOT divs) for email client compatibility
+- **All CSS must be inline** on each element (no <style> tags)
+- **Always provide fallback colors** using bgcolor attribute for gradients
+- **Show actual URL text** below buttons for accessibility
+- **Use the `createEmailWrapper` helper** function for consistency
+- **Test in multiple clients**: Gmail, Outlook, Apple Mail, and mobile
+
+### Email Color Palette:
+- Primary: `#f59e0b` (amber)
+- Dark: `#d97706` (dark amber)  
+- Background: `#fffbeb` (light cream)
+- Text: `#451a03`, `#78350f`, `#92400e`
 
 ## UI Component Guidelines (CRITICAL)
 

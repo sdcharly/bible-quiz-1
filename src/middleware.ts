@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const ADMIN_SESSION_COOKIE = "admin_session";
+
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
+  const { pathname } = request.nextUrl;
   
   // Security headers
   response.headers.set('X-DNS-Prefetch-Control', 'on');
@@ -33,6 +36,19 @@ export function middleware(request: NextRequest) {
     response.headers.set('Content-Security-Policy', csp);
   }
   
+  // Protect admin API routes - basic cookie check
+  // Full validation happens in the API route handlers
+  if (pathname.startsWith('/api/admin/') && !pathname.startsWith('/api/admin/auth/')) {
+    const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+    
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized - Admin access required" },
+        { status: 401 }
+      );
+    }
+  }
+  
   // Handle www redirect (if you have a custom domain)
   const host = request.headers.get('host');
   if (host?.startsWith('www.')) {
@@ -48,12 +64,11 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public files
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*|_vercel).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\..*|_vercel).*)',
   ],
 };

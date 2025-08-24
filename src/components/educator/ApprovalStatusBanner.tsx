@@ -42,7 +42,7 @@ export default function ApprovalStatusBanner({
       case "suspended":
         return <AlertTriangle className="h-5 w-5 text-orange-500" />;
       default:
-        return <Info className="h-5 w-5 text-blue-500" />;
+        return <Info className="h-5 w-5 text-amber-500" />;
     }
   };
 
@@ -57,7 +57,7 @@ export default function ApprovalStatusBanner({
       case "suspended":
         return "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800";
       default:
-        return "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800";
+        return "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800";
     }
   };
 
@@ -203,7 +203,7 @@ export default function ApprovalStatusBanner({
             {permissions.maxStudents !== -1 && (
               <div className="flex items-center justify-between p-3 rounded-lg bg-white/50 dark:bg-gray-800/50">
                 <div className="flex items-center space-x-2">
-                  <Users className="h-4 w-4 text-blue-500" />
+                  <Users className="h-4 w-4 text-amber-500" />
                   <span className="text-sm">Student Limit</span>
                 </div>
                 <Badge variant="outline">{permissions.maxStudents}</Badge>
@@ -213,7 +213,7 @@ export default function ApprovalStatusBanner({
             {permissions.maxQuizzes !== -1 && (
               <div className="flex items-center justify-between p-3 rounded-lg bg-white/50 dark:bg-gray-800/50">
                 <div className="flex items-center space-x-2">
-                  <BookOpen className="h-4 w-4 text-purple-500" />
+                  <BookOpen className="h-4 w-4 text-amber-600" />
                   <span className="text-sm">Quiz Limit</span>
                 </div>
                 <Badge variant="outline">{permissions.maxQuizzes}</Badge>

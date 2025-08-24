@@ -198,9 +198,9 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <Shield className="h-8 w-8 text-red-600" />
+              <Shield className="h-8 w-8 text-amber-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-2xl font-heading font-bold text-gray-900 dark:text-white">
                   Super Admin Dashboard
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{adminEmail}</p>
@@ -233,7 +233,7 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
                     {stats.totalEducators}
                   </p>
                 </div>
-                <Users className="h-8 w-8 text-blue-500" />
+                <Users className="h-8 w-8 text-amber-500" />
               </div>
             </CardContent>
           </Card>
@@ -249,7 +249,7 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
                     {stats.pendingEducators}
                   </p>
                 </div>
-                <Clock className="h-8 w-8 text-yellow-500" />
+                <Clock className="h-8 w-8 text-amber-500" />
               </div>
               {stats.pendingEducators > 0 && (
                 <Badge className="mt-2" variant="destructive">
@@ -270,7 +270,7 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
                     {stats.totalStudents}
                   </p>
                 </div>
-                <GraduationCap className="h-8 w-8 text-green-500" />
+                <GraduationCap className="h-8 w-8 text-amber-600" />
               </div>
             </CardContent>
           </Card>
@@ -286,7 +286,7 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
                     {stats.totalQuizzes}
                   </p>
                 </div>
-                <BookOpen className="h-8 w-8 text-purple-500" />
+                <BookOpen className="h-8 w-8 text-amber-700" />
               </div>
             </CardContent>
           </Card>
@@ -302,24 +302,24 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
                     {stats.totalEnrollments}
                   </p>
                 </div>
-                <Activity className="h-8 w-8 text-indigo-500" />
+                <Activity className="h-8 w-8 text-amber-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/10 dark:to-gray-900">
+          <Card className="border-amber-200 bg-gradient-to-br from-amber-50 to-white dark:from-amber-900/10 dark:to-gray-900">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
                     System Health
                   </p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-1">
-                    <span className="text-green-500 animate-pulse text-sm">●</span>
+                    <span className="text-amber-500 animate-pulse text-sm">●</span>
                     Live
                   </p>
                 </div>
-                <Gauge className="h-8 w-8 text-blue-500 animate-pulse" />
+                <Gauge className="h-8 w-8 text-amber-500 animate-pulse" />
               </div>
             </CardContent>
           </Card>
@@ -328,7 +328,7 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
         {/* Alerts */}
         <div className="space-y-4 mb-6">
           {stats.pendingEducators > 0 && (
-            <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
+            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-900/20">
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
               <AlertDescription className="text-yellow-800 dark:text-yellow-200">
                 You have {stats.pendingEducators} educator{stats.pendingEducators > 1 ? 's' : ''} pending approval
@@ -336,9 +336,9 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
             </Alert>
           )}
           {orphanedUsers.length > 0 && (
-            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-              <UserPlus className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800 dark:text-blue-200">
+            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-900/20">
+              <UserPlus className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
                 {orphanedUsers.length} student{orphanedUsers.length > 1 ? 's are' : ' is'} not connected to any educator
               </AlertDescription>
             </Alert>
@@ -346,13 +346,13 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
         </div>
 
         {/* Performance Dashboard Card - Prominent Position */}
-        <Card className="mb-8 border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-900/20 dark:via-gray-900 dark:to-indigo-900/20">
+        <Card className="mb-8 border-2 border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-amber-900/20 dark:via-gray-900 dark:to-orange-900/20">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                    <Gauge className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <div className="p-2 bg-amber-100 dark:bg-amber-900 rounded-lg">
+                    <Gauge className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                     Performance Monitoring Center
@@ -363,11 +363,11 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
                 </p>
                 <div className="flex flex-wrap gap-4 mb-4">
                   <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-green-500" />
+                    <Activity className="h-4 w-4 text-amber-500" />
                     <span className="text-sm text-gray-600 dark:text-gray-400">Web Vitals</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-purple-500" />
+                    <Shield className="h-4 w-4 text-amber-600" />
                     <span className="text-sm text-gray-600 dark:text-gray-400">Database Metrics</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
                 <Button 
                   onClick={() => router.push("/admin/performance")}
                   size="lg"
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all"
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all"
                 >
                   <Gauge className="h-5 w-5 mr-2" />
                   Open Dashboard
@@ -499,7 +499,7 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
                               <Badge className="bg-green-500 text-white">Approved</Badge>
                             )}
                             {educator.approvalStatus === "pending" && (
-                              <Badge className="bg-yellow-500 text-white">Pending</Badge>
+                              <Badge className="bg-amber-500 text-white">Pending</Badge>
                             )}
                             {educator.approvalStatus === "rejected" && (
                               <Badge className="bg-red-500 text-white">Rejected</Badge>
@@ -569,7 +569,7 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
                               {student.name || "Unnamed Student"}
                             </p>
                             {student.emailVerified && (
-                              <Badge className="bg-blue-500 text-white">Verified</Badge>
+                              <Badge className="bg-amber-600 text-white">Verified</Badge>
                             )}
                           </div>
                           <p className="text-sm text-gray-500">{student.email}</p>
@@ -636,7 +636,7 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
                               {student.name || "Unnamed Student"}
                             </p>
                             {student.emailVerified && (
-                              <Badge className="bg-blue-500 text-white">Verified</Badge>
+                              <Badge className="bg-amber-600 text-white">Verified</Badge>
                             )}
                           </div>
                           <p className="text-sm text-gray-500">{student.email}</p>

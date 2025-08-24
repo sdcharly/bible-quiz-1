@@ -16,7 +16,7 @@ export async function POST(_req: NextRequest) {
       );
     }
     
-    logger.log(`Admin ${adminSession.email} initiating session cleanup`);
+    logger.info(`Admin ${adminSession.email} initiating session cleanup`);
     
     // 1. First, analyze current sessions
     const allSessions = await db
@@ -107,7 +107,7 @@ export async function POST(_req: NextRequest) {
       message: `Successfully cleaned up ${deletedExpired + deletedStale} sessions. ${activeNow.length} active sessions remain.`
     };
     
-    logger.log("Session cleanup completed:", cleanupResult);
+    logger.info("Session cleanup completed:", cleanupResult);
     
     return NextResponse.json(cleanupResult);
     

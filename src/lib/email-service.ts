@@ -66,6 +66,54 @@ export async function sendEmail(options: EmailOptions) {
   }
 }
 
+// Helper function to create email table wrapper
+const createEmailWrapper = (headerContent: string, bodyContent: string, footerContent: string) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Scrolls of Wisdom</title>
+      <!--[if mso]>
+      <noscript>
+        <xml>
+          <o:OfficeDocumentSettings>
+            <o:PixelsPerInch>96</o:PixelsPerInch>
+          </o:OfficeDocumentSettings>
+        </xml>
+      </noscript>
+      <![endif]-->
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #fef3c7; font-family: Georgia, 'Times New Roman', serif;">
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fef3c7;">
+        <tr>
+          <td align="center" style="padding: 20px;">
+            <table cellpadding="0" cellspacing="0" border="0" width="600" style="background-color: white; border-radius: 12px; overflow: hidden;">
+              <tr>
+                <td bgcolor="#f59e0b" style="background-color: #f59e0b; color: white; padding: 30px 20px; text-align: center;">
+                  ${headerContent}
+                </td>
+              </tr>
+              <tr>
+                <td style="background-color: #fffbeb; padding: 30px;">
+                  ${bodyContent}
+                </td>
+              </tr>
+              <tr>
+                <td bgcolor="#fef3c7" style="text-align: center; padding: 20px; background-color: #fef3c7; color: #78350f; font-size: 14px; border-top: 2px solid #f59e0b;">
+                  ${footerContent}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+};
+
 // Email templates with biblical theming
 export const emailTemplates = {
   // Invitation for new users
@@ -74,135 +122,60 @@ export const emailTemplates = {
       ? `${educatorName} invited you to take "${quizTitle}" on Scrolls of Wisdom`
       : `${educatorName} invited you to join Scrolls of Wisdom - Biblical Knowledge Quest`;
 
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { 
-            font-family: 'Georgia', 'Times New Roman', serif; 
-            line-height: 1.6; 
-            color: #451a03;
-            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
-            margin: 0;
-            padding: 20px;
-          }
-          .container { 
-            max-width: 600px; 
-            margin: 0 auto; 
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(146, 64, 14, 0.1);
-            overflow: hidden;
-          }
-          .header { 
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white; 
-            padding: 30px 20px; 
-            text-align: center;
-            position: relative;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            text-shadow: 2px 2px 4px rgba(146, 64, 14, 0.3);
-          }
-          .content { 
-            background-color: #fffbeb; 
-            padding: 30px; 
-            border-left: 4px solid #f59e0b;
-            border-right: 4px solid #f59e0b;
-          }
-          .content h2 {
-            color: #92400e;
-            font-size: 24px;
-            margin-top: 0;
-          }
-          .button { 
-            display: inline-block; 
-            padding: 14px 32px; 
-            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
-            color: white; 
-            text-decoration: none; 
-            border-radius: 8px; 
-            margin: 20px 0;
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(217, 119, 6, 0.3);
-            transition: all 0.3s ease;
-          }
-          .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(217, 119, 6, 0.4);
-          }
-          .scripture-box {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border-left: 4px solid #d97706;
-            padding: 15px;
-            margin: 20px 0;
-            font-style: italic;
-            color: #78350f;
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px;
-            background: #fef3c7;
-            color: #92400e; 
-            font-size: 14px;
-            border-top: 2px solid #f59e0b;
-          }
-          .divider {
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #f59e0b, transparent);
-            margin: 20px 0;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>📜 Welcome to Scrolls of Wisdom!</h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px;">Your Biblical Knowledge Quest Awaits</p>
-          </div>
-          <div class="content">
-            <h2>✨ You've Been Blessed with an Invitation!</h2>
-            <p>Peace be with you,</p>
-            <p><strong>${educatorName}</strong> has invited you to embark on a spiritual journey through Scrolls of Wisdom${quizTitle ? `, beginning with the quiz: "${quizTitle}"` : ''}.</p>
-            
-            <div class="scripture-box">
-              <p>"Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth." - 2 Timothy 2:15</p>
-            </div>
-            
-            <p>Scrolls of Wisdom is a sacred space for biblical education where devoted educators guide students through the treasures of Scripture, helping them grow in knowledge and faith.</p>
-            
-            <p><strong>Your journey begins with these simple steps:</strong></p>
-            <ol style="color: #78350f;">
-              <li>Click the golden button below to create your blessed account</li>
-              <li>Complete your profile with care and reverence</li>
-              <li>Begin your quest for biblical wisdom through interactive quizzes</li>
-            </ol>
-            
-            <div style="text-align: center;">
-              <a href="${invitationUrl}" class="button" style="color: white; text-decoration: none;">🕊️ Accept Your Calling & Begin</a>
-            </div>
-            
-            <p style="color: #92400e; font-size: 14px; background: #fef3c7; padding: 10px; border-radius: 4px;">
-              Or copy and paste this sacred link into your browser:<br>
-              <code style="background: white; padding: 2px 4px; border-radius: 2px;">${invitationUrl}</code>
-            </p>
-            
-            <div class="divider"></div>
-            
-            <p style="text-align: center; color: #b45309;"><em>⏰ This divine invitation expires in 7 days.</em></p>
-          </div>
-          <div class="footer">
-            <p style="margin: 5px 0;">📖 "Thy word is a lamp unto my feet, and a light unto my path." - Psalm 119:105</p>
-            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Empowering Biblical Education</p>
-            <p style="margin: 5px 0; font-size: 12px;">Dedicated to spreading God's Word with love and wisdom</p>
-          </div>
-        </div>
-      </body>
-      </html>
+    const headerContent = `
+      <h1 style="margin: 0; font-size: 28px; color: white; font-family: Georgia, 'Times New Roman', serif;">📜 Welcome to Scrolls of Wisdom!</h1>
+      <p style="margin: 10px 0 0 0; font-size: 16px; color: white;">Your Biblical Knowledge Quest Awaits</p>
     `;
+
+    const bodyContent = `
+      <h2 style="color: #92400e; font-size: 24px; margin-top: 0; font-family: Georgia, 'Times New Roman', serif;">✨ You've Been Blessed with an Invitation!</h2>
+      <p style="color: #451a03; margin: 15px 0;">Peace be with you,</p>
+      <p style="color: #451a03; margin: 15px 0;"><strong style="color: #92400e;">${educatorName}</strong> has invited you to embark on a spiritual journey through Scrolls of Wisdom${quizTitle ? `, beginning with the quiz: "<strong style="color: #92400e;">${quizTitle}</strong>"` : ''}.</p>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td style="background-color: #fef3c7; border-left: 4px solid #d97706; padding: 15px;">
+            <p style="margin: 0; color: #78350f; font-style: italic;">"Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth." - 2 Timothy 2:15</p>
+          </td>
+        </tr>
+      </table>
+      
+      <p style="color: #451a03; margin: 15px 0;">Scrolls of Wisdom is a sacred space for biblical education where devoted educators guide students through the treasures of Scripture, helping them grow in knowledge and faith.</p>
+      
+      <p style="color: #451a03; margin: 15px 0;"><strong>Your journey begins with these simple steps:</strong></p>
+      <ol style="color: #78350f; margin: 15px 0;">
+        <li>Click the golden button below to create your blessed account</li>
+        <li>Complete your profile with care and reverence</li>
+        <li>Begin your quest for biblical wisdom through interactive quizzes</li>
+      </ol>
+      
+      <div style="text-align: center; margin: 25px 0;">
+        <a href="${invitationUrl}" style="display: inline-block; padding: 14px 32px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">🕊️ Accept Your Calling & Begin</a>
+      </div>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td style="background-color: #fef3c7; padding: 10px; border-radius: 4px;">
+            <p style="margin: 0; color: #92400e; font-size: 14px;">
+              <strong>Or copy and paste this sacred link into your browser:</strong><br>
+              <span style="color: #78350f; word-break: break-all;">${invitationUrl}</span>
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <hr style="border: none; height: 2px; background-color: #f59e0b; margin: 20px 0;">
+      
+      <p style="text-align: center; color: #b45309; font-style: italic;"><em>⏰ This divine invitation expires in 7 days.</em></p>
+    `;
+
+    const footerContent = `
+      <p style="margin: 5px 0; color: #78350f;">📖 "Thy word is a lamp unto my feet, and a light unto my path." - Psalm 119:105</p>
+      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Empowering Biblical Education</p>
+      <p style="margin: 5px 0; font-size: 12px; color: #78350f;">Dedicated to spreading God's Word with love and wisdom</p>
+    `;
+
+    const html = createEmailWrapper(headerContent, bodyContent, footerContent);
 
     const text = `
 ${educatorName} invited you to join Scrolls of Wisdom${quizTitle ? ` and take "${quizTitle}"` : ''}!
@@ -225,156 +198,68 @@ Empowering biblical education with love and wisdom
   existingUserInvitation: (educatorName: string, studentName: string, quizTitle: string, quizUrl: string) => {
     const subject = `📜 New Biblical Quest: "${quizTitle}" awaits you!`;
 
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { 
-            font-family: 'Georgia', 'Times New Roman', serif; 
-            line-height: 1.6; 
-            color: #451a03;
-            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
-            margin: 0;
-            padding: 20px;
-          }
-          .container { 
-            max-width: 600px; 
-            margin: 0 auto; 
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(146, 64, 14, 0.1);
-            overflow: hidden;
-          }
-          .header { 
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white; 
-            padding: 30px 20px; 
-            text-align: center;
-            position: relative;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            text-shadow: 2px 2px 4px rgba(146, 64, 14, 0.3);
-          }
-          .content { 
-            background-color: #fffbeb; 
-            padding: 30px; 
-            border-left: 4px solid #f59e0b;
-            border-right: 4px solid #f59e0b;
-          }
-          .content h2 {
-            color: #92400e;
-            font-size: 22px;
-            margin-top: 0;
-          }
-          .button { 
-            display: inline-block; 
-            padding: 14px 32px; 
-            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
-            color: white; 
-            text-decoration: none; 
-            border-radius: 8px; 
-            margin: 20px 0;
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(217, 119, 6, 0.3);
-            transition: all 0.3s ease;
-          }
-          .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(217, 119, 6, 0.4);
-          }
-          .quiz-info { 
-            background: linear-gradient(135deg, #fff 0%, #fef3c7 100%);
-            padding: 20px; 
-            border-left: 4px solid #d97706; 
-            margin: 20px 0;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(146, 64, 14, 0.1);
-          }
-          .quiz-info h3 {
-            color: #92400e;
-            margin-top: 0;
-            font-size: 20px;
-          }
-          .quiz-info ul {
-            color: #78350f;
-          }
-          .scripture-box {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border-left: 4px solid #d97706;
-            padding: 15px;
-            margin: 20px 0;
-            font-style: italic;
-            color: #78350f;
-            border-radius: 4px;
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px;
-            background: #fef3c7;
-            color: #92400e; 
-            font-size: 14px;
-            border-top: 2px solid #f59e0b;
-          }
-          .divider {
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #f59e0b, transparent);
-            margin: 20px 0;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>📚 New Scripture Challenge!</h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px;">Test Your Biblical Knowledge</p>
-          </div>
-          <div class="content">
-            <h2>Blessings, ${studentName}!</h2>
-            <p>Your spiritual guide, <strong>${educatorName}</strong>, has prepared a new quest for you on Scrolls of Wisdom.</p>
-            
-            <div class="quiz-info">
-              <h3 style="margin-top: 0;">📖 ${quizTitle}</h3>
-              <p style="color: #78350f; font-weight: 500;">Your educator has lovingly crafted this quiz to deepen your understanding of God's Word.</p>
-              <p><strong>This sacred journey will help you:</strong></p>
-              <ul>
-                <li>Test your knowledge of Scripture at your own pace</li>
-                <li>Discover deeper meanings through detailed explanations</li>
-                <li>Track your spiritual growth and biblical understanding</li>
-                <li>Strengthen your foundation in God's Word</li>
-              </ul>
-            </div>
-
-            <div class="scripture-box">
-              <p>"All Scripture is given by inspiration of God, and is profitable for doctrine, for reproof, for correction, for instruction in righteousness." - 2 Timothy 3:16</p>
-            </div>
-            
-            <div style="text-align: center;">
-              <a href="${quizUrl}" class="button" style="color: white; text-decoration: none;">⚔️ Begin Your Quest Now</a>
-            </div>
-            
-            <p style="color: #92400e; font-size: 14px; background: #fef3c7; padding: 10px; border-radius: 4px;">
-              Or copy and paste this sacred link into your browser:<br>
-              <code style="background: white; padding: 2px 4px; border-radius: 2px;">${quizUrl}</code>
-            </p>
-
-            <div class="divider"></div>
-            
-            <p style="text-align: center; color: #b45309; font-style: italic;">
-              "Iron sharpeneth iron; so a man sharpeneth the countenance of his friend." - Proverbs 27:17
-            </p>
-          </div>
-          <div class="footer">
-            <p style="margin: 5px 0;">🕊️ May wisdom and understanding guide your path</p>
-            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
-            <p style="margin: 5px 0; font-size: 12px;">Growing in faith, one scripture at a time</p>
-          </div>
-        </div>
-      </body>
-      </html>
+    const headerContent = `
+      <h1 style="margin: 0; font-size: 28px; color: white; font-family: Georgia, 'Times New Roman', serif;">📚 New Scripture Challenge!</h1>
+      <p style="margin: 10px 0 0 0; font-size: 16px; color: white;">Test Your Biblical Knowledge</p>
     `;
+
+    const bodyContent = `
+      <h2 style="color: #92400e; font-size: 22px; margin-top: 0; font-family: Georgia, 'Times New Roman', serif;">Blessings, ${studentName}!</h2>
+      <p style="color: #451a03; margin: 15px 0;">Your spiritual guide, <strong style="color: #92400e;">${educatorName}</strong>, has prepared a new quest for you on Scrolls of Wisdom.</p>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0; background-color: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
+        <tr>
+          <td style="padding: 20px;">
+            <h3 style="margin-top: 0; color: #92400e; font-family: Georgia, 'Times New Roman', serif;">📖 ${quizTitle}</h3>
+            <p style="color: #78350f; font-weight: 500; margin: 10px 0;">Your educator has lovingly crafted this quiz to deepen your understanding of God's Word.</p>
+            <p style="color: #451a03; margin: 15px 0;"><strong>This sacred journey will help you:</strong></p>
+            <ul style="color: #78350f; margin: 10px 0;">
+              <li>Test your knowledge of Scripture at your own pace</li>
+              <li>Discover deeper meanings through detailed explanations</li>
+              <li>Track your spiritual growth and biblical understanding</li>
+              <li>Strengthen your foundation in God's Word</li>
+            </ul>
+          </td>
+        </tr>
+      </table>
+
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td style="background-color: #fef3c7; border-left: 4px solid #d97706; padding: 15px;">
+            <p style="margin: 0; color: #78350f; font-style: italic;">"All Scripture is given by inspiration of God, and is profitable for doctrine, for reproof, for correction, for instruction in righteousness." - 2 Timothy 3:16</p>
+          </td>
+        </tr>
+      </table>
+      
+      <div style="text-align: center; margin: 25px 0;">
+        <a href="${quizUrl}" style="display: inline-block; padding: 14px 32px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">⚔️ Begin Your Quest Now</a>
+      </div>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td style="background-color: #fef3c7; padding: 10px; border-radius: 4px;">
+            <p style="margin: 0; color: #92400e; font-size: 14px;">
+              <strong>Or copy and paste this sacred link into your browser:</strong><br>
+              <span style="color: #78350f; word-break: break-all;">${quizUrl}</span>
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <hr style="border: none; height: 2px; background-color: #f59e0b; margin: 20px 0;">
+      
+      <p style="text-align: center; color: #b45309; font-style: italic;">
+        "Iron sharpeneth iron; so a man sharpeneth the countenance of his friend." - Proverbs 27:17
+      </p>
+    `;
+
+    const footerContent = `
+      <p style="margin: 5px 0; color: #78350f;">🕊️ May wisdom and understanding guide your path</p>
+      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+      <p style="margin: 5px 0; font-size: 12px; color: #78350f;">Growing in faith, one scripture at a time</p>
+    `;
+
+    const html = createEmailWrapper(headerContent, bodyContent, footerContent);
 
     const text = `
 Blessings, ${studentName}!
@@ -570,7 +455,8 @@ United in Christ, growing in wisdom
     questionCount: number,
     duration: number,
     startTime: Date | null,
-    groupName?: string
+    groupName?: string,
+    quizUrl?: string
   ) => {
     const subject = `📜 New Biblical Quest: "${quizTitle}" Awaits You!`;
     
@@ -739,8 +625,13 @@ United in Christ, growing in wisdom
             <p style="color: #78350f;">This sacred assessment will be available in your study hall when the appointed time arrives. Prepare your heart and mind for this blessed opportunity to demonstrate your growing wisdom in Scripture.</p>
             
             <div style="text-align: center;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard" class="button" style="color: white; text-decoration: none;">📚 Visit Your Study Hall</a>
+              <a href="${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}" class="button" style="color: white; text-decoration: none;">📚 ${quizUrl ? 'Take Quiz Now' : 'Visit Your Study Hall'}</a>
             </div>
+            
+            <p style="color: #92400e; font-size: 14px; background: #fef3c7; padding: 10px; border-radius: 4px; margin-top: 20px;">
+              <strong>Or copy and paste this link into your browser:</strong><br>
+              <span style="color: #78350f; word-break: break-all;">${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}</span>
+            </p>
             
             <div class="divider"></div>
             
@@ -774,8 +665,8 @@ Quest Details:
 
 "Study to shew thyself approved unto God" - 2 Timothy 2:15
 
-Visit your study hall when the quest becomes available:
-${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard
+Access the quiz:
+${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}
 
 May your studies be blessed with divine understanding.
 
@@ -792,7 +683,10 @@ Growing in faith through sacred learning
     educatorName: string,
     quizTitle: string,
     reason: string,
-    newDeadline?: Date
+    newDeadline?: Date,
+    questionCount?: number,
+    duration?: number,
+    quizUrl?: string
   ) => {
     const subject = `🔄 Sacred Quest Renewed: "${quizTitle}" - A Second Blessing`;
     
@@ -818,7 +712,7 @@ Growing in faith through sacred learning
             overflow: hidden;
           }
           .header { 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             color: white; 
             padding: 30px 20px; 
             text-align: center;
@@ -827,13 +721,13 @@ Growing in faith through sacred learning
           .header h1 {
             margin: 0;
             font-size: 28px;
-            text-shadow: 2px 2px 4px rgba(5, 150, 105, 0.3);
+            text-shadow: 2px 2px 4px rgba(146, 64, 14, 0.3);
           }
           .content { 
             background-color: #fffbeb; 
             padding: 30px; 
-            border-left: 4px solid #10b981;
-            border-right: 4px solid #10b981;
+            border-left: 4px solid #f59e0b;
+            border-right: 4px solid #f59e0b;
           }
           .content h2 {
             color: #92400e;
@@ -841,9 +735,9 @@ Growing in faith through sacred learning
             margin-top: 0;
           }
           .reason-box {
-            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
             padding: 15px;
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #f59e0b;
             margin: 20px 0;
             border-radius: 4px;
           }
@@ -866,83 +760,108 @@ Growing in faith through sacred learning
           .button { 
             display: inline-block; 
             padding: 14px 32px; 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             color: white; 
             text-decoration: none; 
             border-radius: 8px; 
             margin: 20px 0;
             font-weight: bold;
-            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3);
             transition: all 0.3s ease;
           }
           .button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 6px 8px rgba(245, 158, 11, 0.4);
           }
           .footer { 
             text-align: center; 
             padding: 20px;
-            background: #dcfce7;
-            color: #14532d; 
+            background: #fef3c7;
+            color: #78350f; 
             font-size: 14px;
-            border-top: 2px solid #10b981;
+            border-top: 2px solid #f59e0b;
           }
           .divider {
             height: 2px;
-            background: linear-gradient(90deg, transparent, #10b981, transparent);
+            background: linear-gradient(90deg, transparent, #f59e0b, transparent);
             margin: 20px 0;
           }
         </style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🕊️ Grace Extended</h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px;">A New Opportunity Awaits</p>
-          </div>
-          <div class="content">
-            <h2>Beloved ${studentName},</h2>
+      <body style="margin: 0; padding: 0; background-color: #fef3c7;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fef3c7;">
+          <tr>
+            <td align="center" style="padding: 20px;">
+              <table cellpadding="0" cellspacing="0" border="0" width="600" style="background-color: white; border-radius: 12px; overflow: hidden;">
+                <tr>
+                  <td bgcolor="#f59e0b" style="background-color: #f59e0b; color: white; padding: 30px 20px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px; color: white; font-family: Georgia, 'Times New Roman', serif;">🕊️ Grace Extended</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 16px; color: white; font-family: Georgia, 'Times New Roman', serif;">A New Opportunity Awaits</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background-color: #fffbeb; padding: 30px;">
+                    <h2 style="color: #92400e; font-size: 22px; margin-top: 0; font-family: Georgia, 'Times New Roman', serif;">Beloved ${studentName},</h2>
             
-            <p>Good news! Your spiritual mentor, <strong>${educatorName}</strong>, has graciously granted you another opportunity to complete the sacred quest.</p>
+            <p style="color: #451a03; margin: 15px 0;">Good news! Your spiritual mentor, <strong style="color: #92400e;">${educatorName}</strong>, has graciously granted you another opportunity to complete the sacred quest.</p>
             
-            <h3 style="color: #92400e; margin-top: 20px;">📜 ${quizTitle}</h3>
+            <h3 style="color: #92400e; margin-top: 20px; font-family: Georgia, 'Times New Roman', serif;">📜 ${quizTitle}</h3>
             
-            <div class="reason-box">
-              <p style="margin: 0; color: #14532d;"><strong>Reason for this blessing:</strong></p>
-              <p style="margin: 5px 0 0 0; color: #166534;">${reason}</p>
+            ${(questionCount || duration) ? `
+            <div style="background: #fff; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #fed7aa;">
+              <p style="margin: 0 0 10px 0; color: #78350f; font-weight: bold;">Quiz Details:</p>
+              ${questionCount ? `<p style="margin: 5px 0; color: #92400e;">📚 Questions: ${questionCount}</p>` : ''}
+              ${duration ? `<p style="margin: 5px 0; color: #92400e;">⏱️ Duration: ${duration} minutes</p>` : ''}
+            </div>
+            ` : ''}
+            
+            <div class="reason-box" style="background: #fef3c7; padding: 15px; border-left: 4px solid #f59e0b; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0; color: #78350f;"><strong>Reason for this blessing:</strong></p>
+              <p style="margin: 5px 0 0 0; color: #92400e;">${reason}</p>
             </div>
             
             ${newDeadline ? `
-            <div class="deadline-box">
+            <div class="deadline-box" style="background: #fef3c7; padding: 15px; border-left: 4px solid #f59e0b; margin: 20px 0; border-radius: 4px;">
               <p style="margin: 0; color: #78350f;"><strong>⏰ New Completion Time:</strong></p>
               <p style="margin: 5px 0 0 0; color: #92400e;">${newDeadline.toLocaleString()}</p>
             </div>
             ` : ''}
             
-            <div class="scripture-box">
-              <p>"The Lord is gracious and compassionate, slow to anger and rich in love." - Psalm 145:8</p>
+            <div class="scripture-box" style="background: #fef3c7; border-left: 4px solid #d97706; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0; color: #78350f; font-style: italic;">"The Lord is gracious and compassionate, slow to anger and rich in love." - Psalm 145:8</p>
             </div>
             
-            <p style="color: #78350f;">This renewed quest offers you a fresh opportunity to demonstrate your growing understanding of Scripture. The questions will be presented in a different order, providing a new perspective on the sacred material.</p>
+            <p style="color: #78350f; margin: 15px 0;">This renewed quest offers you a fresh opportunity to demonstrate your growing understanding of Scripture. The questions will be presented in a different order, providing a new perspective on the sacred material.</p>
             
-            <p style="color: #78350f; font-weight: bold;">Remember: Each attempt is a chance to grow stronger in faith and wisdom.</p>
+            <p style="color: #78350f; font-weight: bold; margin: 15px 0;">Remember: Each attempt is a chance to grow stronger in faith and wisdom.</p>
             
-            <div style="text-align: center;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard" class="button" style="color: white; text-decoration: none;">🎯 Begin Your Renewed Quest</a>
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}" class="button" style="display: inline-block; padding: 14px 32px; background: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3);">🎯 ${quizUrl ? 'Begin Your Renewed Quest' : 'Go to Your Dashboard'}</a>
             </div>
             
-            <div class="divider"></div>
+            <p style="color: #92400e; font-size: 14px; background: #fef3c7; padding: 10px; border-radius: 4px; margin: 20px 0;">
+              <strong>Or copy and paste this link into your browser:</strong><br>
+              <span style="color: #78350f; word-break: break-all;">${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}</span>
+            </p>
             
-            <p style="text-align: center; color: #b45309; font-style: italic;">
+            <div class="divider" style="height: 2px; background: #f59e0b; margin: 20px 0;"></div>
+            
+            <p style="text-align: center; color: #b45309; font-style: italic; margin: 15px 0;">
               "His mercies are new every morning; great is thy faithfulness." - Lamentations 3:23
             </p>
-          </div>
-          <div class="footer">
-            <p style="margin: 5px 0;">✝️ Walking in grace and second chances</p>
-            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
-            <p style="margin: 5px 0; font-size: 12px;">Every attempt brings you closer to wisdom</p>
-          </div>
-        </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td bgcolor="#fef3c7" style="text-align: center; padding: 20px; background-color: #fef3c7; color: #78350f; font-size: 14px; border-top: 2px solid #f59e0b;">
+                    <p style="margin: 5px 0; color: #78350f;">✝️ Walking in grace and second chances</p>
+                    <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+                    <p style="margin: 5px 0; font-size: 12px; color: #78350f;">Every attempt brings you closer to wisdom</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
@@ -951,6 +870,9 @@ Growing in faith through sacred learning
 Beloved ${studentName},
 
 Good news! ${educatorName} has graciously granted you another opportunity to complete: "${quizTitle}"
+
+${questionCount ? `Questions: ${questionCount}` : ''}
+${duration ? `Duration: ${duration} minutes` : ''}
 
 Reason for this blessing: ${reason}
 
@@ -961,7 +883,7 @@ ${newDeadline ? `New Completion Time: ${newDeadline.toLocaleString()}\n` : ''}
 This renewed quest offers a fresh opportunity to demonstrate your biblical understanding.
 
 Begin your renewed quest at:
-${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard
+${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}
 
 Walking in grace and second chances.
 
@@ -1010,7 +932,7 @@ Every attempt brings you closer to wisdom
             text-shadow: 2px 2px 4px rgba(146, 64, 14, 0.3);
           }
           .celebration-banner {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             color: white;
             padding: 15px;
             text-align: center;
@@ -1042,7 +964,7 @@ Every attempt brings you closer to wisdom
           .permissions-box {
             background: linear-gradient(135deg, #fff 0%, #fef3c7 100%);
             padding: 20px;
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #f59e0b;
             margin: 20px 0;
             border-radius: 4px;
           }
@@ -1112,9 +1034,9 @@ Every attempt brings you closer to wisdom
 
             <div class="divider"></div>
             
-            <div style="background: #f0fdf4; padding: 15px; border-radius: 4px; margin: 20px 0;">
-              <p style="color: #166534; font-weight: bold; margin: 0 0 10px 0;">📚 Quick Start Tips:</p>
-              <ol style="color: #166534; margin: 5px 0;">
+            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 15px; border-radius: 4px; margin: 20px 0;">
+              <p style="color: #92400e; font-weight: bold; margin: 0 0 10px 0;">📚 Quick Start Tips:</p>
+              <ol style="color: #78350f; margin: 5px 0;">
                 <li>Upload your first biblical study material</li>
                 <li>Create an engaging quiz from your content</li>
                 <li>Invite your students to join</li>
@@ -1223,12 +1145,12 @@ Equipping saints for the work of ministry
             border-radius: 4px;
           }
           .scripture-box {
-            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-            border-left: 4px solid #0284c7;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #d97706;
             padding: 15px;
             margin: 20px 0;
             font-style: italic;
-            color: #075985;
+            color: #78350f;
             border-radius: 4px;
           }
           .encouragement-box {
@@ -1359,7 +1281,7 @@ export async function sendPasswordResetEmail(email: string, userName: string, re
           overflow: hidden;
         }
         .header { 
-          background: linear-gradient(135deg, #f59e0b, #dc2626);
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
           color: white;
           padding: 30px;
           text-align: center;
@@ -1370,7 +1292,7 @@ export async function sendPasswordResetEmail(email: string, userName: string, re
         .button {
           display: inline-block;
           padding: 12px 30px;
-          background: linear-gradient(135deg, #f59e0b, #dc2626);
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
           color: white;
           text-decoration: none;
           border-radius: 6px;
@@ -1385,8 +1307,8 @@ export async function sendPasswordResetEmail(email: string, userName: string, re
           color: #92400e;
         }
         .warning {
-          background: #fee2e2;
-          border-left: 4px solid #dc2626;
+          background: #fef3c7;
+          border-left: 4px solid #d97706;
           padding: 10px;
           margin: 20px 0;
         }

@@ -166,6 +166,8 @@ export async function POST(
       
       // Send emails to all newly enrolled students
       const emailPromises = enrolledStudentDetails.map(async (student) => {
+        const quizUrl = shortUrl || (shareCode ? `${process.env.NEXT_PUBLIC_APP_URL}/quiz/share/${shareCode}` : undefined);
+        
         const emailContent = emailTemplates.quizEnrollmentNotification(
           student.name || "Student",
           educator?.name || "Your Educator",
@@ -173,8 +175,9 @@ export async function POST(
           quiz[0].description,
           quiz[0].totalQuestions,
           quiz[0].duration,
-          quiz[0].startTime ? new Date(quiz[0].startTime) : null
-          // No group name for individual bulk enrollments
+          quiz[0].startTime ? new Date(quiz[0].startTime) : null,
+          undefined, // No group name for individual bulk enrollments
+          quizUrl
         );
         
         return sendEmail({

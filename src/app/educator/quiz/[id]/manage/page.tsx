@@ -46,9 +46,21 @@ interface QuizDetails {
   totalQuestions: number;
   duration: number;
   status: string;
-  startTime: string;
+  startTime: string | null;  // Can be null for deferred quizzes
   timezone: string;
   createdAt: string;
+  // Add scheduling fields for deferred time support
+  schedulingStatus?: string;
+  timeConfiguration?: {
+    startTime?: string;
+    timezone?: string;
+    duration?: number;
+    configuredAt?: string;
+    configuredBy?: string;
+    isLegacy?: boolean;
+  } | null;
+  scheduledBy?: string | null;
+  scheduledAt?: string | null;
 }
 
 interface EnrolledStudent {
@@ -423,6 +435,32 @@ export default function QuizManagePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Check if quiz is published and properly scheduled */}
+        {quiz && quiz.status !== "published" && (
+          <Card className="mb-6 border-yellow-200 bg-yellow-50">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-yellow-900">Quiz Not Published</h3>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    This quiz is not yet published. Please publish it from the{" "}
+                    <Link href={`/educator/quiz/${quizId}/review`} className="underline font-medium">
+                      review page
+                    </Link>{" "}
+                    before managing enrollments.
+                  </p>
+                  {quiz.schedulingStatus === 'deferred' && !quiz.startTime && (
+                    <p className="text-sm text-yellow-700 mt-2">
+                      Note: This quiz needs to be scheduled before it can be published.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         {/* Header */}
         <div className="mb-8">
           <Link href="/educator/dashboard" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-4">
@@ -506,11 +544,21 @@ export default function QuizManagePage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    Published {formatDateInTimezone(quiz.createdAt, quiz.timezone || 'Asia/Kolkata', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
+                    {quiz.startTime ? (
+                      <>Start: {formatDateInTimezone(quiz.startTime, quiz.timezone || 'Asia/Kolkata', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit'
+                      })}</>
+                    ) : (
+                      <>Published {formatDateInTimezone(quiz.createdAt, quiz.timezone || 'Asia/Kolkata', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}</>
+                    )}
                   </div>
                 </div>
               </div>

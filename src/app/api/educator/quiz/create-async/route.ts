@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
       timezone = "Asia/Kolkata", // User's timezone for reference
       duration = 30,
       shuffleQuestions = false,
+      useDeferredScheduling = false,
     } = body;
 
     // Validate that startTime is a valid date
@@ -78,17 +79,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure startTime is in the future (with 5 minute buffer)
-    const now = new Date();
-    const minStartTime = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
-    if (startTimeDate < minStartTime) {
-      return NextResponse.json(
-        { error: "Quiz start time must be at least 5 minutes in the future" },
-        { status: 400 }
-      );
+    // Only validate future time if not using deferred scheduling
+    if (!useDeferredScheduling) {
+      // Ensure startTime is in the future (with 5 minute buffer)
+      const now = new Date();
+      const minStartTime = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+      if (startTimeDate < minStartTime) {
+        return NextResponse.json(
+          { error: "Quiz start time must be at least 5 minutes in the future" },
+          { status: 400 }
+        );
+      }
     }
 
     // Check for duplicate quiz creation (same title within last 5 minutes)
+    const now = new Date();
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
     const recentDuplicates = await db
       .select()
@@ -138,6 +143,10 @@ export async function POST(req: NextRequest) {
     });
 
     // Save quiz to database with pending status
+    // If deferred scheduling, store null startTime (will be set during publish)
+    const actualStartTime = useDeferredScheduling ? null : new Date(startTime);
+    const schedulingStatus = useDeferredScheduling ? 'deferred' : 'legacy';
+    
     const newQuiz = await db.insert(quizzes).values({
       id: quizId,
       educatorId: educatorId,
@@ -151,12 +160,24 @@ export async function POST(req: NextRequest) {
         books,
         chapters,
       },
-      startTime: new Date(startTime),
+      startTime: actualStartTime,
       timezone,
       duration,
+      schedulingStatus, // Store whether this is deferred or legacy
+      // Add timeConfiguration for proper deferred scheduling support
+      timeConfiguration: useDeferredScheduling ? null : {
+        startTime: startTime,
+        timezone: timezone,
+        duration: duration,
+        configuredAt: new Date().toISOString(),
+        configuredBy: educatorId,
+        isLegacy: true
+      },
+      // Track who scheduled it (for legacy mode, it's the creator)
+      scheduledBy: useDeferredScheduling ? null : educatorId,
+      scheduledAt: useDeferredScheduling ? null : new Date(),
       status: "draft",
       totalQuestions: questionCount,
-      passingScore: 70,
       shuffleQuestions,
       createdAt: new Date(),
       updatedAt: new Date(),

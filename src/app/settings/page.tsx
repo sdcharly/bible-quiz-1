@@ -130,7 +130,7 @@ export default function SettingsPage() {
                 <ArrowLeftIcon className="h-4 w-4" />
               </Button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-3xl font-heading font-bold text-gray-900 dark:text-white">
                   Profile Settings
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">

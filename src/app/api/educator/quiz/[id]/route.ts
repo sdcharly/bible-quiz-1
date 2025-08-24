@@ -4,7 +4,7 @@ import { quizzes, questions } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -32,10 +32,20 @@ export async function GET(
       .where(eq(questions.quizId, quizId))
       .orderBy(questions.orderIndex);
 
-    return NextResponse.json({
+    // Ensure scheduling fields are included with safe defaults
+    // These fields should already be in quiz[0] from the database,
+    // but we're being explicit for safety and clarity
+    const quizData = {
       ...quiz[0],
+      // Explicitly include scheduling fields with defaults if missing
+      schedulingStatus: quiz[0].schedulingStatus || 'legacy',
+      timeConfiguration: quiz[0].timeConfiguration || null,
+      scheduledBy: quiz[0].scheduledBy || null,
+      scheduledAt: quiz[0].scheduledAt || null,
       questions: quizQuestions
-    });
+    };
+    
+    return NextResponse.json(quizData);
   } catch (error) {
     console.error("Error fetching quiz:", error);
     return NextResponse.json(

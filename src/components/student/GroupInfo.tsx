@@ -81,7 +81,7 @@ export function GroupInfo() {
     <div className="space-y-6">
       {/* Groups Section */}
       <div>
-        <h2 className="text-lg font-semibold mb-3">My Groups</h2>
+        <h2 className="text-lg font-heading font-semibold mb-3">My Groups</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {groups.map((group) => (
             <Card key={group.groupId} className="hover:shadow-md transition-shadow">
@@ -135,9 +135,9 @@ export function GroupInfo() {
       {groupQuizzes.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">Group Quizzes</h2>
+            <h2 className="text-lg font-heading font-semibold">Group Quizzes</h2>
             <Link href="/student/quizzes">
-              <span className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
+              <span className="text-sm text-amber-600 hover:text-amber-700 flex items-center gap-1">
                 View all
                 <ChevronRight className="h-3 w-3" />
               </span>
@@ -168,7 +168,7 @@ export function GroupInfo() {
                       </div>
                     </div>
                     <Link href={`/student/quiz/${quiz.quizId}`}>
-                      <span className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                      <span className="text-amber-600 hover:text-amber-700 text-sm font-medium">
                         View Details
                       </span>
                     </Link>

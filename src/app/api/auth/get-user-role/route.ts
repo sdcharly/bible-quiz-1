@@ -2,6 +2,40 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+
+export async function GET(req: NextRequest) {
+  try {
+    // Get session from auth
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    if (!session?.user) {
+      return NextResponse.json({
+        user: null,
+        role: null
+      });
+    }
+
+    return NextResponse.json({
+      role: session.user.role,
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        role: session.user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Get user role error:", error);
+    return NextResponse.json(
+      { error: "Failed to get user role" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {

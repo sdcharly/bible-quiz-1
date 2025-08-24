@@ -55,7 +55,7 @@ export async function GET(
     // Calculate statistics
     const completedAttempts = attempts.filter(a => a.status === "completed");
     
-    const passingScore = quiz.passingScore || 70;
+    // Using grading system instead of passing score
     
     const statistics = {
       totalAttempts: completedAttempts.length,
@@ -63,7 +63,7 @@ export async function GET(
         ? completedAttempts.reduce((sum, a) => sum + (a.score || 0), 0) / completedAttempts.length
         : 0,
       passRate: completedAttempts.length > 0
-        ? (completedAttempts.filter(a => (a.score || 0) >= passingScore).length / completedAttempts.length) * 100
+        ? (completedAttempts.filter(a => (a.score || 0) >= 70).length / completedAttempts.length) * 100
         : 0,
       averageTime: completedAttempts.length > 0
         ? completedAttempts.reduce((sum, a) => sum + (a.timeTaken || 0), 0) / completedAttempts.length
@@ -79,7 +79,6 @@ export async function GET(
     return NextResponse.json({
       quizId: quiz.id,
       quizTitle: quiz.title,
-      passingScore: passingScore,
       statistics,
       attempts: attempts.map(a => ({
         id: a.id,
@@ -87,7 +86,7 @@ export async function GET(
         studentName: a.studentName || "Unknown Student",
         studentEmail: a.studentEmail || "N/A",
         score: a.score || 0,
-        isPassed: (a.score || 0) >= passingScore,
+        isPassed: (a.score || 0) >= 70,
         correctAnswers: a.correctAnswers || 0,
         totalQuestions: a.totalQuestions || 0,
         timeTaken: a.timeTaken || 0,

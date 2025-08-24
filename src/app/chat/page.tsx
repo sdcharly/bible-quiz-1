@@ -149,7 +149,7 @@ export default function ChatPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6 pb-4 border-b">
-          <h1 className="text-2xl font-bold">AI Chat</h1>
+          <h1 className="text-2xl font-heading font-bold">AI Chat</h1>
           <span className="text-sm text-muted-foreground">
             Welcome, {session.user.name}!
           </span>

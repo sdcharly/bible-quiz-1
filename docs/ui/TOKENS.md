@@ -1,62 +1,63 @@
-# 🎨 Design Tokens
+# 🎨 Design Tokens - Biblical Theme
 
-> The atomic values that create visual consistency across SimpleQuiz
+> The atomic values that create visual consistency across SimpleQuiz's biblical learning experience
 
 ## Color System
 
-### Primary Palette - Cool & Friendly Blues
+### Primary Palette - Warm Amber/Gold (Divine Wisdom)
 
 ```css
---color-primary-50: #EFF6FF;   /* Lightest blue background */
---color-primary-100: #DBEAFE;  /* Light blue tint */
---color-primary-200: #BFDBFE;  /* Soft blue */
---color-primary-300: #93C5FD;  /* Sky blue */
---color-primary-400: #60A5FA;  /* Medium blue */
---color-primary-500: #3B82F6;  /* Main brand blue */
---color-primary-600: #2563EB;  /* Hover state */
---color-primary-700: #1D4ED8;  /* Active state */
---color-primary-800: #1E40AF;  /* Dark blue */
---color-primary-900: #1E3A8A;  /* Darkest blue */
+--color-primary-50: #FFFBEB;   /* Lightest amber background */
+--color-primary-100: #FEF3C7;  /* Light amber tint */
+--color-primary-200: #FDE68A;  /* Soft amber */
+--color-primary-300: #FCD34D;  /* Golden */
+--color-primary-400: #FBBF24;  /* Medium amber */
+--color-primary-500: #F59E0B;  /* Main brand amber */
+--color-primary-600: #D97706;  /* Hover state */
+--color-primary-700: #B45309;  /* Active state */
+--color-primary-800: #92400E;  /* Dark amber */
+--color-primary-900: #78350F;  /* Darkest amber */
 ```
 
-### Secondary Palette - Success Greens
+### Secondary Palette - Deep Reds (Significance & Sacrifice)
 
 ```css
---color-success-50: #ECFDF5;   /* Mint background */
---color-success-100: #D1FAE5;  /* Light success */
---color-success-200: #A7F3D0;  /* Soft green */
---color-success-300: #6EE7B7;  /* Medium green */
---color-success-400: #34D399;  /* Bright green */
---color-success-500: #10B981;  /* Success green */
---color-success-600: #059669;  /* Hover state */
---color-success-700: #047857;  /* Active state */
+--color-secondary-50: #FEF2F2;   /* Lightest red */
+--color-secondary-100: #FEE2E2;  /* Light red tint */
+--color-secondary-200: #FECACA;  /* Soft red */
+--color-secondary-300: #FCA5A5;  /* Medium red */
+--color-secondary-400: #F87171;  /* Bright red */
+--color-secondary-500: #DC2626;  /* Deep red */
+--color-secondary-600: #B91C1C;  /* Hover state */
+--color-secondary-700: #991B1B;  /* Active state */
 ```
 
-### Accent Palette - Playful Purples
+### Accent Palette - Earthy Browns (Humility & Groundedness)
 
 ```css
---color-accent-50: #F5F3FF;    /* Lavender background */
---color-accent-100: #EDE9FE;   /* Light purple */
---color-accent-200: #DDD6FE;   /* Soft purple */
---color-accent-300: #C4B5FD;   /* Medium purple */
---color-accent-400: #A78BFA;   /* Bright purple */
---color-accent-500: #8B5CF6;   /* Accent purple */
---color-accent-600: #7C3AED;   /* Hover state */
+--color-accent-50: #FEF3E2;    /* Light tan */
+--color-accent-100: #FDE7CC;   /* Soft beige */
+--color-accent-200: #FBDBA7;   /* Medium tan */
+--color-accent-300: #F8C574;   /* Light brown */
+--color-accent-400: #F4A83C;   /* Medium brown */
+--color-accent-500: #7C2D12;   /* Deep brown */
+--color-accent-600: #5C2410;   /* Hover state */
 ```
 
 ### Semantic Colors
 
 ```css
 /* Status Colors */
---color-error: #EF4444;        /* Soft red for errors */
+--color-success: #10B981;      /* Green for correct answers */
+--color-error: #DC2626;        /* Red for errors/incorrect */
 --color-warning: #F59E0B;      /* Amber for warnings */
 --color-info: #3B82F6;         /* Blue for information */
 
 /* UI Colors */
 --color-background: #FFFFFF;   /* Main background */
---color-surface: #F9FAFB;      /* Card backgrounds */
---color-border: #E5E7EB;       /* Borders */
---color-divider: #F3F4F6;      /* Dividers */
+--color-surface: #FFFBEB;      /* Card backgrounds (warm tint) */
+--color-border: #FDE68A;       /* Borders (soft amber) */
+--color-divider: #FEF3C7;      /* Dividers (light amber) */
 
 /* Text Colors */
 --color-text-primary: #111827;   /* Main text */
@@ -65,8 +66,8 @@
 --color-text-inverse: #FFFFFF;   /* Text on dark backgrounds */
 
 /* Interactive States */
---color-hover: rgba(59, 130, 246, 0.1);  /* Hover overlay */
---color-focus: #3B82F6;                  /* Focus ring */
+--color-hover: rgba(245, 158, 11, 0.1);  /* Amber hover overlay */
+--color-focus: #F59E0B;                  /* Amber focus ring */
 --color-disabled: #E5E7EB;               /* Disabled state */
 ```
 
@@ -75,7 +76,7 @@
 ### Font Families
 
 ```css
---font-heading: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
+--font-heading: 'Georgia', 'Playfair Display', 'Times New Roman', serif;
 --font-body: 'Inter', -apple-system, system-ui, sans-serif;
 --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 ```
@@ -171,7 +172,7 @@
 --radius-full: 9999px;  /* Pills, avatars */
 ```
 
-## Shadows - Soft & Friendly
+## Shadows - Warm & Soft
 
 ```css
 --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -181,9 +182,9 @@
 --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 
 /* Colored shadows for special elements */
---shadow-primary: 0 4px 14px 0 rgba(59, 130, 246, 0.25);
---shadow-success: 0 4px 14px 0 rgba(16, 185, 129, 0.25);
---shadow-accent: 0 4px 14px 0 rgba(139, 92, 246, 0.25);
+--shadow-primary: 0 4px 14px 0 rgba(245, 158, 11, 0.25);  /* Amber glow */
+--shadow-secondary: 0 4px 14px 0 rgba(220, 38, 38, 0.25); /* Red glow */
+--shadow-accent: 0 4px 14px 0 rgba(124, 45, 18, 0.25);    /* Brown glow */
 ```
 
 ## Animation & Motion
@@ -262,6 +263,7 @@
 --card-radius: 16px;
 --card-shadow: var(--shadow-md);
 --card-border: 1px solid var(--color-border);
+--card-bg: linear-gradient(to bottom right, #FFFBEB, #FFFFFF);
 ```
 
 ### Forms
@@ -270,8 +272,10 @@
 --input-height: 44px;  /* Touch friendly */
 --input-padding: 12px 16px;
 --input-radius: 8px;
---input-border: 1px solid var(--color-border);
---input-focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.1);
+--input-border: 1px solid #FDE68A; /* Soft amber border */
+--input-focus-ring: 0 0 0 3px rgba(245, 158, 11, 0.1);
+--input-bg: #FFFFFF;
+--input-bg-dark: #1F2937;
 ```
 
 ### Quiz Components
@@ -281,12 +285,14 @@
 --quiz-card-radius: 16px;
 --quiz-card-padding: 24px;
 --quiz-card-padding-mobile: 20px;
+--quiz-card-bg: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
 
 /* Option Buttons */
 --quiz-option-min-height: 56px;  /* Large touch target */
 --quiz-option-padding: 16px 20px;
 --quiz-option-radius: 12px;
 --quiz-option-gap: 12px;
+--quiz-option-hover: #FEF3C7;
 
 /* Progress Bar */
 --progress-height: 8px;
@@ -295,17 +301,18 @@
 --progress-fill: var(--color-primary-500);
 ```
 
-## Gradients
+## Gradients - Biblical Warmth
 
 ```css
 /* Primary gradients for CTAs */
---gradient-primary: linear-gradient(135deg, #667EEA 0%, #3B82F6 100%);
---gradient-success: linear-gradient(135deg, #10B981 0%, #34D399 100%);
---gradient-accent: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+--gradient-primary: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+--gradient-secondary: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+--gradient-accent: linear-gradient(135deg, #7C2D12 0%, #5C2410 100%);
 
 /* Subtle background gradients */
---gradient-surface: linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%);
---gradient-hero: linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%);
+--gradient-surface: linear-gradient(180deg, #FFFFFF 0%, #FFFBEB 100%);
+--gradient-hero: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+--gradient-card: linear-gradient(to bottom right, from-amber-50, via-white, to-orange-50);
 ```
 
 ## Implementation Example
@@ -315,8 +322,8 @@
 ```css
 :root {
   /* Apply all tokens */
-  --color-primary: #3B82F6;
-  --font-heading: 'Plus Jakarta Sans', system-ui;
+  --color-primary: #F59E0B;
+  --font-heading: 'Georgia', serif;
   --space-md: 16px;
   --radius-friendly: 12px;
   /* ... etc */
@@ -328,6 +335,7 @@
     --color-background: #111827;
     --color-surface: #1F2937;
     --color-text-primary: #F9FAFB;
+    --color-border: #92400E; /* Darker amber for borders */
     /* ... dark mode tokens */
   }
 }
@@ -341,10 +349,14 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#3B82F6',
-          50: '#EFF6FF',
-          // ... rest of scale
+          DEFAULT: '#F59E0B',
+          50: '#FFFBEB',
+          // ... rest of amber scale
         }
+      },
+      fontFamily: {
+        'heading': ['Georgia', 'Playfair Display', 'serif'],
+        'body': ['Inter', 'system-ui', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',
@@ -360,4 +372,4 @@ module.exports = {
 
 ---
 
-*These tokens form the foundation of our friendly, modern, and mobile-first design system.*
+*These tokens form the foundation of our warm, scholarly, and mobile-first biblical learning design system.*

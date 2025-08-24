@@ -443,7 +443,7 @@ export default function EducatorDetails({ educator: initialEducator }: EducatorD
             {/* Students */}
             <Card>
               <CardHeader>
-                <CardTitle>Students ({educator.students?.length || 0})</CardTitle>
+                <CardTitle>Students ({educator.studentCount || 0})</CardTitle>
               </CardHeader>
               <CardContent>
                 {educator.students?.length === 0 ? (
@@ -456,9 +456,9 @@ export default function EducatorDetails({ educator: initialEducator }: EducatorD
                         <p className="text-xs text-gray-500">{student.email}</p>
                       </div>
                     ))}
-                    {(educator.students?.length || 0) > 5 && (
+                    {educator.studentCount > 5 && (
                       <p className="text-xs text-gray-500 pt-2">
-                        And {(educator.students?.length || 0) - 5} more...
+                        And {educator.studentCount - 5} more...
                       </p>
                     )}
                   </div>

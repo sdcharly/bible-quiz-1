@@ -122,7 +122,6 @@ export function PublishButton({
   let buttonIcon = <Send className="mr-2 h-4 w-4" />;
   let buttonText = "Publish Quiz";
   let buttonVariant: "default" | "outline" | "secondary" = "default";
-  let tooltipText = "";
 
   if (publishing || scheduling) {
     buttonIcon = <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
@@ -132,18 +131,13 @@ export function PublishButton({
       buttonIcon = <Calendar className="mr-2 h-4 w-4" />;
       buttonText = hasStartTime ? "Reschedule" : "Set Time";
       buttonVariant = "outline";
-      tooltipText = hasStartTime 
-        ? "Change the scheduled time for this quiz" 
-        : "Set when this quiz will be available";
     } else {
       buttonIcon = <CheckCircle className="mr-2 h-4 w-4" />;
       buttonText = "Published";
-      tooltipText = "Quiz is already published";
     }
   } else if (needsScheduling) {
     buttonIcon = <Calendar className="mr-2 h-4 w-4" />;
     buttonText = "Schedule & Publish";
-    tooltipText = "Set the quiz time and publish";
   }
 
   const button = (
@@ -161,11 +155,7 @@ export function PublishButton({
 
   return (
     <>
-      {tooltipText ? (
-        {button}
-      ) : (
-        button
-      )}
+      {button}
 
       <SchedulingModal
         isOpen={showSchedulingModal}

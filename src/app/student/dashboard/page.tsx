@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { isStudent } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { GroupInfo } from "@/components/student/GroupInfo";
+import { BiblicalPageLoader } from "@/components/ui/biblical-loader";
 import { 
   BookOpen,
   Trophy,
@@ -75,9 +76,7 @@ export default function StudentDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <BiblicalPageLoader text="Loading your dashboard..." />
     );
   }
 
@@ -140,7 +139,7 @@ export default function StudentDashboard() {
                   {stats.quizzesAvailable}
                 </p>
               </div>
-              <BookOpen className="h-12 w-12 text-blue-600 opacity-20" />
+              <BookOpen className="h-12 w-12 text-amber-600 opacity-20" />
             </div>
           </div>
 
@@ -207,7 +206,7 @@ export default function StudentDashboard() {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link href="/student/quizzes">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
-              <BookOpen className="h-8 w-8 text-blue-600 mb-3" />
+              <BookOpen className="h-8 w-8 text-amber-600 mb-3" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 Browse Quizzes
               </h3>
@@ -243,9 +242,9 @@ export default function StudentDashboard() {
         </div>
 
         {/* Study Tips */}
-        <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
+        <div className="mt-8 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-6">
           <div className="flex items-start">
-            <AlertCircle className="h-6 w-6 text-blue-600 mt-1 mr-3 flex-shrink-0" />
+            <AlertCircle className="h-6 w-6 text-amber-600 mt-1 mr-3 flex-shrink-0" />
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 Study Tips

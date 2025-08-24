@@ -338,7 +338,7 @@ export default function DocumentUploadPage() {
                   <div className="mt-3">
                     <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                       <div
-                        className="bg-blue-600 h-full transition-all duration-300"
+                        className="bg-gradient-to-r from-amber-500 to-orange-600 h-full transition-all duration-300"
                         style={{ width: `${fileUpload.progress}%` }}
                       />
                     </div>

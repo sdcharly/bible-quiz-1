@@ -69,7 +69,7 @@ export default function ActivityLogsView({ logs }: ActivityLogsViewProps) {
     if (actionType.includes("approve")) return "bg-green-500";
     if (actionType.includes("reject") || actionType.includes("delete")) return "bg-red-500";
     if (actionType.includes("suspend")) return "bg-orange-500";
-    if (actionType.includes("login") || actionType.includes("create")) return "bg-blue-500";
+    if (actionType.includes("login") || actionType.includes("create")) return "bg-amber-500";
     return "bg-gray-500";
   };
 

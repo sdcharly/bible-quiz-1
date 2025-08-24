@@ -116,6 +116,21 @@ export class LightRAGService {
 
   static async updateDocumentProcessingStatus(documentId: string): Promise<boolean> {
     try {
+      // Get document from database first
+      const [document] = await db.select()
+        .from(documents)
+        .where(eq(documents.id, documentId))
+        .limit(1);
+      
+      if (!document) {
+        throw new Error(`Document ${documentId} not found`);
+      }
+
+      // If already processed, no need to check further
+      if (document.status === "processed") {
+        return true;
+      }
+
       const status = await this.checkPipelineStatus();
       
       // Extract chunk progress from latest_message if available
@@ -130,6 +145,44 @@ export class LightRAGService {
         }
       }
 
+      // Check if document is fully processed and ready for queries
+      let isProcessed = false;
+      let processingMessage = '';
+      
+      // Extract track ID from processed data
+      const processedData = document.processedData as { 
+        lightragDocumentId?: string; 
+        trackId?: string; 
+        [key: string]: unknown; 
+      } | null;
+      const trackId = processedData?.lightragDocumentId || processedData?.trackId;
+      
+      if (trackId) {
+        // Use track ID to check if document is fully processed
+        const trackStatus = await this.checkDocumentTrackStatus(trackId);
+        
+        if (trackStatus.processed) {
+          isProcessed = true;
+          processingMessage = 'Document fully indexed and ready for queries';
+          logger.log(`Document ${documentId} is fully processed and ready for queries`);
+        } else if (trackStatus.exists) {
+          // Document exists but still being processed
+          isProcessed = false;
+          processingMessage = trackStatus.message || 'Document uploaded, indexing in progress...';
+          logger.log(`Document ${documentId} exists but still being indexed: ${trackStatus.status}`);
+        } else {
+          // Track ID not found - might be an issue
+          isProcessed = false;
+          processingMessage = 'Document upload verification pending...';
+          logger.log(`Document ${documentId} track ID not found, status: ${trackStatus.status}`);
+        }
+      } else {
+        // No document ID yet - still uploading or pending
+        isProcessed = false;
+        processingMessage = status.busy ? 'Pipeline busy, document queued...' : 'Document pending upload...';
+        logger.log(`Document ${documentId} has no LightRAG track ID yet`);
+      }
+
       // Update document status in database
       await db.update(documents)
         .set({
@@ -142,16 +195,16 @@ export class LightRAGService {
             currentBatch: status.cur_batch,
             totalChunks,
             processedChunks,
-            latestMessage: status.latest_message,
+            latestMessage: processingMessage || status.latest_message,
             lastChecked: new Date().toISOString()
           },
-          status: status.busy ? "processing" : "processed",
-          processingCompletedAt: !status.busy ? new Date() : undefined,
+          status: isProcessed ? "processed" : "processing",
+          processingCompletedAt: isProcessed ? new Date() : undefined,
           updatedAt: new Date()
         })
         .where(eq(documents.id, documentId));
 
-      return !status.busy; // Return true if processing is complete
+      return isProcessed;
     } catch (error) {
       logger.error(`Error updating document ${documentId} processing status:`, error);
       
@@ -240,6 +293,90 @@ export class LightRAGService {
     } catch (error) {
       logger.error(`Error getting document ${documentId} processing progress:`, error);
       throw error;
+    }
+  }
+
+  static async checkDocumentExists(documentId: string): Promise<boolean> {
+    validateApiKey();
+    try {
+      const response = await fetch(`${LIGHTRAG_BASE_URL}/documents/${documentId}`, {
+        method: 'GET',
+        headers: {
+          'X-API-Key': LIGHTRAG_API_KEY,
+          'accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        return true;
+      } else if (response.status === 404) {
+        return false;
+      } else {
+        logger.warn(`Unexpected status when checking document ${documentId}: ${response.status}`);
+        return false;
+      }
+    } catch (error) {
+      logger.error(`Error checking if document ${documentId} exists:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Check the processing status of a specific document using its track ID
+   * This tells us if the document is fully processed and ready for queries
+   */
+  static async checkDocumentTrackStatus(trackId: string): Promise<{
+    exists: boolean;
+    processed: boolean;
+    status?: string;
+    message?: string;
+  }> {
+    validateApiKey();
+    try {
+      const response = await fetch(`${LIGHTRAG_BASE_URL}/documents/track_status/${trackId}`, {
+        method: 'GET',
+        headers: {
+          'X-API-Key': LIGHTRAG_API_KEY,
+          'accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // The track_status endpoint should return the document's processing status
+        // We need to check if the status indicates it's fully processed
+        const isProcessed = data.status === 'processed' || data.status === 'completed' || data.status === 'success';
+        
+        logger.log(`Document track status for ${trackId}:`, data);
+        
+        return {
+          exists: true,
+          processed: isProcessed,
+          status: data.status,
+          message: data.message || data.detail
+        };
+      } else if (response.status === 404) {
+        return {
+          exists: false,
+          processed: false,
+          status: 'not_found'
+        };
+      } else {
+        logger.warn(`Unexpected status when checking track ${trackId}: ${response.status}`);
+        return {
+          exists: false,
+          processed: false,
+          status: 'error'
+        };
+      }
+    } catch (error) {
+      logger.error(`Error checking track status for ${trackId}:`, error);
+      return {
+        exists: false,
+        processed: false,
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   }
 

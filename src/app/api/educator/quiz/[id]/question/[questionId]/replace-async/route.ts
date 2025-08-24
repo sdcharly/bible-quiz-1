@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { quizzes, questions } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+import { quizzes, questions, documents } from "@/lib/schema";
+import { eq, and, inArray } from "drizzle-orm";
 import { jobStore } from "@/lib/quiz-generation-jobs";
 import * as crypto from "crypto";
 import { auth } from "@/lib/auth";
@@ -57,6 +57,34 @@ export async function PUT(
     const quizData = quiz[0];
     const config = quizData.configuration as Record<string, unknown>;
 
+    // Fetch documents referenced by the quiz to include LightRAG document IDs
+    const docs = await db
+      .select()
+      .from(documents)
+      .where(inArray(documents.id, quizData.documentIds));
+
+    // Prepare document metadata for webhook (including LightRAG document IDs)
+    const documentMetadata = docs.map(doc => {
+      const processedData = doc.processedData as { 
+        lightragDocumentId?: string; 
+        trackId?: string; 
+        lightragUrl?: string;
+        processedBy?: string;
+        [key: string]: unknown; 
+      } | null;
+      return {
+        id: doc.id,
+        filename: doc.filename,
+        fileSize: doc.fileSize,
+        mimeType: doc.mimeType,
+        uploadDate: doc.uploadDate,
+        lightragDocumentId: processedData?.lightragDocumentId || processedData?.trackId || doc.filePath,
+        lightragUrl: processedData?.lightragUrl,
+        processedBy: processedData?.processedBy,
+        status: doc.status
+      };
+    });
+
     // Verify the question exists and belongs to this quiz
     const existingQuestion = await db
       .select()
@@ -80,6 +108,7 @@ export async function PUT(
       quizId,
       questionId, // Include questionId for the callback to know which question to update
       documentIds: quizData.documentIds,
+      documentMetadata, // Include document metadata with LightRAG IDs
       questionCount: 1, // Generate just one question
       topics: (config.topics as string[]) || [],
       books: customOptions.book ? [customOptions.book] : ((config.books as string[]) || []),

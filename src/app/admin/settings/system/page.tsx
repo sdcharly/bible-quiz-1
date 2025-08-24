@@ -41,7 +41,6 @@ async function getAdminData() {
     },
     quiz_defaults: {
       defaultDuration: 60, // minutes
-      defaultPassingScore: 70, // percentage
       maxQuestionsPerQuiz: 100,
       allowRetake: false,
       showResults: true,
