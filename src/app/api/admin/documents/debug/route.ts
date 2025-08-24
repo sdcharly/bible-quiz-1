@@ -45,10 +45,10 @@ export async function GET() {
       const countResult = await db.execute(sql`SELECT COUNT(*) as count FROM documents`);
       diagnostics.rawSqlCount = {
         success: true,
-        count: countResult.rows?.[0]?.count || 0,
-        rowsReturned: countResult.rows?.length || 0
+        count: (countResult as any)[0]?.count || 0,
+        rowsReturned: (countResult as any).length || 0
       };
-      console.log("[Documents Debug] Raw SQL result:", countResult.rows);
+      console.log("[Documents Debug] Raw SQL result:", countResult);
     } catch (e) {
       diagnostics.rawSqlCount = {
         success: false,
@@ -93,8 +93,8 @@ export async function GET() {
       );
       diagnostics.tableStructure = {
         success: true,
-        columnCount: columnsResult.rows?.length || 0,
-        columns: columnsResult.rows?.map((col: any) => ({
+        columnCount: (columnsResult as any).length || 0,
+        columns: (columnsResult as any).map((col: any) => ({
           name: col.column_name,
           type: col.data_type
         })).slice(0, 5) // First 5 columns only
