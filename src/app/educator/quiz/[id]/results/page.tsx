@@ -321,7 +321,12 @@ export default function EducatorQuizResultsPage() {
                         {formatTime(attempt.timeTaken)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(attempt.completedAt).toLocaleDateString()}
+                        {attempt.completedAt && attempt.status === "completed" 
+                          ? new Date(attempt.completedAt).toLocaleDateString()
+                          : attempt.status === "failed" 
+                            ? "Failed" 
+                            : "Not completed"
+                        }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Link href={`/educator/quiz/${quizId}/attempt/${attempt.id}`}>

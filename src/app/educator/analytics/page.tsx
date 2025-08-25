@@ -542,7 +542,10 @@ export default function EducatorAnalyticsPage() {
                             Time: {formatTime(student.totalTimeSpent)}
                           </span>
                           <span className="text-gray-500">
-                            Last active: {new Date(student.lastActivity).toLocaleDateString()}
+                            Last active: {student.lastActivity 
+                              ? new Date(student.lastActivity).toLocaleDateString()
+                              : "Never"
+                            }
                           </span>
                         </div>
                       </div>

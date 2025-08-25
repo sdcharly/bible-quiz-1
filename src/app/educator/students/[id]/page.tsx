@@ -420,7 +420,10 @@ export default function StudentDetailPage() {
                             {formatTime(attempt.timeSpent)}
                           </span>
                           <span>
-                            {new Date(attempt.completedAt).toLocaleDateString()}
+                            {attempt.completedAt 
+                              ? new Date(attempt.completedAt).toLocaleDateString()
+                              : "Not completed"
+                            }
                           </span>
                         </div>
                       </div>
