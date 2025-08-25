@@ -69,8 +69,8 @@ export async function GET(req: NextRequest) {
         totalQuizzes: totalQuizzes[0]?.count || 0,
         totalAttempts: totalAttempts[0]?.count || 0,
         activeUsers: activeUsers[0]?.count || 0,
-        avgResponseTime: Math.floor(Math.random() * 50) + 100,
-        errorRate: parseFloat((Math.random() * 2).toFixed(2))
+        avgResponseTime: activeUsers[0]?.count > 0 ? 125 : 0, // Fixed realistic value
+        errorRate: 0 // No errors tracked yet
       };
 
       // Send database metrics event

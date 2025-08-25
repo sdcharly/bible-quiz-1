@@ -5,6 +5,8 @@ import { eq, and, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import * as crypto from "crypto";
+import { quizCache } from "@/lib/quiz-cache";
+import { logger } from "@/lib/logger";
 
 // Seeded shuffle function for consistent randomization per attempt
 function shuffleArray<T>(array: T[], seed: string): T[] {
@@ -330,7 +332,7 @@ export async function POST(
       );
     }
 
-    // Fetch quiz questions (without correct answers)
+    // Fetch quiz questions from database (caching disabled for now due to type issues)
     const quizQuestions = await db
       .select()
       .from(questions)
@@ -338,17 +340,28 @@ export async function POST(
 
     // Create new attempt
     const attemptId = crypto.randomUUID();
-    
-    await db.insert(quizAttempts).values({
+    const attemptData = {
       id: attemptId,
       quizId,
       studentId,
       enrollmentId: activeEnrollment.id, // Link to the specific enrollment
       startTime: new Date(),
-      status: "in_progress",
-      answers: [],
+      status: "in_progress" as const,
+      answers: [],  // Changed from {} to [] to match schema
       totalQuestions: quizQuestions.length,
       createdAt: new Date(),
+    };
+    
+    await db.insert(quizAttempts).values(attemptData);
+    
+    // Track attempt in cache for fast access
+    await quizCache.trackAttempt(attemptId, {
+      id: attemptId,
+      quizId,
+      studentId,
+      status: "in_progress",
+      startTime: attemptData.startTime,
+      answers: {}
     });
 
     // Update enrollment status to in_progress
@@ -386,15 +399,26 @@ export async function POST(
       preparedQuestions.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
     }
 
+    // Prepare quiz data for response and cache
+    const quizData = {
+      id: quiz.id,
+      title: quiz.title,
+      duration: quiz.duration,
+      totalQuestions: quiz.totalQuestions,
+      questions: preparedQuestions,
+      startTime: quiz.startTime,
+      status: quiz.status
+    };
+    
+    // Cache the prepared quiz data
+    await quizCache.cacheQuizData(quizId, quizData);
+    
+    // Cache enrollment status
+    await quizCache.cacheEnrollment(studentId, quizId, true);
+    
     // Return quiz data without correct answers
     return NextResponse.json({
-      quiz: {
-        id: quiz.id,
-        title: quiz.title,
-        duration: quiz.duration,
-        totalQuestions: quiz.totalQuestions,
-        questions: preparedQuestions
-      },
+      quiz: quizData,
       attemptId,
       remainingTime: quiz.duration * 60, // Full time in seconds
       isReassignment: activeEnrollment.isReassignment || false,

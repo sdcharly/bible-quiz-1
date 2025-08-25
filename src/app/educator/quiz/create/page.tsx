@@ -303,28 +303,41 @@ function CreateQuizContent() {
           } else if (status.status === 'failed') {
             console.error(`[POLL-QUIZ] Job ${jobId} failed:`, status.error);
             
-            // Stop polling
+            // Stop polling immediately - no retries for failed jobs
             if (pollIntervalRef.current) {
               clearInterval(pollIntervalRef.current);
               pollIntervalRef.current = null;
             }
             
-            // Retry logic for failures
-            if (retryCountRef.current < MAX_RETRIES && !hasShownErrorRef.current) {
-              retryCountRef.current++;
-              console.log(`[POLL-QUIZ] Retrying quiz creation (attempt ${retryCountRef.current}/${MAX_RETRIES})`);
-              setGenerationMessage(`Retrying quiz generation (attempt ${retryCountRef.current}/${MAX_RETRIES})...`);
-              
-              // Wait 2 seconds then restart polling
-              setTimeout(() => {
-                pollJobStatus(jobId, quizId);
-              }, 2000);
-            } else if (!hasShownErrorRef.current) {
+            // Clear the job ID since it's failed
+            setJobId(null);
+            
+            // Show clear error message to educator
+            if (!hasShownErrorRef.current) {
               hasShownErrorRef.current = true;
               setLoading(false);
               isSubmittingRef.current = false;
               setGenerationProgress(0);
-              alert(status.error || "Quiz generation failed. Please try again with different settings.");
+              setGenerationMessage("");
+              
+              // Provide helpful error message based on the error type
+              let errorMessage = "AI failed to generate quiz questions. ";
+              
+              if (status.error?.includes("missing required fields")) {
+                errorMessage += "The AI couldn't create properly formatted questions. This sometimes happens with complex biblical content. Please try again.";
+              } else if (status.error?.includes("timeout")) {
+                errorMessage += "The generation process took too long. Please try with fewer questions or simpler settings.";
+              } else {
+                errorMessage += status.error || "Please try again with different settings or fewer questions.";
+              }
+              
+              // Show error with option to retry
+              if (confirm(errorMessage + "\n\nWould you like to try generating the quiz again?")) {
+                // Reset the form for a fresh attempt
+                hasShownErrorRef.current = false;
+                retryCountRef.current = 0;
+                // User can click Generate Quiz button again
+              }
             }
           }
         } else {

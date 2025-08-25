@@ -10,12 +10,13 @@ if (!connectionString) {
 }
 
 // Optimized database configuration with connection pooling
+// Updated for high concurrency: Supporting 100+ simultaneous students
 const dbConfig = {
-  // Connection pool settings
-  max: 25,                    // Maximum number of connections in pool
-  min: 5,                     // Minimum number of connections to maintain
-  idle_timeout: 30,           // Close idle connections after 30 seconds
-  connect_timeout: 2,         // Connection timeout in seconds
+  // Connection pool settings - Increased for high load
+  max: 50,                    // Maximum number of connections in pool (increased from 25)
+  min: 10,                    // Minimum number of connections to maintain (increased from 5)
+  idle_timeout: 20,           // Close idle connections after 20 seconds (reduced for faster recycling)
+  connect_timeout: 5,         // Connection timeout in seconds (increased for network delays)
   
   // Query optimization
   prepare: true,              // Use prepared statements for better performance

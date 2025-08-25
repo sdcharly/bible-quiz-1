@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, phoneNumber, role, timezone } = body;
+    const { email, phoneNumber, role, timezone, emailVerified } = body;
 
     if (!email) {
       return NextResponse.json(
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Update user profile with phone number, role, and timezone
-    const updates: { updatedAt: Date; phoneNumber?: string; role?: "educator" | "student"; timezone?: string; approvalStatus?: "pending" | "approved" | "rejected" | "suspended" } = {
+    const updates: { updatedAt: Date; phoneNumber?: string; role?: "educator" | "student"; timezone?: string; approvalStatus?: "pending" | "approved" | "rejected" | "suspended"; emailVerified?: boolean } = {
       updatedAt: new Date(),
     };
     
@@ -40,14 +40,21 @@ export async function POST(req: NextRequest) {
     
     if (role !== undefined) {
       updates.role = role;
-      // Auto-approve students, only educators need approval
+      // Auto-approve students, educators need approval
       if (role === "student") {
         updates.approvalStatus = "approved";
+      } else if (role === "educator") {
+        // Set educator to pending approval
+        updates.approvalStatus = "pending";
       }
     }
     
     if (timezone !== undefined) {
       updates.timezone = timezone;
+    }
+    
+    if (emailVerified !== undefined) {
+      updates.emailVerified = emailVerified;
     }
 
     await db

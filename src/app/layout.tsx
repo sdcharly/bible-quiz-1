@@ -1,6 +1,6 @@
 import { ThemeProvider } from "@/components/theme-provider";
 import { UserProvider } from "@/contexts/UserContext";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
@@ -26,16 +26,6 @@ export const metadata: Metadata = {
     shortcut: '/favicon-16x16.png',
     apple: '/apple-touch-icon.png',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-  },
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f59e0b' },
-    { media: '(prefers-color-scheme: dark)', color: '#d97706' },
-  ],
   manifest: '/manifest.json',
   openGraph: {
     title: 'Scrolls of Wisdom - Biblical Knowledge Quest',
@@ -43,6 +33,17 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f59e0b' },
+    { media: '(prefers-color-scheme: dark)', color: '#d97706' },
+  ],
 };
 
 export default function RootLayout({

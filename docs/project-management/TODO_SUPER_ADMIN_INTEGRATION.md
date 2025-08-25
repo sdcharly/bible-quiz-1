@@ -243,7 +243,61 @@ This document tracks all pending integrations and improvements for the Super Adm
 
 ---
 
-## 11. Additional Features (Future Enhancements)
+## 11. Quiz Reuse and Expiry Management
+
+### 11.1 Quiz Expiry Validation 🟢
+**Status:** Completed
+- [x] Add validation to prevent enrollment in expired quizzes
+- [x] Update `/api/educator/quiz/[id]/enroll/route.ts` with expiry check
+- [x] Update `/api/educator/quiz/[id]/bulk-enroll/route.ts` with expiry check  
+- [x] Update `/api/educator/quiz/[id]/assign-group/route.ts` with expiry check
+- [x] Add helpful error messages with suggestions for alternatives
+
+### 11.2 Quiz Cloning Feature 🔴
+**Status:** Not Started
+**Purpose:** Allow educators to duplicate expired quizzes with new dates
+- [ ] Create `/api/educator/quiz/[id]/clone` endpoint
+- [ ] Clone all quiz content (questions, settings, media)
+- [ ] Allow setting new dates and schedule
+- [ ] Maintain reference to original quiz
+- [ ] Add "Clone Quiz" button in UI for expired quizzes
+
+### 11.3 Enhanced Reassignment System 🔴
+**Status:** Not Started
+**Purpose:** Improve existing reassignment for bulk operations
+- [ ] Add bulk reassignment UI in educator dashboard
+- [ ] Support group-based reassignments
+- [ ] Add reassignment templates (e.g., "Makeup Quiz", "Practice Mode")
+- [ ] Improve reassignment tracking and reporting
+
+### 11.4 Template System 🔴
+**Status:** Not Started  
+**Purpose:** Convert successful quizzes into reusable templates
+- [ ] Add "Save as Template" option for published quizzes
+- [ ] Create template library in educator dashboard
+- [ ] Support template categories (by topic, difficulty, season)
+- [ ] Allow template sharing between educators (with permissions)
+- [ ] Implement template versioning
+
+### 11.5 Schedule Extensions 🔴
+**Status:** Not Started
+**Purpose:** Allow limited adjustments to active quiz deadlines
+- [ ] Add "Extend Deadline" API endpoint
+- [ ] Implement permission controls (max extension days)
+- [ ] Add notification system for deadline changes
+- [ ] Create audit log for all schedule modifications
+- [ ] Handle timezone considerations
+
+### 11.6 Recurring Quiz System 🔴
+**Status:** Not Started
+**Purpose:** Support automatically recurring quizzes
+- [ ] Add recurrence patterns (daily, weekly, monthly, custom)
+- [ ] Implement automatic quiz instance creation
+- [ ] Support seasonal/annual Bible study programs
+- [ ] Add enrollment inheritance options
+- [ ] Create recurrence management UI
+
+## 12. Additional Features (Future Enhancements)
 
 ### 11.1 Advanced Permission Management 🔴
 - [ ] Role-based access control (RBAC) system

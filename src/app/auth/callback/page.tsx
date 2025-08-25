@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const roleIntent = searchParams.get('roleIntent');
   const invitation = searchParams.get('invitation');
   const shareCode = searchParams.get('shareCode');
 
@@ -24,59 +25,111 @@ function CallbackHandler() {
       const session = await authClient.getSession();
       
       if (session?.data?.user) {
-        const studentId = session.data.user.id;
+        const userId = session.data.user.id;
+        const userEmail = session.data.user.email;
         
-        // If there's an invitation, accept it
-        if (invitation) {
-          const acceptResponse = await fetch('/api/invitations/accept', {
+        // Determine the role from URL params or session storage
+        const intendedRole = roleIntent || sessionStorage.getItem('pendingRole') || 'student';
+        
+        // Update user profile with role and handle approval status
+        if (intendedRole === 'educator') {
+          // Set educator role with pending approval status
+          // Google OAuth users are automatically email verified
+          await fetch('/api/auth/update-profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              token: invitation,
-              studentId: studentId 
+            body: JSON.stringify({
+              email: userEmail,
+              role: 'educator',
+              emailVerified: true, // Google OAuth verifies email
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             }),
           });
           
-          if (!acceptResponse.ok) {
-            console.error('Failed to accept invitation:', await acceptResponse.text());
-          }
-        }
-        
-        // Handle pending invitation from session storage
-        const pendingInvitation = sessionStorage.getItem('pendingInvitation');
-        if (pendingInvitation && !invitation) {
-          const acceptResponse = await fetch('/api/invitations/accept', {
+          // Notify admin about new educator signup
+          await fetch('/api/auth/notify-educator-signup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              token: pendingInvitation,
-              studentId: studentId 
+            body: JSON.stringify({
+              userId: userId,
+              email: userEmail,
+              name: session.data.user.name || 'Unknown',
             }),
           });
           
-          if (!acceptResponse.ok) {
-            console.error('Failed to accept pending invitation:', await acceptResponse.text());
+          // Clear stored data
+          sessionStorage.removeItem('pendingRole');
+          sessionStorage.removeItem('pendingInstitution');
+          
+          // Redirect to educator dashboard (will show approval banner)
+          router.push('/educator/dashboard');
+          return;
+        } else {
+          // Set student role (auto-approved)
+          await fetch('/api/auth/update-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: userEmail,
+              role: 'student',
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            }),
+          });
+          
+          // Handle invitations for students
+          if (invitation) {
+            const acceptResponse = await fetch('/api/invitations/accept', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                token: invitation,
+                studentId: userId 
+              }),
+            });
+            
+            if (!acceptResponse.ok) {
+              console.error('Failed to accept invitation:', await acceptResponse.text());
+            }
           }
-          sessionStorage.removeItem('pendingInvitation');
+          
+          // Handle pending invitation from session storage
+          const pendingInvitation = sessionStorage.getItem('pendingInvitation');
+          if (pendingInvitation && !invitation) {
+            const acceptResponse = await fetch('/api/invitations/accept', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                token: pendingInvitation,
+                studentId: userId 
+              }),
+            });
+            
+            if (!acceptResponse.ok) {
+              console.error('Failed to accept pending invitation:', await acceptResponse.text());
+            }
+            sessionStorage.removeItem('pendingInvitation');
+          }
+          
+          // Clear stored role
+          sessionStorage.removeItem('pendingRole');
+          
+          // If there's a share code, redirect to it
+          if (shareCode) {
+            router.push(`/quiz/share/${shareCode}`);
+            return;
+          }
+          
+          // Check for pending quiz share in session storage
+          const pendingQuizShare = sessionStorage.getItem('pendingQuizShare');
+          if (pendingQuizShare) {
+            sessionStorage.removeItem('pendingQuizShare');
+            router.push(`/quiz/share/${pendingQuizShare}`);
+            return;
+          }
+          
+          // Redirect to student dashboard
+          router.push('/student/dashboard');
         }
-        
-        // If there's a share code, redirect to it
-        if (shareCode) {
-          router.push(`/quiz/share/${shareCode}`);
-          return;
-        }
-        
-        // Check for pending quiz share in session storage
-        const pendingQuizShare = sessionStorage.getItem('pendingQuizShare');
-        if (pendingQuizShare) {
-          sessionStorage.removeItem('pendingQuizShare');
-          router.push(`/quiz/share/${pendingQuizShare}`);
-          return;
-        }
-        
-        // Default redirect - we'll assume student for OAuth users
-        // The role will be properly set when they access specific features
-        router.push('/student/dashboard');
       } else {
         // No session, redirect to signin
         router.push('/auth/signin');

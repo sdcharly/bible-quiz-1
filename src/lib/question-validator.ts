@@ -1,4 +1,7 @@
 import { LightRAGService, EntityExistsResponse } from './lightrag-service';
+import { openai } from "@ai-sdk/openai";
+import { generateText } from "ai";
+import { logger } from "@/lib/logger";
 
 export interface QuestionValidationResult {
   isValid: boolean;
@@ -22,26 +25,27 @@ export interface QuestionToValidate {
   options: Array<{ text: string; id: string }>;
   correctAnswer: string;
   explanation?: string;
+  book?: string | null;
+  chapter?: string | null;
+  topic?: string | null;
+  difficulty?: string | null;
+  bloomsLevel?: string | null;
 }
 
 export class QuestionValidator {
   /**
-   * Validate a single quiz question against the knowledge graph
+   * Validate a single quiz question using AI for intelligent scoring
    */
   static async validateQuestion(question: QuestionToValidate): Promise<QuestionValidationResult> {
     try {
-      // Skip entity validation for now - it's too strict for biblical content
-      // Biblical names and concepts often don't register as entities in LightRAG
-      // but are still valid question content
-      
-      // Basic validation - just check if question has text and options
+      // Basic structure validation first
       if (!question.questionText || question.questionText.length < 10) {
         return {
           isValid: false,
-          score: 50,
+          score: 30,
           issues: [{
             type: 'low_confidence',
-            severity: 'medium',
+            severity: 'high',
             message: 'Question text is too short or missing'
           }],
           validEntities: [],
@@ -53,10 +57,10 @@ export class QuestionValidator {
       if (!question.options || question.options.length < 2) {
         return {
           isValid: false,
-          score: 50,
+          score: 30,
           issues: [{
             type: 'low_confidence',
-            severity: 'medium',
+            severity: 'high',
             message: 'Question needs at least 2 answer options'
           }],
           validEntities: [],
@@ -65,16 +69,22 @@ export class QuestionValidator {
         };
       }
 
-      // For now, consider all questions with basic structure as valid
-      // The entity validation was causing too many false negatives
-      return {
-        isValid: true,
-        score: 85,
-        issues: [],
-        validEntities: [],
-        invalidEntities: [],
-        suggestions: ['Question structure looks good']
-      };
+      // Use OpenAI for intelligent validation
+      try {
+        const validationResult = await this.validateWithAI(question);
+        return validationResult;
+      } catch (aiError) {
+        logger.error("AI validation failed, using basic validation:", aiError);
+        // Fallback to basic validation if AI fails
+        return {
+          isValid: true,
+          score: 75,
+          issues: [],
+          validEntities: [],
+          invalidEntities: [],
+          suggestions: ['Basic validation passed. AI validation unavailable.']
+        };
+      }
     } catch (error) {
       console.error('Error validating question:', error);
       return {
@@ -269,5 +279,87 @@ export class QuestionValidator {
     }
 
     return [...new Set(suggestions)]; // Remove duplicates
+  }
+
+  /**
+   * Validate question using OpenAI for intelligent scoring
+   */
+  private static async validateWithAI(question: QuestionToValidate): Promise<QuestionValidationResult> {
+    const model = process.env.OPENAI_MODEL || "gpt-4o";
+    
+    const prompt = `You are an expert biblical quiz validator. Analyze this quiz question and provide a validation score.
+
+Question Details:
+- Question: ${question.questionText}
+- Options: ${question.options.map((opt, i) => `${i+1}. ${opt.text}`).join('\n')}
+- Correct Answer: Option ${question.options.findIndex(opt => opt.id === question.correctAnswer) + 1}
+${question.explanation ? `- Explanation: ${question.explanation}` : ''}
+${question.book ? `- Biblical Book: ${question.book}` : ''}
+${question.chapter ? `- Chapter: ${question.chapter}` : ''}
+${question.topic ? `- Topic: ${question.topic}` : ''}
+${question.difficulty ? `- Difficulty: ${question.difficulty}` : ''}
+
+Evaluate the following aspects:
+1. Biblical Accuracy: Is the content biblically accurate?
+2. Clarity: Is the question clear and unambiguous?
+3. Answer Quality: Are the wrong options plausible but clearly incorrect?
+4. Educational Value: Does it effectively test biblical knowledge?
+5. Context Alignment: Does it match the specified book/chapter/topic if provided?
+
+Provide your response in JSON format:
+{
+  "score": <number 0-100>,
+  "isValid": <boolean>,
+  "issues": [
+    {
+      "type": "missing_entity" | "weak_connection" | "ambiguous_term" | "no_entities" | "low_confidence",
+      "severity": "low" | "medium" | "high",
+      "message": "<specific issue description>"
+    }
+  ],
+  "suggestions": ["<improvement suggestion 1>", "<improvement suggestion 2>"],
+  "strengths": ["<what's good about this question>"]
+}
+
+Be constructive but honest. Score guidelines:
+- 90-100: Excellent question, biblically accurate, clear, educational
+- 75-89: Good question with minor improvements possible
+- 60-74: Acceptable but needs some work
+- Below 60: Significant issues that should be addressed`;
+
+    try {
+      const response = await generateText({
+        model: openai(model),
+        prompt,
+        temperature: 0.3,
+        maxRetries: 1,
+      });
+
+      // Parse the AI response
+      const jsonMatch = response.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No valid JSON found in AI response");
+      }
+
+      const aiValidation = JSON.parse(jsonMatch[0]);
+      
+      // Add strengths to suggestions if they exist
+      const allSuggestions = [
+        ...(aiValidation.suggestions || []),
+        ...(aiValidation.strengths || []).map((s: string) => `✓ ${s}`)
+      ];
+
+      return {
+        isValid: aiValidation.isValid !== false && aiValidation.score >= 60,
+        score: Math.max(0, Math.min(100, aiValidation.score || 75)),
+        issues: aiValidation.issues || [],
+        validEntities: [], // Not using entity validation with AI
+        invalidEntities: [],
+        suggestions: allSuggestions
+      };
+    } catch (error) {
+      logger.error("Error parsing AI validation response:", error);
+      throw error;
+    }
   }
 }

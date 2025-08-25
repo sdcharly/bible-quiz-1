@@ -194,6 +194,236 @@ Empowering biblical education with love and wisdom
     return { subject, html, text };
   },
 
+  // OTP verification email
+  otpVerification: (educatorName: string, otp: string, expiryMinutes: number = 10) => {
+    const subject = `🔐 Your Verification Code for Scrolls of Wisdom`;
+
+    const headerContent = `
+      <h1 style="margin: 0; font-size: 28px; color: white; font-family: Georgia, 'Times New Roman', serif;">🔐 Email Verification Required</h1>
+      <p style="margin: 10px 0 0 0; font-size: 16px; color: white;">Confirm Your Sacred Identity</p>
+    `;
+
+    const bodyContent = `
+      <h2 style="color: #92400e; font-size: 24px; margin-top: 0; font-family: Georgia, 'Times New Roman', serif;">Greetings, ${educatorName}!</h2>
+      
+      <p style="color: #451a03; margin: 15px 0;">To complete your registration as a Biblical educator on Scrolls of Wisdom, please verify your email address using the code below.</p>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 30px 0;">
+        <tr>
+          <td align="center">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td bgcolor="#f59e0b" style="background-color: #f59e0b; border-radius: 12px; padding: 25px 40px; text-align: center;">
+                  <p style="margin: 0; color: white; font-size: 14px; font-weight: bold;">YOUR VERIFICATION CODE</p>
+                  <p style="margin: 10px 0 0 0; color: white; font-size: 36px; font-weight: bold; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td bgcolor="#fef3c7" style="background-color: #fef3c7; border-left: 4px solid #d97706; padding: 15px;">
+            <p style="margin: 0; color: #78350f; font-style: italic;">"But let all things be done decently and in order." - 1 Corinthians 14:40</p>
+          </td>
+        </tr>
+      </table>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td bgcolor="#fff" style="background-color: #fff; border: 1px solid #fed7aa; border-radius: 8px; padding: 20px;">
+            <h4 style="margin-top: 0; color: #92400e;">⏰ Important Information:</h4>
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr><td style="color: #78350f; padding: 3px 0;">• This code will expire in <strong>${expiryMinutes} minutes</strong></td></tr>
+              <tr><td style="color: #78350f; padding: 3px 0;">• Enter this code on the verification page</td></tr>
+              <tr><td style="color: #78350f; padding: 3px 0;">• Do not share this code with anyone</td></tr>
+              <tr><td style="color: #78350f; padding: 3px 0;">• If you didn't request this, please ignore this email</td></tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      
+      <h3 style="color: #92400e; font-size: 18px; margin: 20px 0 10px 0; font-family: Georgia, 'Times New Roman', serif;">🛡️ Security Tips:</h3>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td style="color: #451a03; line-height: 1.8; padding: 0 0 8px 20px;">
+            1. Scrolls of Wisdom will never ask for your password via email
+          </td>
+        </tr>
+        <tr>
+          <td style="color: #451a03; line-height: 1.8; padding: 0 0 8px 20px;">
+            2. This code is for email verification only
+          </td>
+        </tr>
+        <tr>
+          <td style="color: #451a03; line-height: 1.8; padding: 0 0 8px 20px;">
+            3. Always verify you're on the correct website before entering codes
+          </td>
+        </tr>
+      </table>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td bgcolor="#fef3c7" style="background-color: #fef3c7; border-left: 4px solid #16a34a; padding: 15px;">
+            <p style="margin: 0; color: #78350f;"><strong>Need a new code?</strong> You can request a new verification code from the signup page after 60 seconds.</p>
+          </td>
+        </tr>
+      </table>
+    `;
+
+    const footerContent = `
+      <p style="margin: 5px 0; color: #78350f;">📖 "The Lord shall preserve thee from all evil" - Psalm 121:7</p>
+      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Secure Biblical Education</p>
+      <p style="margin: 5px 0; font-size: 12px; color: #78350f;">This is an automated security email - please do not reply</p>
+    `;
+
+    const html = createEmailWrapper(headerContent, bodyContent, footerContent);
+
+    const text = `
+Greetings ${educatorName},
+
+Your Scrolls of Wisdom Verification Code:
+
+${otp}
+
+This code will expire in ${expiryMinutes} minutes.
+
+Enter this code on the verification page to complete your registration as a Biblical educator.
+
+Security Tips:
+- Never share this code with anyone
+- We will never ask for your password via email
+- This code is for email verification only
+
+If you didn't request this code, please ignore this email.
+
+"But let all things be done decently and in order." - 1 Corinthians 14:40
+
+Scrolls of Wisdom - Secure Biblical Education
+    `;
+
+    return { subject, html, text };
+  },
+
+  // Educator signup pending confirmation
+  educatorSignupPending: (educatorName: string) => {
+    const subject = `📜 Welcome to Scrolls of Wisdom - Your Application is Under Review`;
+
+    const headerContent = `
+      <h1 style="margin: 0; font-size: 28px; color: white; font-family: Georgia, 'Times New Roman', serif;">🎓 Welcome, Sacred Guide!</h1>
+      <p style="margin: 10px 0 0 0; font-size: 16px; color: white;">Your Journey to Teaching God's Word Begins</p>
+    `;
+
+    const bodyContent = `
+      <h2 style="color: #92400e; font-size: 24px; margin-top: 0; font-family: Georgia, 'Times New Roman', serif;">Blessings and Peace, ${educatorName}!</h2>
+      
+      <p style="color: #451a03; margin: 15px 0;">Thank you for answering the sacred calling to become a Biblical educator on Scrolls of Wisdom. Your dedication to spreading God's Word through teaching is truly a blessing.</p>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td bgcolor="#fef3c7" style="background-color: #fef3c7; border-radius: 8px; border: 2px solid #f59e0b; padding: 20px; text-align: center;">
+            <p style="margin: 0; font-size: 20px; color: #92400e; font-weight: bold;">⏳ Your Application Status</p>
+            <p style="margin: 10px 0 0 0; font-size: 18px; color: #d97706; font-weight: bold;">PENDING APPROVAL</p>
+          </td>
+        </tr>
+      </table>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td bgcolor="#fef3c7" style="background-color: #fef3c7; border-left: 4px solid #d97706; padding: 15px;">
+            <p style="margin: 0; color: #78350f; font-style: italic;">"And he gave some, apostles; and some, prophets; and some, evangelists; and some, pastors and teachers" - Ephesians 4:11</p>
+          </td>
+        </tr>
+      </table>
+      
+      <h3 style="color: #92400e; font-size: 18px; margin: 20px 0 10px 0; font-family: Georgia, 'Times New Roman', serif;">📋 What Happens Next?</h3>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td style="color: #451a03; line-height: 1.8; padding: 0 0 10px 20px;">
+            1. <strong>Review Process:</strong> Our ministry team will carefully review your application within 24-48 hours
+          </td>
+        </tr>
+        <tr>
+          <td style="color: #451a03; line-height: 1.8; padding: 0 0 10px 20px;">
+            2. <strong>Verification:</strong> We verify all educators to maintain the sanctity of our biblical education platform
+          </td>
+        </tr>
+        <tr>
+          <td style="color: #451a03; line-height: 1.8; padding: 0 0 10px 20px;">
+            3. <strong>Notification:</strong> You will receive an email once your account has been approved
+          </td>
+        </tr>
+        <tr>
+          <td style="color: #451a03; line-height: 1.8; padding: 0 0 10px 20px;">
+            4. <strong>Access Granted:</strong> Upon approval, you'll gain full access to create and manage biblical quizzes
+          </td>
+        </tr>
+      </table>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td bgcolor="#ffffff" style="background-color: #fff; border-radius: 8px; border: 1px solid #fed7aa; padding: 20px;">
+            <h4 style="margin-top: 0; color: #92400e;">🌟 While You Wait, You Can:</h4>
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr><td style="color: #78350f; padding: 3px 0;">• Prepare your biblical study materials</td></tr>
+              <tr><td style="color: #78350f; padding: 3px 0;">• Plan your quiz topics and difficulty levels</td></tr>
+              <tr><td style="color: #78350f; padding: 3px 0;">• Consider which scriptures you want to focus on</td></tr>
+              <tr><td style="color: #78350f; padding: 3px 0;">• Pray for wisdom in guiding your future students</td></tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      
+      <p style="color: #451a03; margin: 20px 0;">We are blessed to have you join our community of educators dedicated to spreading God's Word through interactive learning.</p>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td bgcolor="#fef3c7" style="background-color: #fef3c7; border-left: 4px solid #16a34a; padding: 15px;">
+            <p style="margin: 0; color: #78350f;"><strong>Need Help?</strong> Contact us at support@biblequiz.textr.in</p>
+          </td>
+        </tr>
+      </table>
+    `;
+
+    const footerContent = `
+      <p style="margin: 5px 0; color: #78350f;">📖 "Go ye therefore, and teach all nations" - Matthew 28:19</p>
+      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Empowering Biblical Education</p>
+      <p style="margin: 5px 0; font-size: 12px; color: #78350f;">Thank you for your patience during the approval process</p>
+    `;
+
+    const html = createEmailWrapper(headerContent, bodyContent, footerContent);
+
+    const text = `
+Welcome to Scrolls of Wisdom, ${educatorName}!
+
+Your educator account application has been received and is currently PENDING APPROVAL.
+
+What Happens Next:
+1. Our ministry team will review your application within 24-48 hours
+2. We verify all educators to maintain platform integrity  
+3. You will receive an email once approved
+4. Upon approval, you'll gain full access to create biblical quizzes
+
+While you wait, you can:
+- Prepare your biblical study materials
+- Plan your quiz topics
+- Consider which scriptures to focus on
+- Pray for wisdom in guiding students
+
+Need help? Contact support@biblequiz.textr.in
+
+"Go ye therefore, and teach all nations" - Matthew 28:19
+
+Scrolls of Wisdom - Empowering Biblical Education
+    `;
+
+    return { subject, html, text };
+  },
+
   // Invitation for existing users
   existingUserInvitation: (educatorName: string, studentName: string, quizTitle: string, quizUrl: string) => {
     const subject = `📜 New Biblical Quest: "${quizTitle}" awaits you!`;

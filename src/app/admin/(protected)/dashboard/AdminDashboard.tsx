@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Shield, Users, GraduationCap, BookOpen, Activity, 
   Clock, AlertTriangle, LogOut,
-  UserCheck, UserX, Eye, Settings, BarChart, UserPlus, Link, Gauge
+  UserCheck, UserX, Eye, Settings, BarChart, UserPlus, Link, Gauge, Bell
 } from "lucide-react";
 import {
   Select,
@@ -744,6 +744,14 @@ export default function AdminDashboard({ stats, pendingEducators, allEducators, 
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4">
+                  <Button 
+                    variant="outline"
+                    onClick={() => router.push("/admin/notifications")}
+                    className="bg-amber-50 border-amber-200 hover:bg-amber-100"
+                  >
+                    <Bell className="h-4 w-4 mr-2 text-amber-600" />
+                    Admin Notifications
+                  </Button>
                   <Button 
                     variant="outline"
                     onClick={() => router.push("/admin/settings/permissions")}

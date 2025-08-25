@@ -10,9 +10,25 @@ export async function POST(request: NextRequest) {
       headers: request.headers,
     });
     
-    if (!session || !session.session) {
+    if (!session || !session.session || !session.user) {
       return NextResponse.json(
         { error: 'Session expired' },
+        { status: 401 }
+      );
+    }
+    
+    // Extract session data with additional null checks
+    const sessionId = session.session.id;
+    const userId = session.user.id;
+    
+    if (!sessionId || !userId) {
+      logger.error('Invalid session data:', { 
+        hasSessionId: !!sessionId, 
+        hasUserId: !!userId,
+        sessionData: session 
+      });
+      return NextResponse.json(
+        { error: 'Invalid session data' },
         { status: 401 }
       );
     }
@@ -28,11 +44,11 @@ export async function POST(request: NextRequest) {
     }
     
     // Start quiz session
-    await startQuizSession(session.session.id, quizId);
+    await startQuizSession(sessionId, quizId);
     
     logger.info('Quiz session started', {
-      sessionId: session.session.id,
-      userId: session.user.id,
+      sessionId,
+      userId,
       quizId,
     });
     

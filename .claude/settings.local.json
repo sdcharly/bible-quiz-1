@@ -9,7 +9,11 @@
       "Bash(grep:*)",
       "Bash(find:*)",
       "Bash(NEXT_TELEMETRY_DISABLED=1 npm run build)",
-      "Bash(vercel:*)"
+      "Bash(vercel:*)",
+      "Bash(git log:*)",
+      "Read(//tmp/**)",
+      "WebSearch",
+      "Bash(node:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

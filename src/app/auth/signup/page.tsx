@@ -139,6 +139,9 @@ function StudentSignUpForm() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
+      // Store role intent as student explicitly
+      sessionStorage.setItem('pendingRole', 'student');
+      
       // Store invitation token in session storage for after OAuth
       if (invitationToken) {
         sessionStorage.setItem('pendingInvitation', invitationToken);
@@ -147,15 +150,15 @@ function StudentSignUpForm() {
       // Check if there's a pending quiz share
       const pendingQuizShare = sessionStorage.getItem('pendingQuizShare');
       
-      // Construct callback URL with invitation info
-      let callbackURL = '/student/dashboard';
+      // Construct callback URL with role intent and invitation info
+      let callbackURL = '/auth/callback?roleIntent=student';
       if (invitationToken) {
-        callbackURL = `/auth/callback?invitation=${invitationToken}`;
+        callbackURL += `&invitation=${invitationToken}`;
         if (pendingQuizShare) {
           callbackURL += `&shareCode=${pendingQuizShare}`;
         }
       } else if (pendingQuizShare) {
-        callbackURL = `/auth/callback?shareCode=${pendingQuizShare}`;
+        callbackURL += `&shareCode=${pendingQuizShare}`;
       }
       
       await authClient.signIn.social({

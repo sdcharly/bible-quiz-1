@@ -263,36 +263,36 @@ export default function EducatorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
+      <div className="bg-white dark:bg-gray-800 shadow-md border-b border-amber-100 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 sm:py-6 gap-4">
             <div>
-              <h1 className="text-3xl font-heading font-semibold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
                 Sacred Guide Dashboard
               </h1>
-              <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Welcome back, {user?.name}
               </p>
             </div>
-            <div className="flex gap-3">
-              <Link href="/educator/groups">
-                <Button variant="outline">
-                  <UserGroupIcon className="h-4 w-4 mr-2" />
-                  Manage Groups
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <Link href="/educator/groups" className="flex-1 sm:flex-none">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50">
+                  <UserGroupIcon className="h-4 w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Manage </span>Groups
                 </Button>
               </Link>
-              <Link href="/educator/students">
-                <Button variant="outline">
-                  <UserGroupIcon className="h-4 w-4 mr-2" />
-                  Guide Disciples
+              <Link href="/educator/students" className="flex-1 sm:flex-none">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50">
+                  <UserGroupIcon className="h-4 w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Guide </span>Disciples
                 </Button>
               </Link>
-              <Link href="/educator/quiz/create">
-                <Button>
-                  <SparklesIcon className="h-4 w-4 mr-2" />
-                  Create Quest
+              <Link href="/educator/quiz/create" className="flex-1 sm:flex-none">
+                <Button size="sm" className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white">
+                  <SparklesIcon className="h-4 w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Create </span>Quest
                 </Button>
               </Link>
             </div>
@@ -300,44 +300,45 @@ export default function EducatorDashboard() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Key Performance Indicators with Graphs */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
           {/* Performance Overview Card */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <div className="flex justify-between items-center">
+          <Card className="lg:col-span-2 border-amber-100 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
-                  <CardTitle className="text-lg font-heading font-semibold text-amber-800 dark:text-amber-300">Wisdom Journey Overview</CardTitle>
-                  <CardDescription className="text-sm font-body text-gray-600 dark:text-gray-400">Disciple enlightenment trends this week</CardDescription>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-amber-800 dark:text-amber-300">Wisdom Journey Overview</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Disciple enlightenment trends this week</CardDescription>
                 </div>
                 <Link href="/educator/analytics">
-                  <Button variant="ghost" size="sm">
-                    View Details
+                  <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50">
+                    <span className="hidden sm:inline">View Details</span>
+                    <span className="sm:hidden">Details</span>
                     <ChevronRightIcon className="h-4 w-4 ml-1" />
                   </Button>
                 </Link>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4 mb-6">
+            <CardContent className="pt-2">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
                 <div className="text-center">
-                  <div className={`text-3xl font-heading font-bold ${getScoreColor(performanceData.averageScore)}`}>
+                  <div className={`text-xl sm:text-3xl font-bold ${getScoreColor(performanceData.averageScore)}`}>
                     {performanceData.averageScore.toFixed(1)}%
                   </div>
-                  <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">Avg Score</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Score</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-heading font-bold text-green-600">
+                  <div className="text-xl sm:text-3xl font-bold text-green-600">
                     {performanceData.passRate.toFixed(0)}%
                   </div>
-                  <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">Enlightenment Rate</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Enlightenment</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-heading font-bold text-amber-600">
+                  <div className="text-xl sm:text-3xl font-bold text-amber-600">
                     {performanceData.completionRate.toFixed(0)}%
                   </div>
-                  <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">Quest Completion</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Completion</p>
                 </div>
               </div>
               
@@ -374,36 +375,36 @@ export default function EducatorDashboard() {
                   </div>
                 )}
               </div>
-              <p className="text-xs font-body text-gray-500 text-center mt-2">Daily activity (last 7 days)</p>
+              <p className="text-xs text-gray-500 text-center mt-2">Daily activity (last 7 days)</p>
             </CardContent>
           </Card>
 
           {/* Quick Stats Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-heading font-semibold text-amber-800 dark:text-amber-300">Sacred Statistics</CardTitle>
-              <CardDescription className="text-sm font-body text-gray-600 dark:text-gray-400">Your divine teachings</CardDescription>
+          <Card className="border-amber-100 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base sm:text-lg font-semibold text-amber-800 dark:text-amber-300">Sacred Statistics</CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Your divine teachings</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4 pt-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <BookOpenSolid className="h-8 w-8 text-amber-600 opacity-60" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <BookOpenSolid className="h-6 sm:h-8 w-6 sm:w-8 text-amber-600 opacity-60" />
                   <div>
-                    <p className="text-2xl font-heading font-bold">{stats.totalQuizzes}</p>
-                    <p className="text-xs font-body text-gray-600">Total Quests</p>
+                    <p className="text-xl sm:text-2xl font-bold">{stats.totalQuizzes}</p>
+                    <p className="text-xs text-gray-600">Total Quests</p>
                   </div>
                 </div>
-                <span className="text-xs font-body bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
                   {stats.activeQuizzes} active
                 </span>
               </div>
               
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <UserGroupIcon className="h-8 w-8 text-orange-600 opacity-60" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <UserGroupIcon className="h-6 sm:h-8 w-6 sm:w-8 text-orange-600 opacity-60" />
                   <div>
-                    <p className="text-2xl font-heading font-bold">{stats.totalStudents}</p>
-                    <p className="text-xs font-body text-gray-600">Disciples</p>
+                    <p className="text-xl sm:text-2xl font-bold">{stats.totalStudents}</p>
+                    <p className="text-xs text-gray-600">Disciples</p>
                   </div>
                 </div>
                 {stats.totalStudents > 0 && (
@@ -412,21 +413,21 @@ export default function EducatorDashboard() {
               </div>
               
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <DocumentTextIcon className="h-8 w-8 text-amber-700 opacity-60" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <DocumentTextIcon className="h-6 sm:h-8 w-6 sm:w-8 text-amber-700 opacity-60" />
                   <div>
-                    <p className="text-2xl font-heading font-bold">{stats.totalDocuments}</p>
-                    <p className="text-xs font-body text-gray-600">Sacred Scrolls</p>
+                    <p className="text-xl sm:text-2xl font-bold">{stats.totalDocuments}</p>
+                    <p className="text-xs text-gray-600">Sacred Scrolls</p>
                   </div>
                 </div>
               </div>
               
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <UserGroupIcon className="h-8 w-8 text-purple-600 opacity-60" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <UserGroupIcon className="h-6 sm:h-8 w-6 sm:w-8 text-purple-600 opacity-60" />
                   <div>
-                    <p className="text-2xl font-heading font-bold">{stats.totalGroups}</p>
-                    <p className="text-xs font-body text-gray-600">Student Groups</p>
+                    <p className="text-xl sm:text-2xl font-bold">{stats.totalGroups}</p>
+                    <p className="text-xs text-gray-600">Student Groups</p>
                   </div>
                 </div>
                 {stats.totalGroups > 0 && (
@@ -440,70 +441,70 @@ export default function EducatorDashboard() {
         </div>
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <Link href="/educator/groups">
-            <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-purple-500">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
+          <Link href="/educator/groups" className="block">
+            <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-purple-500 bg-gradient-to-br from-white to-purple-50 dark:from-gray-800 dark:to-purple-900/20">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <UserGroupIcon className="h-8 w-8 text-purple-600 mb-2" />
-                    <h3 className="font-heading font-semibold">Student Groups</h3>
-                    <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">
+                    <UserGroupIcon className="h-6 sm:h-8 w-6 sm:w-8 text-purple-600 mb-2" />
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">Student Groups</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
                       Organize disciples
                     </p>
                   </div>
-                  <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                  <ChevronRightIcon className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400 hidden sm:block" />
                 </div>
               </CardContent>
             </Card>
           </Link>
 
-          <Link href="/educator/analytics">
-            <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-amber-500">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+          <Link href="/educator/analytics" className="block">
+            <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-amber-500 bg-gradient-to-br from-white to-amber-50 dark:from-gray-800 dark:to-amber-900/20">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <ChartBarIcon className="h-8 w-8 text-amber-600 mb-2" />
-                    <h3 className="font-heading font-semibold">Wisdom Analytics</h3>
-                    <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">
+                    <ChartBarIcon className="h-6 sm:h-8 w-6 sm:w-8 text-amber-600 mb-2" />
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">Wisdom Analytics</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
                       View insights
                     </p>
                   </div>
-                  <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                  <ChevronRightIcon className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400 hidden sm:block" />
                 </div>
               </CardContent>
             </Card>
           </Link>
 
-          <Link href="/educator/documents/upload">
-            <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-orange-500">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+          <Link href="/educator/documents/upload" className="block">
+            <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-orange-500 bg-gradient-to-br from-white to-orange-50 dark:from-gray-800 dark:to-orange-900/20">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <ArrowUpTrayIcon className="h-8 w-8 text-orange-600 mb-2" />
-                    <h3 className="font-heading font-semibold">Upload Sacred Scroll</h3>
-                    <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">
-                      Add divine materials
+                    <ArrowUpTrayIcon className="h-6 sm:h-8 w-6 sm:w-8 text-orange-600 mb-2" />
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">Upload Scroll</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
+                      Add materials
                     </p>
                   </div>
-                  <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                  <ChevronRightIcon className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400 hidden sm:block" />
                 </div>
               </CardContent>
             </Card>
           </Link>
 
-          <Link href="/educator/students">
-            <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-green-500">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+          <Link href="/educator/students" className="block">
+            <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-green-500 bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-green-900/20">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <UserGroupIcon className="h-8 w-8 text-green-600 mb-2" />
-                    <h3 className="font-heading font-semibold">Disciple Guidance</h3>
-                    <p className="text-sm font-body text-gray-600 dark:text-gray-400 mt-1">
-                      Invite & guide disciples
+                    <UserGroupIcon className="h-6 sm:h-8 w-6 sm:w-8 text-green-600 mb-2" />
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">Disciples</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
+                      Invite & guide
                     </p>
                   </div>
-                  <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                  <ChevronRightIcon className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400 hidden sm:block" />
                 </div>
               </CardContent>
             </Card>
@@ -511,30 +512,31 @@ export default function EducatorDashboard() {
         </div>
 
         {/* Recent Quizzes */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
+        <Card className="border-amber-100 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <div>
-                <CardTitle className="text-lg font-heading font-semibold text-amber-800 dark:text-amber-300">Recent Wisdom Quests</CardTitle>
-                <CardDescription className="text-sm font-body text-gray-600 dark:text-gray-400">Manage your sacred learning journeys</CardDescription>
+                <CardTitle className="text-base sm:text-lg font-semibold text-amber-800 dark:text-amber-300">Recent Wisdom Quests</CardTitle>
+                <CardDescription className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Manage your sacred learning journeys</CardDescription>
               </div>
               <Link href="/educator/quiz/create">
-                <Button size="sm">
+                <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
                   <SparklesIcon className="h-4 w-4 mr-1" />
-                  New Quest
+                  <span className="hidden sm:inline">New Quest</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               </Link>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-2">
             {quizzes.length === 0 ? (
-              <div className="text-center py-12">
-                <BookOpenSolid className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-sm font-body text-gray-500 dark:text-gray-400 mb-4">
+              <div className="text-center py-8 sm:py-12">
+                <BookOpenSolid className="h-10 sm:h-12 w-10 sm:w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4">
                   No wisdom quests created yet
                 </p>
                 <Link href="/educator/quiz/create">
-                  <Button>
+                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
                     <SparklesIcon className="h-4 w-4 mr-2" />
                     Create Your First Quest
                   </Button>
@@ -545,31 +547,31 @@ export default function EducatorDashboard() {
                 {quizzes.slice(0, 5).map((quiz) => (
                   <div
                     key={quiz.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 border border-transparent hover:border-amber-200 dark:hover:border-amber-800"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-gray-700 dark:to-gray-600 rounded-lg hover:shadow-md transition-all duration-200 border border-amber-100 dark:border-gray-600 hover:border-amber-300 dark:hover:border-amber-700"
                   >
-                    <div className="flex-1 min-w-0 pr-4">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-heading font-medium text-gray-900 dark:text-white truncate">
+                    <div className="flex-1 min-w-0 mb-2 sm:mb-0 sm:pr-4">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">
                           {quiz.title}
                         </h3>
                         {getStatusBadge(quiz.status)}
                       </div>
-                      <div className="flex items-center gap-4 text-sm font-body text-gray-500">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
                         <span className="flex items-center gap-1">
                           <BookOpenSolid className="h-3 w-3" />
-                          {quiz.totalQuestions} revelations
+                          {quiz.totalQuestions} <span className="hidden sm:inline">revelations</span>
                         </span>
                         <span className="flex items-center gap-1">
                           <ClockIcon className="h-3 w-3" />
-                          {quiz.duration} min
+                          {quiz.duration}m
                         </span>
                         {quiz.status === 'published' && (
                           <span className="flex items-center gap-1">
                             <UserGroupIcon className="h-3 w-3" />
-                            {quiz.enrolledStudents} disciples
+                            {quiz.enrolledStudents} <span className="hidden sm:inline">disciples</span>
                           </span>
                         )}
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1 hidden sm:flex">
                           <CalendarDaysIcon className="h-3 w-3" />
                           {formatDateInTimezone(quiz.startTime || quiz.createdAt, quiz.timezone || 'Asia/Kolkata', {
                             year: 'numeric',
@@ -579,34 +581,36 @@ export default function EducatorDashboard() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 w-full sm:w-auto">
                       {quiz.status === 'draft' ? (
                         <>
-                          <Link href={`/educator/quiz/${quiz.id}/review`}>
-                            <Button variant="outline" size="sm">
+                          <Link href={`/educator/quiz/${quiz.id}/review`} className="flex-1 sm:flex-none">
+                            <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50 text-amber-700">
                               <PencilSquareIcon className="h-4 w-4 mr-1" />
-                              Refine
+                              <span className="hidden sm:inline">Refine</span>
+                              <span className="sm:hidden">Edit</span>
                             </Button>
                           </Link>
                           <Button 
                             variant="ghost" 
                             size="sm"
                             onClick={() => handleDeleteQuiz(quiz.id, quiz.title)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
                             <TrashIcon className="h-4 w-4" />
                           </Button>
                         </>
                       ) : quiz.status === 'published' ? (
                         <>
-                          <Link href={`/educator/quiz/${quiz.id}/results`}>
-                            <Button variant="outline" size="sm">
+                          <Link href={`/educator/quiz/${quiz.id}/results`} className="flex-1 sm:flex-none">
+                            <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50 text-amber-700">
                               <ChartBarIcon className="h-4 w-4 mr-1" />
-                              Insights
+                              <span className="hidden sm:inline">Insights</span>
+                              <span className="sm:hidden">Stats</span>
                             </Button>
                           </Link>
                           <Link href={`/educator/quiz/${quiz.id}/manage`}>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" className="hover:bg-amber-50">
                               <Cog6ToothIcon className="h-4 w-4" />
                             </Button>
                           </Link>
@@ -614,24 +618,25 @@ export default function EducatorDashboard() {
                             variant="ghost" 
                             size="sm"
                             onClick={() => handleToggleArchive(quiz.id, quiz.status)}
-                            className="text-orange-600 hover:text-orange-700"
+                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                           >
                             <ArchiveBoxIcon className="h-4 w-4" />
                           </Button>
                         </>
                       ) : (
                         <>
-                          <Link href={`/educator/quiz/${quiz.id}/review`}>
-                            <Button variant="ghost" size="sm">
+                          <Link href={`/educator/quiz/${quiz.id}/review`} className="flex-1 sm:flex-none">
+                            <Button variant="ghost" size="sm" className="w-full sm:w-auto hover:bg-amber-50">
                               <EyeIcon className="h-4 w-4 mr-1" />
-                              Behold
+                              <span className="hidden sm:inline">Behold</span>
+                              <span className="sm:hidden">View</span>
                             </Button>
                           </Link>
                           <Button 
                             variant="ghost" 
                             size="sm"
                             onClick={() => handleToggleArchive(quiz.id, quiz.status)}
-                            className="text-green-600 hover:text-green-700"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
                           >
                             <ArchiveBoxArrowDownIcon className="h-4 w-4" />
                           </Button>
@@ -643,8 +648,8 @@ export default function EducatorDashboard() {
                 {quizzes.length > 5 && (
                   <div className="text-center pt-4">
                     <Link href="/educator/quizzes">
-                      <Button variant="outline" size="sm">
-                        <span className="font-body">View All {quizzes.length} Quests</span>
+                      <Button variant="outline" size="sm" className="border-amber-200 hover:bg-amber-50 text-amber-700">
+                        <span>View All {quizzes.length} Quests</span>
                         <ChevronRightIcon className="h-4 w-4 ml-1" />
                       </Button>
                     </Link>

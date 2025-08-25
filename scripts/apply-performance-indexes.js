@@ -28,11 +28,25 @@ async function applyIndexes() {
   try {
     console.log('📚 Applying performance optimization indexes...\n');
     
-    // Read the SQL file
-    const indexesSQL = readFileSync(
+    // Read the SQL files - now including concurrent quiz indexes
+    const baseIndexesSQL = readFileSync(
       join(__dirname, '..', 'migrations', '0011_add_performance_indexes.sql'),
       'utf-8'
     );
+    
+    // Check if concurrent indexes file exists
+    let concurrentIndexesSQL = '';
+    try {
+      concurrentIndexesSQL = readFileSync(
+        join(__dirname, '..', 'migrations', '0012_add_concurrent_quiz_indexes.sql'),
+        'utf-8'
+      );
+      console.log('📚 Including concurrent quiz optimization indexes...\n');
+    } catch (e) {
+      console.log('ℹ️  No concurrent quiz indexes file found\n');
+    }
+    
+    const indexesSQL = baseIndexesSQL + '\n' + concurrentIndexesSQL;
     
     // Split SQL into individual statements
     // Handle multi-line CREATE INDEX statements properly

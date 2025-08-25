@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { sendEmail, emailTemplates } from "@/lib/email-service";
+import { getQuizAvailabilityStatus } from "@/lib/quiz-scheduling";
 
 export async function POST(
   req: NextRequest,
@@ -55,6 +56,23 @@ export async function POST(
       return NextResponse.json(
         { error: "Quiz not found" },
         { status: 404 }
+      );
+    }
+
+    // Check if quiz has expired
+    const quizWithStatus = {
+      ...quiz[0],
+      schedulingStatus: quiz[0].schedulingStatus || 'legacy'
+    };
+    const availability = getQuizAvailabilityStatus(quizWithStatus);
+    if (availability.status === 'ended') {
+      const endTime = availability.endTime ? new Date(availability.endTime).toLocaleString() : 'unknown';
+      return NextResponse.json(
+        { 
+          error: `Cannot assign groups to an expired quiz. This quiz ended on ${endTime}.`,
+          suggestion: "You can create a new quiz with the same content or use the reassignment feature for specific students who missed the original deadline."
+        },
+        { status: 400 }
       );
     }
 

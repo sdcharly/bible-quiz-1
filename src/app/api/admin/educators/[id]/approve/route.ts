@@ -8,6 +8,8 @@ import {
   getPermissionTemplate 
 } from "@/lib/permission-templates";
 import { logger } from "@/lib/logger";
+import { notifyEducatorStatusChange } from "@/lib/admin-notifications";
+import { emailTemplates, sendEmail } from "@/lib/email-service";
 
 export async function POST(
   request: NextRequest,
@@ -46,6 +48,14 @@ export async function POST(
       return NextResponse.json(
         { error: "Educator not found" },
         { status: 404 }
+      );
+    }
+    
+    // Check if educator has verified their email
+    if (!educator.emailVerified) {
+      return NextResponse.json(
+        { error: "Cannot approve educator: Email not verified" },
+        { status: 400 }
       );
     }
 
@@ -111,7 +121,38 @@ export async function POST(
       }
     );
 
-    // TODO: Send approval email to educator
+    // Send admin notification about status change
+    try {
+      await notifyEducatorStatusChange({
+        name: educator.name || 'Unknown',
+        email: educator.email,
+        oldStatus: educator.approvalStatus || 'pending',
+        newStatus: 'approved',
+        adminName: session.email || 'Admin'
+      });
+    } catch (notificationError) {
+      logger.error('Failed to send admin notification for educator approval:', notificationError);
+    }
+
+    // Send approval email to educator
+    try {
+      const approvalEmail = emailTemplates.educatorApprovalNotification(
+        educator.name || 'Educator',
+        educator.email
+      );
+      
+      await sendEmail({
+        to: educator.email,
+        subject: approvalEmail.subject,
+        html: approvalEmail.html,
+        text: approvalEmail.text
+      });
+      
+      logger.log(`Approval email sent to educator: ${educator.email}`);
+    } catch (emailError) {
+      logger.error('Failed to send approval email to educator:', emailError);
+      // Don't fail the approval if email fails
+    }
 
     return NextResponse.json({
       success: true,

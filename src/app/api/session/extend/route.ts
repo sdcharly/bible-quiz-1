@@ -10,15 +10,29 @@ export async function POST(request: NextRequest) {
       headers: request.headers,
     });
     
-    if (!session || !session.session) {
+    if (!session || !session.session || !session.user) {
       return NextResponse.json(
         { error: 'Session expired' },
         { status: 401 }
       );
     }
     
+    const sessionId = session.session.id;
+    const userId = session.user.id;
+    
+    if (!sessionId || !userId) {
+      logger.error('Invalid session data in extend:', { 
+        hasSessionId: !!sessionId, 
+        hasUserId: !!userId 
+      });
+      return NextResponse.json(
+        { error: 'Invalid session data' },
+        { status: 401 }
+      );
+    }
+    
     // Extend session
-    const extended = await extendSession(session.session.id);
+    const extended = await extendSession(sessionId);
     
     if (!extended) {
       return NextResponse.json(
@@ -28,8 +42,8 @@ export async function POST(request: NextRequest) {
     }
     
     logger.info('Session extended via API', {
-      sessionId: session.session.id,
-      userId: session.user.id,
+      sessionId,
+      userId,
     });
     
     return NextResponse.json({

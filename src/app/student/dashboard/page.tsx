@@ -23,7 +23,7 @@ export default function StudentDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<{ name?: string; email?: string; role?: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [stats] = useState({
+  const [stats, setStats] = useState({
     quizzesTaken: 0,
     averageScore: 0,
     quizzesAvailable: 0,
@@ -78,11 +78,58 @@ export default function StudentDashboard() {
       }
       
       setUser(userWithRole);
+      
+      // Fetch real stats for the student
+      await fetchStudentStats();
+      
       setLoading(false);
     };
     
     checkAuth();
   }, [router]);
+  
+  const fetchStudentStats = async () => {
+    try {
+      // Fetch available quizzes
+      const quizzesResponse = await fetch('/api/student/quizzes');
+      if (quizzesResponse.ok) {
+        const quizzesData = await quizzesResponse.json();
+        const available = quizzesData.quizzes?.length || 0;
+        const upcoming = quizzesData.quizzes?.filter((q: any) => 
+          q.startTime && new Date(q.startTime) > new Date()
+        ).length || 0;
+        
+        setStats(prev => ({
+          ...prev,
+          quizzesAvailable: available,
+          upcomingQuizzes: upcoming
+        }));
+      }
+      
+      // Fetch quiz attempts and calculate stats
+      const resultsResponse = await fetch('/api/student/results');
+      if (resultsResponse.ok) {
+        const resultsData = await resultsResponse.json();
+        const attempts = resultsData.results || [];
+        const completedAttempts = attempts.filter((a: any) => a.status === 'completed');
+        
+        const totalScore = completedAttempts.reduce((sum: number, attempt: any) => 
+          sum + (parseFloat(attempt.score) || 0), 0
+        );
+        const avgScore = completedAttempts.length > 0 
+          ? Math.round(totalScore / completedAttempts.length) 
+          : 0;
+        
+        setStats(prev => ({
+          ...prev,
+          quizzesTaken: completedAttempts.length,
+          averageScore: avgScore
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching student stats:', error);
+    }
+  };
 
   if (loading) {
     return (

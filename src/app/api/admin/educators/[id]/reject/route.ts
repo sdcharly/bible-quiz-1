@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+import { notifyEducatorStatusChange } from "@/lib/admin-notifications";
+import { emailTemplates, sendEmail } from "@/lib/email-service";
 
 export async function POST(
   request: NextRequest,
@@ -75,7 +77,39 @@ export async function POST(
       }
     );
 
-    // TODO: Send rejection email to educator
+    // Send admin notification about status change
+    try {
+      await notifyEducatorStatusChange({
+        name: educator.name || 'Unknown',
+        email: educator.email,
+        oldStatus: educator.approvalStatus || 'pending',
+        newStatus: 'rejected',
+        adminName: session.email || 'Admin'
+      });
+    } catch (notificationError) {
+      logger.error('Failed to send admin notification for educator rejection:', notificationError);
+    }
+
+    // Send rejection email to educator
+    try {
+      const rejectionEmail = emailTemplates.educatorRejectionNotification(
+        educator.name || 'Educator',
+        educator.email,
+        reason
+      );
+      
+      await sendEmail({
+        to: educator.email,
+        subject: rejectionEmail.subject,
+        html: rejectionEmail.html,
+        text: rejectionEmail.text
+      });
+      
+      logger.log(`Rejection email sent to educator: ${educator.email}`);
+    } catch (emailError) {
+      logger.error('Failed to send rejection email to educator:', emailError);
+      // Don't fail the rejection if email fails
+    }
 
     return NextResponse.json({
       success: true,

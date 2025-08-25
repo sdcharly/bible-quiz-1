@@ -82,9 +82,13 @@ export default function EducatorSignUpPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
+      // Store role intent before OAuth
+      sessionStorage.setItem('pendingRole', 'educator');
+      sessionStorage.setItem('pendingInstitution', formData.institution || 'Not specified');
+      
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/educator/dashboard",
+        callbackURL: "/auth/callback?roleIntent=educator",
       });
     } catch (err) {
       setError((err as Error).message || "Failed to sign in with Google");

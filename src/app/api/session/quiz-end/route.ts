@@ -10,19 +10,33 @@ export async function POST(request: NextRequest) {
       headers: request.headers,
     });
     
-    if (!session || !session.session) {
+    if (!session || !session.session || !session.user) {
       return NextResponse.json(
         { error: 'Session expired' },
         { status: 401 }
       );
     }
     
+    const sessionId = session.session.id;
+    const userId = session.user.id;
+    
+    if (!sessionId || !userId) {
+      logger.error('Invalid session data in quiz-end:', { 
+        hasSessionId: !!sessionId, 
+        hasUserId: !!userId 
+      });
+      return NextResponse.json(
+        { error: 'Invalid session data' },
+        { status: 401 }
+      );
+    }
+    
     // End quiz session
-    await endQuizSession(session.session.id);
+    await endQuizSession(sessionId);
     
     logger.info('Quiz session ended', {
-      sessionId: session.session.id,
-      userId: session.user.id,
+      sessionId,
+      userId,
     });
     
     return NextResponse.json({

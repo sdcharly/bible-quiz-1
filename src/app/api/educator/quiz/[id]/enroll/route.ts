@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { enrollments, user, quizzes } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import * as crypto from "crypto";
+import { getQuizAvailabilityStatus } from "@/lib/quiz-scheduling";
 
 export async function POST(
   req: NextRequest,
@@ -37,6 +38,23 @@ export async function POST(
     if (quiz[0].status !== "published") {
       return NextResponse.json(
         { error: "Quiz is not published yet" },
+        { status: 400 }
+      );
+    }
+
+    // Check if quiz has expired
+    const quizWithStatus = {
+      ...quiz[0],
+      schedulingStatus: quiz[0].schedulingStatus || 'legacy'
+    };
+    const availability = getQuizAvailabilityStatus(quizWithStatus);
+    if (availability.status === 'ended') {
+      const endTime = availability.endTime ? new Date(availability.endTime).toLocaleString() : 'unknown';
+      return NextResponse.json(
+        { 
+          error: `Cannot enroll students in an expired quiz. This quiz ended on ${endTime}.`,
+          suggestion: "You can create a new quiz with the same content or use the reassignment feature for specific students who missed the original deadline."
+        },
         { status: 400 }
       );
     }

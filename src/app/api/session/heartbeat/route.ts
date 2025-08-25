@@ -10,9 +10,23 @@ export async function POST(request: NextRequest) {
       headers: request.headers,
     });
     
-    if (!session || !session.session) {
+    if (!session || !session.session || !session.user) {
       return NextResponse.json(
         { error: 'Session expired' },
+        { status: 401 }
+      );
+    }
+    
+    const sessionId = session.session.id;
+    const userId = session.user.id;
+    
+    if (!sessionId || !userId) {
+      logger.error('Invalid session data in heartbeat:', { 
+        hasSessionId: !!sessionId, 
+        hasUserId: !!userId 
+      });
+      return NextResponse.json(
+        { error: 'Invalid session data' },
         { status: 401 }
       );
     }
@@ -21,21 +35,21 @@ export async function POST(request: NextRequest) {
     const { timestamp, path, isQuizActive } = body;
     
     // Update session activity
-    await updateSessionActivity(session.session.id, 'heartbeat', {
+    await updateSessionActivity(sessionId, 'heartbeat', {
       timestamp,
       path,
       isQuizActive,
     });
     
     logger.debug('Heartbeat received', {
-      sessionId: session.session.id,
-      userId: session.user.id,
+      sessionId,
+      userId,
       path,
     });
     
     return NextResponse.json({
       success: true,
-      sessionId: session.session.id,
+      sessionId,
       timestamp: Date.now(),
     });
   } catch (error) {
