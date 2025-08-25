@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { BiblicalPageLoader } from "@/components/ui/biblical-loader";
 import {
   ArrowLeft,
   CheckCircle,
@@ -104,11 +105,7 @@ export default function QuizResultsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <BiblicalPageLoader text="Loading quiz results..." />;
   }
 
   if (resultsLocked) {

@@ -276,7 +276,7 @@ export async function POST(req: NextRequest) {
             invitationUrl = `${baseUrl}?email=${encodeURIComponent(normalizedEmail)}&utm_source=email&utm_medium=invitation&utm_campaign=quiz_invite`;
           } else {
             // No quiz specified, use regular invitation flow
-            invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/signup?invitation=${token}`;
+            invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://biblequiz.textr.in'}/auth/signup?invitation=${token}`;
           }
           
           const emailContent = emailTemplates.newUserInvitation(

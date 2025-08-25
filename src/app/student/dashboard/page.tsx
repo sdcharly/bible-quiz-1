@@ -208,7 +208,7 @@ export default function StudentDashboard() {
                   {stats.upcomingQuizzes}
                 </p>
               </div>
-              <Calendar className="hidden sm:block h-8 sm:h-10 lg:h-12 w-8 sm:w-10 lg:w-12 text-purple-600 opacity-20" />
+              <Calendar className="hidden sm:block h-8 sm:h-10 lg:h-12 w-8 sm:w-10 lg:w-12 text-amber-600 opacity-20" />
             </div>
           </div>
         </div>

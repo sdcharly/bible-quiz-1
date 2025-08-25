@@ -4,17 +4,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BiblicalPageLoader } from "@/components/ui/biblical-loader";
 import { DocumentProcessingStatus } from "@/components/document-processing-status";
 import { 
   FileText, 
   Upload, 
   Trash2,
-  Clock,
-  CheckCircle,
-  XCircle,
   AlertCircle,
   Search,
-  Filter,
   Edit,
   Sparkles
 } from "lucide-react";
@@ -146,7 +145,7 @@ export default function DocumentsPage() {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
-  const handleStatusChange = (documentId: string) => (status: string, isComplete: boolean) => {
+  const handleStatusChange = (documentId: string) => (status: string) => {
     setDocuments(prev => 
       prev.map(doc => 
         doc.id === documentId 
@@ -188,30 +187,31 @@ export default function DocumentsPage() {
   });
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <BiblicalPageLoader text="Loading documents..." />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Documents
+            <h1 className="font-heading text-3xl font-bold">
+              <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                Study Materials
+              </span>
             </h1>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Upload and manage study materials
+            <p className="font-body text-sm text-amber-700 dark:text-amber-300 mt-1">
+              Upload and manage biblical study materials
             </p>
           </div>
           <Link href="/educator/documents/upload">
-            <Button size="sm">
+            <Button 
+              size="sm"
+              className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-medium shadow-lg"
+            >
               <Upload className="h-4 w-4 mr-2" />
-              Upload
+              Upload Material
             </Button>
           </Link>
         </div>
@@ -230,36 +230,40 @@ export default function DocumentsPage() {
         <div className="flex flex-col sm:flex-row gap-2 mb-3">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
+            <Input
               type="text"
               placeholder="Search documents..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-3 py-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-9 pr-3 py-2 w-full bg-white/80 backdrop-blur-sm dark:bg-gray-800 border border-amber-200 dark:border-gray-700 rounded-lg text-sm focus:ring-amber-500 focus:border-amber-500"
             />
           </div>
-          <select
+          <Select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            onValueChange={(value) => setFilterStatus(value)}
           >
-            <option value="all">All Status</option>
-            <option value="processed">Ready</option>
-            <option value="processing">Processing</option>
-            <option value="pending">Pending</option>
-            <option value="failed">Failed</option>
-            <option value="deleted">Deleted</option>
-          </select>
+            <SelectTrigger className="w-[180px] bg-white/80 backdrop-blur-sm dark:bg-gray-800 border-amber-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500">
+              <SelectValue placeholder="Filter status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="processed">Ready</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="deleted">Deleted</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Documents List */}
         {filteredDocuments.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
-            <FileText className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+          <div className="bg-white/80 backdrop-blur-sm dark:bg-gray-800 rounded-lg border border-amber-200 dark:border-gray-700 p-6 text-center shadow-lg">
+            <FileText className="h-8 w-8 text-amber-600 opacity-50 mx-auto mb-2" />
+            <h3 className="font-heading text-lg font-semibold text-amber-900 dark:text-amber-100">
               No documents found
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="font-body text-sm text-amber-700 dark:text-amber-300 mt-1">
               {searchTerm || filterStatus !== "all" 
                 ? "Try adjusting your search or filters"
                 : "Upload your first document to get started"}
@@ -270,29 +274,29 @@ export default function DocumentsPage() {
             {filteredDocuments.map((doc) => (
               <div
                 key={doc.id}
-                className={`rounded-lg border p-3 transition-colors ${
+                className={`rounded-lg border p-3 transition-all shadow-sm hover:shadow-md ${
                   doc.status === "deleted" 
                     ? "bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700 opacity-60" 
-                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600/50"
+                    : "bg-gradient-to-r from-white to-amber-50/30 dark:from-gray-800 dark:to-amber-900/10 border-amber-200 dark:border-gray-700 hover:border-amber-400 dark:hover:border-amber-600/50"
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   {/* Document Info - Compact */}
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <FileText className={`h-4 w-4 flex-shrink-0 ${
-                      doc.status === "deleted" ? "text-gray-300" : "text-gray-400"
+                      doc.status === "deleted" ? "text-gray-300" : "text-amber-600"
                     }`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex-1 min-w-0">
-                        <h3 className={`text-sm font-medium truncate ${
+                        <h3 className={`font-body text-sm font-semibold truncate ${
                           doc.status === "deleted" 
                             ? "text-gray-500 dark:text-gray-600 line-through" 
-                            : "text-gray-900 dark:text-white"
+                            : "text-amber-900 dark:text-amber-100"
                         }`} title={doc.displayName || doc.filename}>
                           {doc.displayName || doc.filename}
                         </h3>
                         {doc.displayName && doc.displayName !== doc.filename && (
-                          <p className="text-xs text-gray-500 truncate" title={doc.filename}>
+                          <p className="font-body text-xs text-amber-600/70 truncate" title={doc.filename}>
                             Original: {doc.filename}
                           </p>
                         )}
@@ -302,10 +306,10 @@ export default function DocumentsPage() {
                           </p>
                         )}
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500">
+                          <span className="font-body text-xs text-amber-600/80">
                             {formatFileSize(doc.fileSize)}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="font-body text-xs text-amber-600/80">
                             {new Date(doc.uploadDate).toLocaleDateString()}
                           </span>
                         </div>
@@ -337,7 +341,7 @@ export default function DocumentsPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEditDocument(doc)}
-                        className="h-8 w-8 p-0 text-gray-400 hover:text-amber-600"
+                        className="h-8 w-8 p-0 text-amber-500 hover:text-amber-700"
                         title="Edit document name and remarks"
                       >
                         <Edit className="h-3.5 w-3.5" />
@@ -347,7 +351,7 @@ export default function DocumentsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(doc.id, doc.filename)}
-                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                          className="h-8 w-8 p-0 text-amber-500 hover:text-red-600"
                           title="Delete document"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

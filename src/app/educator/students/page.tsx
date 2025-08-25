@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { BiblicalLoader, BiblicalPageLoader } from "@/components/ui/biblical-loader";
 import { 
   Users, 
   UserPlus, 
@@ -15,8 +19,7 @@ import {
   Send,
   Copy,
   X,
-  Search,
-  Filter
+  Search
 } from "lucide-react";
 
 interface Student {
@@ -128,23 +131,21 @@ export default function StudentManagementPage() {
   );
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <BiblicalPageLoader text="Loading students..." />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Student Management
+          <h1 className="font-heading text-4xl font-bold mb-3">
+            <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+              Student Management
+            </span>
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Manage your students and send invitations
+          <p className="font-body text-lg text-amber-800 dark:text-amber-200">
+            Manage your students and send invitations to your biblical studies
           </p>
         </div>
 
@@ -159,7 +160,7 @@ export default function StudentManagementPage() {
                     {students.length}
                   </p>
                 </div>
-                <Users className="h-12 w-12 text-blue-600 opacity-20" />
+                <Users className="h-12 w-12 text-amber-600 opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -173,7 +174,7 @@ export default function StudentManagementPage() {
                     {students.filter(s => s.status === "active").length}
                   </p>
                 </div>
-                <CheckCircle className="h-12 w-12 text-green-600 opacity-20" />
+                <CheckCircle className="h-12 w-12 text-green-600 opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -187,7 +188,7 @@ export default function StudentManagementPage() {
                     {students.reduce((acc, s) => acc + s.completedQuizzes, 0)}
                   </p>
                 </div>
-                <BookOpen className="h-12 w-12 text-purple-600 opacity-20" />
+                <BookOpen className="h-12 w-12 text-amber-600 opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -203,29 +204,32 @@ export default function StudentManagementPage() {
                 placeholder="Search students..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white"
+                className="pl-10 focus:ring-amber-500 focus:border-amber-500 dark:bg-gray-800 dark:text-white bg-white/70 backdrop-blur-sm border-amber-200"
               />
             </div>
           </div>
-          <Button onClick={() => setShowInviteModal(true)}>
+          <Button 
+            onClick={() => setShowInviteModal(true)}
+            className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-medium shadow-lg"
+          >
             <UserPlus className="h-4 w-4 mr-2" />
             Invite Students
           </Button>
         </div>
 
         {/* Students List */}
-        <Card>
+        <Card className="bg-white/80 backdrop-blur-sm border-amber-200 shadow-xl">
           <CardHeader>
-            <CardTitle>Your Students</CardTitle>
-            <CardDescription>
+            <CardTitle className="font-heading text-2xl text-amber-900 dark:text-amber-100">Your Students</CardTitle>
+            <CardDescription className="font-body text-amber-700 dark:text-amber-300">
               Students enrolled under your educator account
             </CardDescription>
           </CardHeader>
           <CardContent>
             {filteredStudents.length === 0 ? (
               <div className="text-center py-12">
-                <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">
+                <Users className="h-12 w-12 text-amber-600 opacity-50 mx-auto mb-4" />
+                <p className="font-body text-amber-700 dark:text-amber-300">
                   {searchTerm ? "No students found matching your search" : "No students yet. Send invitations to get started."}
                 </p>
               </div>
@@ -234,24 +238,24 @@ export default function StudentManagementPage() {
                 {filteredStudents.map((student) => (
                   <div
                     key={student.relationshipId}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-gray-800 dark:to-gray-700 rounded-lg hover:from-amber-100 hover:to-orange-100 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all border border-amber-200/50"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <h3 className="font-medium text-gray-900 dark:text-white">
+                        <h3 className="font-heading font-semibold text-amber-900 dark:text-amber-100">
                           {student.name}
                         </h3>
                         {student.status === "active" ? (
-                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                             Active
                           </span>
                         ) : (
-                          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                          <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
                             Inactive
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-4 mt-2 text-sm text-amber-600 dark:text-amber-400 font-body">
                         <span className="flex items-center gap-1">
                           <Mail className="h-3 w-3" />
                           {student.email}
@@ -263,7 +267,7 @@ export default function StudentManagementPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-4 mt-2 text-xs text-amber-600/80 font-body">
                         <span>{student.totalEnrollments} enrollments</span>
                         <span>{student.completedQuizzes} completed</span>
                         <span>Joined {new Date(student.enrolledAt).toLocaleDateString()}</span>
@@ -274,6 +278,7 @@ export default function StudentManagementPage() {
                         variant="outline" 
                         size="sm"
                         onClick={() => router.push(`/educator/students/${student.studentId}`)}
+                        className="border-amber-300 hover:bg-amber-50 text-amber-700 font-medium"
                       >
                         View Details
                       </Button>
@@ -288,9 +293,9 @@ export default function StudentManagementPage() {
         {/* Invite Modal */}
         {showInviteModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 border border-amber-200 shadow-2xl">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <h2 className="font-heading text-2xl font-bold text-amber-900 dark:text-amber-100">
                   Invite Students
                 </h2>
                 <button
@@ -306,57 +311,67 @@ export default function StudentManagementPage() {
                 </button>
               </div>
 
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Enter email addresses separated by commas or new lines. Optionally assign them directly to a quiz.
+              <p className="font-body text-sm text-amber-700 dark:text-amber-300 mb-4">
+                Enter email addresses separated by commas or new lines. Optionally assign them directly to a biblical knowledge quiz.
               </p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Label className="font-body text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
                     Select Quiz (Optional)
-                  </label>
-                  <select
+                  </Label>
+                  <Select
                     value={selectedQuizId || ""}
-                    onChange={(e) => setSelectedQuizId(e.target.value || null)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    onValueChange={(value) => setSelectedQuizId(value || null)}
                   >
-                    <option value="">No quiz - Just invite to class</option>
-                    {quizzes.map((quiz) => (
-                      <option key={quiz.id} value={quiz.id}>
-                        {quiz.title}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <SelectTrigger className="w-full focus:ring-amber-500 focus:border-amber-500 border-amber-200">
+                      <SelectValue placeholder="No quiz - Just invite to class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No quiz - Just invite to class</SelectItem>
+                      {quizzes.map((quiz) => (
+                        <SelectItem key={quiz.id} value={quiz.id}>
+                          {quiz.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="font-body text-xs text-amber-600 dark:text-amber-400 mt-1">
                     Students will be automatically enrolled in the selected quiz upon accepting the invitation
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Label className="font-body text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
                     Email Addresses
-                  </label>
-                  <textarea
+                  </Label>
+                  <Textarea
                     value={inviteEmails}
                     onChange={(e) => setInviteEmails(e.target.value)}
                     placeholder="student1@example.com, student2@example.com"
-                    className="w-full h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full h-32 focus:ring-amber-500 focus:border-amber-500 border-amber-200"
                   />
                 </div>
               </div>
 
               {invitationLinks.length > 0 && (
-                <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-                  <p className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
+                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md border border-amber-200">
+                  <p className="font-body text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
                     Invitation Links Generated:
                   </p>
                   <div className="space-y-2">
                     {invitationLinks.map((invite, index) => (
                       <div key={index} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-600 dark:text-gray-400">{invite.email}</span>
+                        <span className="font-body text-amber-700 dark:text-amber-300">{invite.email}</span>
                         <button
-                          onClick={() => copyToClipboard(`${window.location.origin}${invite.invitationUrl}`)}
-                          className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                          onClick={() => {
+                            // Check if invitationUrl is already a full URL or needs origin prepended
+                            const url = invite.invitationUrl.startsWith('http') 
+                              ? invite.invitationUrl 
+                              : `${window.location.origin}${invite.invitationUrl}`;
+                            copyToClipboard(url);
+                          }}
+                          className="text-amber-600 hover:text-amber-700 flex items-center gap-1 font-medium"
                         >
                           <Copy className="h-3 w-3" />
                           Copy Link
@@ -376,15 +391,17 @@ export default function StudentManagementPage() {
                     setInvitationLinks([]);
                     setSelectedQuizId(null);
                   }}
+                  className="border-amber-300 hover:bg-amber-50 text-amber-700"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSendInvitations}
                   disabled={inviteLoading || !inviteEmails.trim()}
+                  className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-medium"
                 >
                   {inviteLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <BiblicalLoader size="sm" inline />
                   ) : (
                     <>
                       <Send className="h-4 w-4 mr-2" />
