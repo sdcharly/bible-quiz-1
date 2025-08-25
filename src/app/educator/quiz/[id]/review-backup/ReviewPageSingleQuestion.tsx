@@ -767,7 +767,7 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
                             variant="outline"
                             onClick={validateCurrentQuestion}
                             disabled={validating}
-                            className="border-amber-200 hover:bg-amber-50"
+                            className="border-purple-200 hover:bg-purple-50"
                           >
                             <Shield className="h-4 w-4 mr-1" />
                             {validating ? "Validating..." : "Validate"}
@@ -943,11 +943,11 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
 
         {/* Validation Score Below Question (if exists) */}
         {currentQuestion && validationResults[currentQuestion.id] && (
-          <div className="mb-4 p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-100">
+          <div className="mb-4 p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-100">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-amber-600" />
-                <span className="text-sm font-semibold text-amber-900">Validation Score</span>
+                <Shield className="h-4 w-4 text-purple-600" />
+                <span className="text-sm font-semibold text-purple-900">Validation Score</span>
               </div>
               <div className="flex items-center gap-1">
                 <span className={`text-lg font-bold ${
