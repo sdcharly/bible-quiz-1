@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowPathIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { RefreshCw, Trash2, Activity, AlertCircle } from "lucide-react";
+import { 
+  PageHeader, 
+  PageContainer, 
+  Section,
+  LoadingState,
+  EmptyState 
+} from "@/components/educator-v2";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface LogEntry {
   timestamp: string;
@@ -46,15 +55,13 @@ export default function WebhookLogsPage() {
 
   useEffect(() => {
     if (autoRefresh) {
-      // Use progressive intervals: starts at 5s, increases to 30s over time
-      let currentInterval = 5000; // Start with 5 seconds
-      const maxInterval = 30000; // Max 30 seconds
+      let currentInterval = 5000;
+      const maxInterval = 30000;
       let intervalId: NodeJS.Timeout;
       
       const scheduleFetch = () => {
         intervalId = setTimeout(() => {
           fetchLogs();
-          // Increase interval progressively (up to max)
           currentInterval = Math.min(currentInterval * 1.5, maxInterval);
           scheduleFetch();
         }, currentInterval);
@@ -70,64 +77,99 @@ export default function WebhookLogsPage() {
 
   const getLevelColor = (level: string) => {
     switch (level) {
-      case 'error': return 'text-red-600';
-      case 'warn': return 'text-yellow-600';
-      case 'info': return 'text-blue-600';
-      default: return 'text-gray-600';
+      case 'error': return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
+      case 'warn': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400';
+      case 'info': return 'bg-amber-50 text-amber-600 dark:bg-amber-900/10 dark:text-amber-500';
+      default: return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
+    }
+  };
+
+  const getLevelIcon = (level: string) => {
+    switch (level) {
+      case 'error': return 'destructive';
+      case 'warn': return 'secondary';
+      case 'info': return 'default';
+      default: return 'outline';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Webhook Debug Logs
-            </h1>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                variant={autoRefresh ? "default" : "outline"}
-                size="sm"
-              >
-                {autoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
-              </Button>
-              <Button
-                onClick={fetchLogs}
-                disabled={loading}
-                variant="outline"
-                size="sm"
-              >
-                <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-              <Button
-                onClick={clearLogs}
-                variant="outline"
-                size="sm"
-                className="text-red-600"
-              >
-                <TrashIcon className="h-4 w-4" />
-              </Button>
-            </div>
+    <>
+      <PageHeader
+        title="Webhook Debug Logs"
+        subtitle="Monitor and debug webhook activity"
+        icon={Activity}
+        breadcrumbs={[
+          { label: 'Educator', href: '/educator/dashboard' },
+          { label: 'Debug' },
+          { label: 'Webhook Logs' }
+        ]}
+        actions={
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              variant={autoRefresh ? "default" : "outline"}
+              size="sm"
+              className={autoRefresh ? "bg-amber-600 hover:bg-amber-700" : ""}
+            >
+              {autoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
+            </Button>
+            <Button
+              onClick={fetchLogs}
+              disabled={loading}
+              variant="outline"
+              size="sm"
+              className="border-amber-200 hover:bg-amber-50"
+            >
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            </Button>
+            <Button
+              onClick={clearLogs}
+              variant="outline"
+              size="sm"
+              className="border-red-200 hover:bg-red-50 text-red-600"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
+        }
+      />
 
-          <div className="space-y-2">
-            {logs.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No logs available</p>
-            ) : (
-              logs.map((log, index) => (
+      <PageContainer>
+        <Section
+          title="Log Entries"
+          description={`Showing ${logs.length} log entries`}
+          transparent
+        >
+          {loading && logs.length === 0 ? (
+            <LoadingState text="Loading webhook logs..." />
+          ) : logs.length === 0 ? (
+            <EmptyState
+              icon={AlertCircle}
+              title="No logs available"
+              description="Webhook logs will appear here when webhooks are triggered"
+              action={{
+                label: "Refresh",
+                onClick: fetchLogs
+              }}
+            />
+          ) : (
+            <div className="space-y-2">
+              {logs.map((log, index) => (
                 <div
                   key={index}
-                  className="border border-gray-200 dark:border-gray-700 rounded p-3"
+                  className="bg-white dark:bg-gray-800 border border-amber-100 dark:border-gray-700 rounded-lg p-4 hover:shadow-sm transition-shadow"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-semibold ${getLevelColor(log.level)}`}>
-                          [{log.level.toUpperCase()}]
-                        </span>
-                        <span className="text-xs text-gray-500">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge 
+                          variant={getLevelIcon(log.level) as any}
+                          className={getLevelColor(log.level)}
+                        >
+                          {log.level.toUpperCase()}
+                        </Badge>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           {new Date(log.timestamp).toLocaleString()}
                         </span>
                       </div>
@@ -135,18 +177,18 @@ export default function WebhookLogsPage() {
                         {log.message}
                       </p>
                       {log.data ? (
-                        <pre className="mt-2 text-xs bg-gray-100 dark:bg-gray-900 p-2 rounded overflow-x-auto">
+                        <pre className="mt-3 text-xs bg-amber-50 dark:bg-gray-900 p-3 rounded-md overflow-x-auto border border-amber-100 dark:border-gray-700">
                           {JSON.stringify(log.data, null, 2)}
                         </pre>
                       ) : null}
                     </div>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      </PageContainer>
+    </>
   );
 }
