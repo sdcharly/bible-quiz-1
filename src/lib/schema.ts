@@ -322,3 +322,64 @@ export const groupMembers = pgTable("group_members", {
   removedAt: timestamp("removed_at"),
   removedBy: text("removed_by").references(() => user.id),
 });
+
+// Educator activity tracking for intelligent reminders
+export const educatorActivityMetrics = pgTable("educator_activity_metrics", {
+  id: text("id").primaryKey(),
+  educatorId: text("educator_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  lastLoginAt: timestamp("last_login_at"),
+  lastQuizCreatedAt: timestamp("last_quiz_created_at"),
+  lastQuizPublishedAt: timestamp("last_quiz_published_at"),
+  lastStudentAddedAt: timestamp("last_student_added_at"),
+  lastDocumentUploadedAt: timestamp("last_document_uploaded_at"),
+  lastDashboardVisitAt: timestamp("last_dashboard_visit_at"),
+  
+  // Activity counters
+  totalQuizzes: integer("total_quizzes").default(0),
+  totalStudents: integer("total_students").default(0),
+  totalDocuments: integer("total_documents").default(0),
+  totalLogins: integer("total_logins").default(0),
+  
+  // Engagement scores for intelligent filtering
+  engagementScore: real("engagement_score").default(0), // 0-100 score based on activity
+  riskLevel: text("risk_level").default("low"), // low, medium, high (for churn prediction)
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Educator reminder emails history for spam prevention
+export const educatorReminderEmails = pgTable("educator_reminder_emails", {
+  id: text("id").primaryKey(),
+  educatorId: text("educator_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  emailType: text("email_type").notNull(), // "inactivity_reminder", "encouragement", "feature_announcement"
+  reminderLevel: integer("reminder_level").default(1), // 1 = first reminder, 2 = second, etc.
+  
+  // Context about why this reminder was sent
+  triggerReason: text("trigger_reason").notNull(), // "7_days_inactive", "no_quizzes_created", etc.
+  activityMetricsSnapshot: jsonb("activity_metrics_snapshot").$type<{
+    lastLoginDaysAgo?: number;
+    lastQuizCreatedDaysAgo?: number;
+    totalQuizzes?: number;
+    totalStudents?: number;
+    engagementScore?: number;
+    riskLevel?: string;
+  }>(),
+  
+  // Email delivery tracking
+  sentAt: timestamp("sent_at").notNull().defaultNow(),
+  emailSubject: text("email_subject").notNull(),
+  deliveryStatus: text("delivery_status").default("sent"), // sent, delivered, failed, bounced
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  
+  // Response tracking
+  engagementAfterEmail: jsonb("engagement_after_email").$type<{
+    loginWithin24h?: boolean;
+    loginWithin7d?: boolean;
+    quizCreatedWithin7d?: boolean;
+    dashboardVisitWithin24h?: boolean;
+  }>(),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

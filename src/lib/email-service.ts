@@ -1355,6 +1355,199 @@ In His time, He makes all things beautiful
     `;
 
     return { subject, html, text };
+  },
+
+  // Educator reminder email for inactive educators
+  educatorReminderEmail: (
+    educatorName: string, 
+    triggerReason: string, 
+    reminderLevel: number,
+    daysSinceLastActivity: number,
+    totalQuizzes: number,
+    totalStudents: number,
+    dashboardUrl?: string
+  ) => {
+    const subject = reminderLevel === 1 
+      ? `🌟 Your Biblical Teaching Ministry Awaits - We Miss You!`
+      : `💝 A Gentle Reminder: Your Students Need Your Wisdom`;
+
+    const getReminderMessage = () => {
+      if (triggerReason === 'no_quizzes_created') {
+        return {
+          primary: "We notice you haven't created your first quiz yet. Every great teacher starts with a single lesson!",
+          encouragement: "Your unique insights into God's Word are valuable, and your future students are waiting to learn from your wisdom.",
+          action: "Create Your First Quiz"
+        };
+      } else if (triggerReason === 'has_quizzes_no_students') {
+        return {
+          primary: `You've created ${totalQuizzes} wonderful quiz${totalQuizzes > 1 ? 'es' : ''}, but haven't invited students yet.`,
+          encouragement: "Your biblical quizzes are ready to inspire and educate! Consider inviting students to join your study circle.",
+          action: "Invite Students to Learn"
+        };
+      } else if (triggerReason === 'previously_engaged_now_inactive') {
+        return {
+          primary: "We've noticed you've been away from your teaching ministry for a while.",
+          encouragement: "Your students miss your guidance, and there's so much more biblical wisdom you can share with them.",
+          action: "Continue Your Ministry"
+        };
+      } else {
+        return {
+          primary: `It's been ${daysSinceLastActivity} days since you last visited your educator dashboard.`,
+          encouragement: "Your calling to teach God's Word is a noble one, and every day brings new opportunities to impact lives.",
+          action: "Return to Teaching"
+        };
+      }
+    };
+
+    const message = getReminderMessage();
+
+    const headerContent = `
+      <h1 style="margin: 0; font-size: 28px; color: white; font-family: Georgia, 'Times New Roman', serif;">
+        ${reminderLevel === 1 ? '🌟 Your Ministry Awaits!' : '💝 Gentle Reminder'}
+      </h1>
+      <p style="margin: 10px 0 0 0; font-size: 16px; color: white;">Spreading God's Word Through Teaching</p>
+    `;
+
+    const bodyContent = `
+      <h2 style="color: #92400e; font-size: 24px; margin-top: 0; font-family: Georgia, 'Times New Roman', serif;">
+        Beloved Teacher ${educatorName},
+      </h2>
+      
+      <p style="color: #451a03; margin: 15px 0;">Peace and blessings to you! We hope this message finds you well in your walk with the Lord.</p>
+      
+      <p style="color: #78350f; margin: 15px 0; font-weight: 500;">${message.primary}</p>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td style="background-color: #fef3c7; border-left: 4px solid #d97706; padding: 15px;">
+            <p style="margin: 0; color: #78350f; font-style: italic;">
+              "And he gave some, apostles; and some, prophets; and some, evangelists; and some, pastors and teachers; For the perfecting of the saints, for the work of the ministry, for the edifying of the body of Christ" - Ephesians 4:11-12
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <p style="color: #451a03; margin: 15px 0;">${message.encouragement}</p>
+      
+      ${totalQuizzes > 0 ? `
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td bgcolor="#fff" style="background-color: #fff; border: 1px solid #fed7aa; border-radius: 8px; padding: 20px;">
+            <h4 style="margin-top: 0; color: #92400e;">📊 Your Ministry Impact So Far:</h4>
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr><td style="color: #78350f; padding: 3px 0;">📚 Biblical Quizzes Created: <strong>${totalQuizzes}</strong></td></tr>
+              <tr><td style="color: #78350f; padding: 3px 0;">👥 Students in Your Care: <strong>${totalStudents}</strong></td></tr>
+              <tr><td style="color: #78350f; padding: 3px 0;">🎯 Lives Touched: <strong>Countless and Growing</strong></td></tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      ` : ''}
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td bgcolor="#fff" style="background-color: #fff; border: 1px solid #fed7aa; border-radius: 8px; padding: 20px;">
+            <h4 style="margin-top: 0; color: #92400e;">🌟 Why Your Ministry Matters:</h4>
+            <ul style="color: #78350f; margin: 10px 0;">
+              <li><strong>Eternal Impact:</strong> Every lesson you teach plants seeds for eternity</li>
+              <li><strong>Biblical Literacy:</strong> You help believers grow deeper in God's Word</li>
+              <li><strong>Faith Formation:</strong> Your quizzes strengthen the foundation of faith</li>
+              <li><strong>Community Building:</strong> You bring believers together in learning</li>
+            </ul>
+          </td>
+        </tr>
+      </table>
+      
+      <p style="color: #78350f; margin: 20px 0;">
+        Remember, ${educatorName}, God has called you to this ministry of biblical education not by accident, but by divine purpose. Your voice, your perspective, and your heart for God's Word are unique gifts that only you can share.
+      </p>
+      
+      <div style="text-align: center; margin: 25px 0;">
+        <a href="${dashboardUrl || `${process.env.NEXT_PUBLIC_APP_URL}/educator/dashboard`}" 
+           style="display: inline-block; padding: 14px 32px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+          ✨ ${message.action}
+        </a>
+      </div>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td style="background-color: #fef3c7; padding: 10px; border-radius: 4px;">
+            <p style="margin: 0; color: #92400e; font-size: 14px;">
+              <strong>Quick link to your educator dashboard:</strong><br>
+              <span style="color: #78350f; word-break: break-all;">${dashboardUrl || `${process.env.NEXT_PUBLIC_APP_URL}/educator/dashboard`}</span>
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+        <tr>
+          <td style="background-color: #fef3c7; border-left: 4px solid #16a34a; padding: 15px;">
+            <p style="margin: 0; color: #78350f;">
+              <strong>💡 Need inspiration?</strong> Consider creating a quiz on your favorite Bible story, a character study, or even basic biblical principles. Your students are eager to learn!
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <hr style="border: none; height: 2px; background-color: #f59e0b; margin: 20px 0;">
+      
+      <p style="color: #451a03; margin: 15px 0; font-style: italic;">
+        We're not sending this reminder to pressure you, but to encourage you in your calling. If you need any assistance or have questions about using the platform, we're here to help.
+      </p>
+      
+      <p style="text-align: center; color: #b45309; font-style: italic; margin: 20px 0;">
+        "Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven." - Matthew 5:16
+      </p>
+    `;
+
+    const footerContent = `
+      <p style="margin: 5px 0; color: #78350f;">🙏 May the Lord bless your teaching ministry abundantly</p>
+      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Empowering Biblical Education</p>
+      <p style="margin: 5px 0; font-size: 12px; color: #78350f;">
+        This gentle reminder was sent with love. 
+        <a href="${process.env.NEXT_PUBLIC_APP_URL}/unsubscribe" style="color: #92400e;">Manage your preferences</a>
+      </p>
+    `;
+
+    const html = createEmailWrapper(headerContent, bodyContent, footerContent);
+
+    const text = `
+Beloved Teacher ${educatorName},
+
+Peace and blessings to you!
+
+${message.primary}
+
+"And he gave some, apostles; and some, prophets; and some, evangelists; and some, pastors and teachers" - Ephesians 4:11-12
+
+${message.encouragement}
+
+${totalQuizzes > 0 ? `Your Ministry Impact:
+- Biblical Quizzes Created: ${totalQuizzes}
+- Students in Your Care: ${totalStudents}
+- Lives Touched: Countless and Growing
+
+` : ''}Why Your Ministry Matters:
+• Eternal Impact: Every lesson plants seeds for eternity
+• Biblical Literacy: You help believers grow in God's Word  
+• Faith Formation: Your quizzes strengthen faith foundations
+• Community Building: You bring believers together in learning
+
+Remember, God has called you to this ministry by divine purpose. Your unique gifts are needed!
+
+${message.action}: ${dashboardUrl || `${process.env.NEXT_PUBLIC_APP_URL}/educator/dashboard`}
+
+"Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven." - Matthew 5:16
+
+This reminder was sent with love and encouragement.
+Manage preferences: ${process.env.NEXT_PUBLIC_APP_URL}/unsubscribe
+
+May the Lord bless your teaching ministry abundantly.
+Scrolls of Wisdom - Empowering Biblical Education
+    `;
+
+    return { subject, html, text };
   }
 };
 
