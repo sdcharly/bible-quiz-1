@@ -1,5 +1,6 @@
 import { createTransport } from 'nodemailer';
 import Mail from 'nodemailer/lib/mailer';
+import { branding } from './branding';
 
 // Create reusable transporter
 const createEmailTransporter = (): Mail | null => {
@@ -50,7 +51,7 @@ export async function sendEmail(options: EmailOptions) {
 
   try {
     const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM || '"BibleQuiz" <noreply@biblequiz.com>',
+      from: branding.getEmailFromHeader(),
       to: options.to,
       subject: options.subject,
       text: options.text,
@@ -74,7 +75,7 @@ const createEmailWrapper = (headerContent: string, bodyContent: string, footerCo
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Scrolls of Wisdom</title>
+      <title>${branding.appName}</title>
       <!--[if mso]>
       <noscript>
         <xml>
@@ -119,18 +120,18 @@ export const emailTemplates = {
   // Invitation for new users
   newUserInvitation: (educatorName: string, invitationUrl: string, quizTitle?: string) => {
     const subject = quizTitle 
-      ? `${educatorName} invited you to take "${quizTitle}" on Scrolls of Wisdom`
-      : `${educatorName} invited you to join Scrolls of Wisdom - Biblical Knowledge Quest`;
+      ? `${educatorName} invited you to take "${quizTitle}" on ${branding.appName}`
+      : `${educatorName} invited you to join ${branding.appName} - ${branding.tagline}`;
 
     const headerContent = `
-      <h1 style="margin: 0; font-size: 28px; color: white; font-family: Georgia, 'Times New Roman', serif;">📜 Welcome to Scrolls of Wisdom!</h1>
-      <p style="margin: 10px 0 0 0; font-size: 16px; color: white;">Your Biblical Knowledge Quest Awaits</p>
+      <h1 style="margin: 0; font-size: 28px; color: white; font-family: Georgia, 'Times New Roman', serif;">📜 Welcome to ${branding.appName}!</h1>
+      <p style="margin: 10px 0 0 0; font-size: 16px; color: white;">${branding.tagline} Awaits</p>
     `;
 
     const bodyContent = `
       <h2 style="color: #92400e; font-size: 24px; margin-top: 0; font-family: Georgia, 'Times New Roman', serif;">✨ You've Been Blessed with an Invitation!</h2>
       <p style="color: #451a03; margin: 15px 0;">Peace be with you,</p>
-      <p style="color: #451a03; margin: 15px 0;"><strong style="color: #92400e;">${educatorName}</strong> has invited you to embark on a spiritual journey through Scrolls of Wisdom${quizTitle ? `, beginning with the quiz: "<strong style="color: #92400e;">${quizTitle}</strong>"` : ''}.</p>
+      <p style="color: #451a03; margin: 15px 0;"><strong style="color: #92400e;">${educatorName}</strong> has invited you to embark on a spiritual journey through ${branding.appName}${quizTitle ? `, beginning with the quiz: "<strong style="color: #92400e;">${quizTitle}</strong>"` : ''}.</p>
       
       <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
         <tr>
@@ -140,7 +141,7 @@ export const emailTemplates = {
         </tr>
       </table>
       
-      <p style="color: #451a03; margin: 15px 0;">Scrolls of Wisdom is a sacred space for biblical education where devoted educators guide students through the treasures of Scripture, helping them grow in knowledge and faith.</p>
+      <p style="color: #451a03; margin: 15px 0;">${branding.appName} is a sacred space for biblical education where devoted educators guide students through the treasures of Scripture, helping them grow in knowledge and faith.</p>
       
       <p style="color: #451a03; margin: 15px 0;"><strong>Your journey begins with these simple steps:</strong></p>
       <ol style="color: #78350f; margin: 15px 0;">
@@ -171,14 +172,14 @@ export const emailTemplates = {
 
     const footerContent = `
       <p style="margin: 5px 0; color: #78350f;">📖 "Thy word is a lamp unto my feet, and a light unto my path." - Psalm 119:105</p>
-      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Empowering Biblical Education</p>
+      <p style="margin: 5px 0; color: #78350f;">${branding.getCopyrightText()}</p>
       <p style="margin: 5px 0; font-size: 12px; color: #78350f;">Dedicated to spreading God's Word with love and wisdom</p>
     `;
 
     const html = createEmailWrapper(headerContent, bodyContent, footerContent);
 
     const text = `
-${educatorName} invited you to join Scrolls of Wisdom${quizTitle ? ` and take "${quizTitle}"` : ''}!
+${educatorName} invited you to join ${branding.appName}${quizTitle ? ` and take "${quizTitle}"` : ''}!
 
 "Study to shew thyself approved unto God" - 2 Timothy 2:15
 
@@ -187,7 +188,7 @@ ${invitationUrl}
 
 This invitation expires in 7 days.
 
-Scrolls of Wisdom - Your Biblical Knowledge Quest
+${branding.getEmailFooter()}
 Empowering biblical education with love and wisdom
     `;
 
@@ -196,7 +197,7 @@ Empowering biblical education with love and wisdom
 
   // OTP verification email
   otpVerification: (educatorName: string, otp: string, expiryMinutes: number = 10) => {
-    const subject = `🔐 Your Verification Code for Scrolls of Wisdom`;
+    const subject = `🔐 Your Verification Code for ${branding.appName}`;
 
     const headerContent = `
       <h1 style="margin: 0; font-size: 28px; color: white; font-family: Georgia, 'Times New Roman', serif;">🔐 Email Verification Required</h1>
@@ -206,7 +207,7 @@ Empowering biblical education with love and wisdom
     const bodyContent = `
       <h2 style="color: #92400e; font-size: 24px; margin-top: 0; font-family: Georgia, 'Times New Roman', serif;">Greetings, ${educatorName}!</h2>
       
-      <p style="color: #451a03; margin: 15px 0;">To complete your registration as a Biblical educator on Scrolls of Wisdom, please verify your email address using the code below.</p>
+      <p style="color: #451a03; margin: 15px 0;">To complete your registration as a Biblical educator on ${branding.appName}, please verify your email address using the code below.</p>
       
       <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 30px 0;">
         <tr>
@@ -250,7 +251,7 @@ Empowering biblical education with love and wisdom
       <table cellpadding="0" cellspacing="0" border="0" width="100%">
         <tr>
           <td style="color: #451a03; line-height: 1.8; padding: 0 0 8px 20px;">
-            1. Scrolls of Wisdom will never ask for your password via email
+            1. ${branding.appName} will never ask for your password via email
           </td>
         </tr>
         <tr>
@@ -276,7 +277,7 @@ Empowering biblical education with love and wisdom
 
     const footerContent = `
       <p style="margin: 5px 0; color: #78350f;">📖 "The Lord shall preserve thee from all evil" - Psalm 121:7</p>
-      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Secure Biblical Education</p>
+      <p style="margin: 5px 0; color: #78350f;">© 2024 ${branding.appName} · Secure Biblical Education</p>
       <p style="margin: 5px 0; font-size: 12px; color: #78350f;">This is an automated security email - please do not reply</p>
     `;
 
@@ -285,7 +286,7 @@ Empowering biblical education with love and wisdom
     const text = `
 Greetings ${educatorName},
 
-Your Scrolls of Wisdom Verification Code:
+Your ${branding.appName} Verification Code:
 
 ${otp}
 
@@ -302,7 +303,7 @@ If you didn't request this code, please ignore this email.
 
 "But let all things be done decently and in order." - 1 Corinthians 14:40
 
-Scrolls of Wisdom - Secure Biblical Education
+${branding.appName} - Secure Biblical Education
     `;
 
     return { subject, html, text };
@@ -310,7 +311,7 @@ Scrolls of Wisdom - Secure Biblical Education
 
   // Educator signup pending confirmation
   educatorSignupPending: (educatorName: string) => {
-    const subject = `📜 Welcome to Scrolls of Wisdom - Your Application is Under Review`;
+    const subject = `📜 Welcome to ${branding.appName} - Your Application is Under Review`;
 
     const headerContent = `
       <h1 style="margin: 0; font-size: 28px; color: white; font-family: Georgia, 'Times New Roman', serif;">🎓 Welcome, Sacred Guide!</h1>
@@ -320,7 +321,7 @@ Scrolls of Wisdom - Secure Biblical Education
     const bodyContent = `
       <h2 style="color: #92400e; font-size: 24px; margin-top: 0; font-family: Georgia, 'Times New Roman', serif;">Blessings and Peace, ${educatorName}!</h2>
       
-      <p style="color: #451a03; margin: 15px 0;">Thank you for answering the sacred calling to become a Biblical educator on Scrolls of Wisdom. Your dedication to spreading God's Word through teaching is truly a blessing.</p>
+      <p style="color: #451a03; margin: 15px 0;">Thank you for answering the sacred calling to become a Biblical educator on ${branding.appName}. Your dedication to spreading God's Word through teaching is truly a blessing.</p>
       
       <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
         <tr>
@@ -383,7 +384,7 @@ Scrolls of Wisdom - Secure Biblical Education
       <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
         <tr>
           <td bgcolor="#fef3c7" style="background-color: #fef3c7; border-left: 4px solid #16a34a; padding: 15px;">
-            <p style="margin: 0; color: #78350f;"><strong>Need Help?</strong> Contact us at support@biblequiz.textr.in</p>
+            <p style="margin: 0; color: #78350f;"><strong>Need Help?</strong> Contact us at ${branding.supportEmail}</p>
           </td>
         </tr>
       </table>
@@ -391,14 +392,14 @@ Scrolls of Wisdom - Secure Biblical Education
 
     const footerContent = `
       <p style="margin: 5px 0; color: #78350f;">📖 "Go ye therefore, and teach all nations" - Matthew 28:19</p>
-      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Empowering Biblical Education</p>
+      <p style="margin: 5px 0; color: #78350f;">${branding.getCopyrightText()}</p>
       <p style="margin: 5px 0; font-size: 12px; color: #78350f;">Thank you for your patience during the approval process</p>
     `;
 
     const html = createEmailWrapper(headerContent, bodyContent, footerContent);
 
     const text = `
-Welcome to Scrolls of Wisdom, ${educatorName}!
+Welcome to ${branding.appName}, ${educatorName}!
 
 Your educator account application has been received and is currently PENDING APPROVAL.
 
@@ -414,11 +415,11 @@ While you wait, you can:
 - Consider which scriptures to focus on
 - Pray for wisdom in guiding students
 
-Need help? Contact support@biblequiz.textr.in
+Need help? Contact ${branding.supportEmail}
 
 "Go ye therefore, and teach all nations" - Matthew 28:19
 
-Scrolls of Wisdom - Empowering Biblical Education
+${branding.appName} - Empowering Biblical Education
     `;
 
     return { subject, html, text };
@@ -435,7 +436,7 @@ Scrolls of Wisdom - Empowering Biblical Education
 
     const bodyContent = `
       <h2 style="color: #92400e; font-size: 22px; margin-top: 0; font-family: Georgia, 'Times New Roman', serif;">Blessings, ${studentName}!</h2>
-      <p style="color: #451a03; margin: 15px 0;">Your spiritual guide, <strong style="color: #92400e;">${educatorName}</strong>, has prepared a new quest for you on Scrolls of Wisdom.</p>
+      <p style="color: #451a03; margin: 15px 0;">Your spiritual guide, <strong style="color: #92400e;">${educatorName}</strong>, has prepared a new quest for you on ${branding.appName}.</p>
       
       <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0; background-color: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
         <tr>
@@ -485,7 +486,7 @@ Scrolls of Wisdom - Empowering Biblical Education
 
     const footerContent = `
       <p style="margin: 5px 0; color: #78350f;">🕊️ May wisdom and understanding guide your path</p>
-      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+      <p style="margin: 5px 0; color: #78350f;">${branding.getCopyrightText()}</p>
       <p style="margin: 5px 0; font-size: 12px; color: #78350f;">Growing in faith, one scripture at a time</p>
     `;
 
@@ -501,11 +502,11 @@ ${educatorName} has assigned you a new biblical quest: "${quizTitle}"
 To begin your quest, visit:
 ${quizUrl}
 
-Log in to your Scrolls of Wisdom account to get started.
+Log in to your ${branding.appName} account to get started.
 
 May wisdom and understanding guide your path.
 
-Scrolls of Wisdom - Your Biblical Knowledge Quest
+${branding.getEmailFooter()}
 Growing in faith, one scripture at a time
     `;
 
@@ -618,7 +619,7 @@ Growing in faith, one scripture at a time
           </div>
           <div class="content">
             <h2>Greetings in Christ, ${studentName}!</h2>
-            <p>Wonderful news! <strong>${educatorName}</strong> has welcomed you into their biblical study circle on Scrolls of Wisdom.</p>
+            <p>Wonderful news! <strong>${educatorName}</strong> has welcomed you into their biblical study circle on ${branding.appName}.</p>
             
             <div class="scripture-box">
               <p>"For where two or three are gathered together in my name, there am I in the midst of them." - Matthew 18:20</p>
@@ -637,7 +638,7 @@ Growing in faith, one scripture at a time
             <p style="color: #78350f;">Your educator will guide you through the treasures of Scripture with wisdom and care. Watch for upcoming quizzes that will challenge and strengthen your faith.</p>
             
             <div style="text-align: center;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard" class="button" style="color: white; text-decoration: none;">🏠 Enter Your Study Hall</a>
+              <a href="${branding.appUrl}/student/dashboard" class="button" style="color: white; text-decoration: none;">🏠 Enter Your Study Hall</a>
             </div>
 
             <div class="divider"></div>
@@ -648,7 +649,7 @@ Growing in faith, one scripture at a time
           </div>
           <div class="footer">
             <p style="margin: 5px 0;">✝️ Walking together in faith and knowledge</p>
-            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+            <p style="margin: 5px 0;">© 2024 ${branding.appName} · Your Biblical Knowledge Quest</p>
             <p style="margin: 5px 0; font-size: 12px;">United in Christ, growing in wisdom</p>
           </div>
         </div>
@@ -659,17 +660,17 @@ Growing in faith, one scripture at a time
     const text = `
 Greetings in Christ, ${studentName}!
 
-${educatorName} has welcomed you into their biblical study circle on Scrolls of Wisdom.
+${educatorName} has welcomed you into their biblical study circle on ${branding.appName}.
 
 "For where two or three are gathered together in my name, there am I in the midst of them." - Matthew 18:20
 
 You'll now receive quiz assignments and can track your spiritual growth in biblical studies.
 
-Visit your study hall: ${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard
+Visit your study hall: ${branding.appUrl}/student/dashboard
 
 Walking together in faith and knowledge.
 
-Scrolls of Wisdom - Your Biblical Knowledge Quest
+${branding.getEmailFooter()}
 United in Christ, growing in wisdom
     `;
 
@@ -793,7 +794,7 @@ United in Christ, growing in wisdom
       <p style="color: #78350f; margin: 15px 0;">This sacred assessment will be available in your study hall when the appointed time arrives. Prepare your heart and mind for this blessed opportunity to demonstrate your growing wisdom in Scripture.</p>
       
       <div style="text-align: center; margin: 25px 0;">
-        <a href="${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}" style="display: inline-block; padding: 14px 32px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">📚 ${quizUrl ? 'Take Quiz Now' : 'Visit Your Study Hall'}</a>
+        <a href="${quizUrl || `${branding.appUrl}/student/dashboard`}" style="display: inline-block; padding: 14px 32px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">📚 ${quizUrl ? 'Take Quiz Now' : 'Visit Your Study Hall'}</a>
       </div>
       
       <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
@@ -801,7 +802,7 @@ United in Christ, growing in wisdom
           <td style="background-color: #fef3c7; padding: 10px; border-radius: 4px;">
             <p style="margin: 0; color: #92400e; font-size: 14px;">
               <strong>Or copy and paste this link into your browser:</strong><br>
-              <span style="color: #78350f; word-break: break-all;">${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}</span>
+              <span style="color: #78350f; word-break: break-all;">${quizUrl || `${branding.appUrl}/student/dashboard`}</span>
             </p>
           </td>
         </tr>
@@ -816,7 +817,7 @@ United in Christ, growing in wisdom
 
     const footerContent = `
       <p style="margin: 5px 0; color: #78350f;">✝️ May your studies be blessed with divine understanding</p>
-      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+      <p style="margin: 5px 0; color: #78350f;">${branding.getCopyrightText()}</p>
       <p style="margin: 5px 0; font-size: 12px; color: #78350f;">Growing in faith through sacred learning</p>
     `;
 
@@ -859,11 +860,11 @@ Quest Details:
 "Study to shew thyself approved unto God" - 2 Timothy 2:15
 
 Access the quiz:
-${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}
+${quizUrl || `${branding.appUrl}/student/dashboard`}
 
 May your studies be blessed with divine understanding.
 
-Scrolls of Wisdom - Your Biblical Knowledge Quest
+${branding.getEmailFooter()}
 Growing in faith through sacred learning
     `;
 
@@ -940,7 +941,7 @@ Growing in faith through sacred learning
       <p style="color: #78350f; font-weight: bold; margin: 15px 0;">Remember: Each attempt is a chance to grow stronger in faith and wisdom.</p>
       
       <div style="text-align: center; margin: 25px 0;">
-        <a href="${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}" style="display: inline-block; padding: 14px 32px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">🎯 ${quizUrl ? 'Begin Your Renewed Quest' : 'Go to Your Dashboard'}</a>
+        <a href="${quizUrl || `${branding.appUrl}/student/dashboard`}" style="display: inline-block; padding: 14px 32px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">🎯 ${quizUrl ? 'Begin Your Renewed Quest' : 'Go to Your Dashboard'}</a>
       </div>
       
       <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
@@ -948,7 +949,7 @@ Growing in faith through sacred learning
           <td style="background-color: #fef3c7; padding: 10px; border-radius: 4px;">
             <p style="margin: 0; color: #92400e; font-size: 14px;">
               <strong>Or copy and paste this link into your browser:</strong><br>
-              <span style="color: #78350f; word-break: break-all;">${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}</span>
+              <span style="color: #78350f; word-break: break-all;">${quizUrl || `${branding.appUrl}/student/dashboard`}</span>
             </p>
           </td>
         </tr>
@@ -963,7 +964,7 @@ Growing in faith through sacred learning
 
     const footerContent = `
       <p style="margin: 5px 0; color: #78350f;">✝️ Walking in grace and second chances</p>
-      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+      <p style="margin: 5px 0; color: #78350f;">${branding.getCopyrightText()}</p>
       <p style="margin: 5px 0; font-size: 12px; color: #78350f;">Every attempt brings you closer to wisdom</p>
     `;
 
@@ -986,11 +987,11 @@ ${newDeadline ? `New Completion Time: ${newDeadline.toLocaleString()}\n` : ''}
 This renewed quest offers a fresh opportunity to demonstrate your biblical understanding.
 
 Begin your renewed quest at:
-${quizUrl || `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard`}
+${quizUrl || `${branding.appUrl}/student/dashboard`}
 
 Walking in grace and second chances.
 
-Scrolls of Wisdom - Your Biblical Knowledge Quest
+${branding.getEmailFooter()}
 Every attempt brings you closer to wisdom
     `;
 
@@ -1101,7 +1102,7 @@ Every attempt brings you closer to wisdom
       <body>
         <div class="container">
           <div class="header">
-            <h1>✨ Scrolls of Wisdom</h1>
+            <h1>✨ ${branding.appName}</h1>
             <p style="margin: 10px 0 0 0; font-size: 16px;">Educator Account Approved</p>
           </div>
           <div class="celebration-banner">
@@ -1109,7 +1110,7 @@ Every attempt brings you closer to wisdom
           </div>
           <div class="content">
             <h2>Beloved Educator ${educatorName},</h2>
-            <p>Grace and peace to you! We are delighted to inform you that your educator account on <strong>Scrolls of Wisdom</strong> has been approved.</p>
+            <p>Grace and peace to you! We are delighted to inform you that your educator account on <strong>${branding.appName}</strong> has been approved.</p>
             
             <div class="scripture-box">
               <p>"Go ye therefore, and teach all nations... teaching them to observe all things whatsoever I have commanded you" - Matthew 28:19-20</p>
@@ -1132,7 +1133,7 @@ Every attempt brings you closer to wisdom
             <p style="color: #78350f; font-weight: 500;">Your journey as a biblical educator starts now! Begin by creating your first quiz or inviting students to join your study circle.</p>
             
             <div style="text-align: center;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/educator/dashboard" class="button" style="color: white; text-decoration: none;">🚀 Enter Your Educator Dashboard</a>
+              <a href="${branding.appUrl}/educator/dashboard" class="button" style="color: white; text-decoration: none;">🚀 Enter Your Educator Dashboard</a>
             </div>
 
             <div class="divider"></div>
@@ -1153,7 +1154,7 @@ Every attempt brings you closer to wisdom
           </div>
           <div class="footer">
             <p style="margin: 5px 0;">🕊️ May your teaching bear much fruit for the Kingdom</p>
-            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Empowering Biblical Education</p>
+            <p style="margin: 5px 0;">© 2024 ${branding.appName} · Empowering Biblical Education</p>
             <p style="margin: 5px 0; font-size: 12px;">Equipping saints for the work of ministry - Ephesians 4:12</p>
           </div>
         </div>
@@ -1168,13 +1169,13 @@ CONGRATULATIONS! Your educator account has been approved!
 
 "Go ye therefore, and teach all nations" - Matthew 28:19
 
-You now have full access to create quizzes, manage students, and spread biblical knowledge through Scrolls of Wisdom.
+You now have full access to create quizzes, manage students, and spread biblical knowledge through ${branding.appName}.
 
-Start your ministry: ${process.env.NEXT_PUBLIC_APP_URL}/educator/dashboard
+Start your ministry: ${branding.appUrl}/educator/dashboard
 
 May your teaching bear much fruit for the Kingdom.
 
-Scrolls of Wisdom - Empowering Biblical Education
+${branding.appName} - Empowering Biblical Education
 Equipping saints for the work of ministry
     `;
 
@@ -1183,7 +1184,7 @@ Equipping saints for the work of ministry
 
   // Educator rejection notification
   educatorRejectionNotification: (educatorName: string, educatorEmail: string, reason?: string) => {
-    const subject = `Application Status Update - Scrolls of Wisdom`;
+    const subject = `Application Status Update - ${branding.appName}`;
 
     const html = `
       <!DOCTYPE html>
@@ -1280,12 +1281,12 @@ Equipping saints for the work of ministry
       <body>
         <div class="container">
           <div class="header">
-            <h1>📜 Scrolls of Wisdom</h1>
+            <h1>📜 ${branding.appName}</h1>
             <p style="margin: 10px 0 0 0; font-size: 16px;">Application Status Update</p>
           </div>
           <div class="content">
             <h2>Dear ${educatorName},</h2>
-            <p>Peace be with you. Thank you for your interest in becoming an educator on Scrolls of Wisdom.</p>
+            <p>Peace be with you. Thank you for your interest in becoming an educator on ${branding.appName}.</p>
             
             <p>After careful review, we regret to inform you that we are unable to approve your educator application at this time.</p>
             
@@ -1314,7 +1315,7 @@ Equipping saints for the work of ministry
             <p style="color: #78350f;">Remember, God's timing is perfect, and He may have different plans for your ministry at this moment.</p>
             
             <div style="text-align: center;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/contact" class="button" style="color: white; text-decoration: none;">📧 Contact Support</a>
+              <a href="${branding.appUrl}/contact" class="button" style="color: white; text-decoration: none;">📧 Contact Support</a>
             </div>
 
             <div class="divider"></div>
@@ -1325,7 +1326,7 @@ Equipping saints for the work of ministry
           </div>
           <div class="footer">
             <p style="margin: 5px 0;">🙏 May God bless your continued journey in faith</p>
-            <p style="margin: 5px 0;">© 2024 Scrolls of Wisdom · Your Biblical Knowledge Quest</p>
+            <p style="margin: 5px 0;">© 2024 ${branding.appName} · Your Biblical Knowledge Quest</p>
             <p style="margin: 5px 0; font-size: 12px;">In His time, He makes all things beautiful - Ecclesiastes 3:11</p>
           </div>
         </div>
@@ -1336,7 +1337,7 @@ Equipping saints for the work of ministry
     const text = `
 Dear ${educatorName},
 
-Thank you for your interest in becoming an educator on Scrolls of Wisdom.
+Thank you for your interest in becoming an educator on ${branding.appName}.
 
 After careful review, we are unable to approve your educator application at this time.
 
@@ -1346,11 +1347,11 @@ ${reason ? `Additional Information: ${reason}` : ''}
 
 This is not the end of your journey. We encourage you to continue growing and consider reapplying in the future.
 
-For questions, contact: ${process.env.NEXT_PUBLIC_APP_URL}/contact
+For questions, contact: ${branding.appUrl}/contact
 
 May God bless your continued journey in faith.
 
-Scrolls of Wisdom - Your Biblical Knowledge Quest
+${branding.getEmailFooter()}
 In His time, He makes all things beautiful
     `;
 
@@ -1463,7 +1464,7 @@ In His time, He makes all things beautiful
       </p>
       
       <div style="text-align: center; margin: 25px 0;">
-        <a href="${dashboardUrl || `${process.env.NEXT_PUBLIC_APP_URL}/educator/dashboard`}" 
+        <a href="${dashboardUrl || `${branding.appUrl}/educator/dashboard`}" 
            style="display: inline-block; padding: 14px 32px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
           ✨ ${message.action}
         </a>
@@ -1474,7 +1475,7 @@ In His time, He makes all things beautiful
           <td style="background-color: #fef3c7; padding: 10px; border-radius: 4px;">
             <p style="margin: 0; color: #92400e; font-size: 14px;">
               <strong>Quick link to your educator dashboard:</strong><br>
-              <span style="color: #78350f; word-break: break-all;">${dashboardUrl || `${process.env.NEXT_PUBLIC_APP_URL}/educator/dashboard`}</span>
+              <span style="color: #78350f; word-break: break-all;">${dashboardUrl || `${branding.appUrl}/educator/dashboard`}</span>
             </p>
           </td>
         </tr>
@@ -1503,10 +1504,10 @@ In His time, He makes all things beautiful
 
     const footerContent = `
       <p style="margin: 5px 0; color: #78350f;">🙏 May the Lord bless your teaching ministry abundantly</p>
-      <p style="margin: 5px 0; color: #78350f;">© 2024 Scrolls of Wisdom · Empowering Biblical Education</p>
+      <p style="margin: 5px 0; color: #78350f;">${branding.getCopyrightText()}</p>
       <p style="margin: 5px 0; font-size: 12px; color: #78350f;">
         This gentle reminder was sent with love. 
-        <a href="${process.env.NEXT_PUBLIC_APP_URL}/unsubscribe" style="color: #92400e;">Manage your preferences</a>
+        <a href="${branding.appUrl}/unsubscribe" style="color: #92400e;">Manage your preferences</a>
       </p>
     `;
 
@@ -1536,15 +1537,15 @@ ${totalQuizzes > 0 ? `Your Ministry Impact:
 
 Remember, God has called you to this ministry by divine purpose. Your unique gifts are needed!
 
-${message.action}: ${dashboardUrl || `${process.env.NEXT_PUBLIC_APP_URL}/educator/dashboard`}
+${message.action}: ${dashboardUrl || `${branding.appUrl}/educator/dashboard`}
 
 "Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven." - Matthew 5:16
 
 This reminder was sent with love and encouragement.
-Manage preferences: ${process.env.NEXT_PUBLIC_APP_URL}/unsubscribe
+Manage preferences: ${branding.appUrl}/unsubscribe
 
 May the Lord bless your teaching ministry abundantly.
-Scrolls of Wisdom - Empowering Biblical Education
+${branding.appName} - Empowering Biblical Education
     `;
 
     return { subject, html, text };
@@ -1553,7 +1554,7 @@ Scrolls of Wisdom - Empowering Biblical Education
 
 // Password reset email function
 export async function sendPasswordResetEmail(email: string, userName: string, resetUrl: string) {
-  const subject = `🔑 Password Reset Request - Scrolls of Wisdom`;
+  const subject = `🔑 Password Reset Request - ${branding.appName}`;
   
   const html = `
     <!DOCTYPE html>
@@ -1618,7 +1619,7 @@ export async function sendPasswordResetEmail(email: string, userName: string, re
         <div class="content">
           <p>Dear ${userName || 'Seeker'},</p>
           
-          <p>We received a request to reset your password for your Scrolls of Wisdom account.</p>
+          <p>We received a request to reset your password for your ${branding.appName} account.</p>
           
           <p><strong>Click the button below to reset your password:</strong></p>
           
@@ -1640,7 +1641,7 @@ export async function sendPasswordResetEmail(email: string, userName: string, re
         </div>
         <div class="footer">
           <p>May your path be illuminated with divine wisdom</p>
-          <p>Scrolls of Wisdom - Your Biblical Knowledge Quest</p>
+          <p>${branding.getEmailFooter()}</p>
         </div>
       </div>
     </body>
@@ -1648,11 +1649,11 @@ export async function sendPasswordResetEmail(email: string, userName: string, re
   `;
   
   const text = `
-Password Reset Request - Scrolls of Wisdom
+Password Reset Request - ${branding.appName}
 
 Dear ${userName || 'Seeker'},
 
-We received a request to reset your password for your Scrolls of Wisdom account.
+We received a request to reset your password for your ${branding.appName} account.
 
 To reset your password, please visit the following link:
 ${resetUrl}
@@ -1663,7 +1664,7 @@ Important:
 - Your password will not change unless you click the link above
 
 May your path be illuminated with divine wisdom,
-Scrolls of Wisdom Team
+${branding.appName} Team
   `;
   
   return sendEmail({
