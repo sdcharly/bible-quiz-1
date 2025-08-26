@@ -9,6 +9,9 @@ export { PageHeader } from './layout/PageHeader';
 export { PageContainer } from './layout/PageContainer';
 export { Section } from './layout/Section';
 
+// Navigation components
+export { TabNavigation } from './navigation/TabNavigation';
+
 // Feedback components
 export { LoadingState } from './feedback/LoadingState';
 export { EmptyState } from './feedback/EmptyState';

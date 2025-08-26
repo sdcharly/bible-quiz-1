@@ -2,18 +2,18 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useWebSocket } from "@/lib/websocket";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   RefreshCw, AlertCircle, CheckCircle, 
   Loader2, X, BookOpen, ArrowLeft, Languages,
   ChevronLeft, ChevronRight, Edit2, Save, Eye, EyeOff,
-  Grid3x3, Hash, Target, Brain, BarChart3, Shield
+  Grid3x3, Hash, Target, Brain, BarChart3, Shield, Shuffle
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -65,6 +65,8 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
   const [saving, setSaving] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [viewMode, setViewMode] = useState<"single" | "grid">("single");
+  const [shuffling, setShuffling] = useState(false);
+  const [shuffleAllLoading, setShuffleAllLoading] = useState(false);
   
   // Validation state
   const [validationResults, setValidationResults] = useState<Record<string, QuestionValidationResult>>({});
@@ -164,45 +166,46 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
     }
   };
 
-  // WebSocket for replace question updates
-  useWebSocket('quiz_status', (message) => {
-    const data = message.data as {
-      jobId?: string;
-      quizId?: string;
-      questionId?: string;
-      status?: string;
-      progress?: number;
-      error?: string;
-      message?: string;
-    };
+  // WebSocket for replace question updates - DISABLED
+  // WebSocket server not currently implemented, using polling instead
+  // useWebSocket('quiz_status', (message) => {
+  //   const data = message.data as {
+  //     jobId?: string;
+  //     quizId?: string;
+  //     questionId?: string;
+  //     status?: string;
+  //     progress?: number;
+  //     error?: string;
+  //     message?: string;
+  //   };
 
-    if (data.jobId !== replaceJobId || isCompletingRef.current) {
-      return;
-    }
+  //   if (data.jobId !== replaceJobId || isCompletingRef.current) {
+  //     return;
+  //   }
 
-    logger.debug('Received quiz status update:', data);
+  //   logger.debug('Received quiz status update:', data);
 
-    const elapsedSeconds = startTimeRef.current 
-      ? Math.floor((Date.now() - startTimeRef.current) / 1000)
-      : 0;
+  //   const elapsedSeconds = startTimeRef.current 
+  //     ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+  //     : 0;
 
-    let progressMessage = data.message || "Generating replacement question...";
+  //   let progressMessage = data.message || "Generating replacement question...";
     
-    if (data.status === 'processing') {
-      if (elapsedSeconds > 120) {
-        progressMessage = "AI is studying your biblical texts to create the perfect question...";
-      } else if (elapsedSeconds > 60) {
-        progressMessage = "Complex theological questions take time to craft perfectly...";
-      } else if (elapsedSeconds > 30) {
-        progressMessage = "AI is carefully analyzing biblical content...";
-      }
-    }
+  //   if (data.status === 'processing') {
+  //     if (elapsedSeconds > 120) {
+  //       progressMessage = "AI is studying your biblical texts to create the perfect question...";
+  //     } else if (elapsedSeconds > 60) {
+  //       progressMessage = "Complex theological questions take time to craft perfectly...";
+  //     } else if (elapsedSeconds > 30) {
+  //       progressMessage = "AI is carefully analyzing biblical content...";
+  //     }
+  //   }
 
-    setReplaceProgress(data.progress || Math.min(5 + elapsedSeconds, 90));
-    setReplaceMessage(progressMessage);
+  //   setReplaceProgress(data.progress || Math.min(5 + elapsedSeconds, 90));
+  //   setReplaceMessage(progressMessage);
 
-    // WebSocket handlers removed - using synchronous endpoint
-  }, [replaceJobId]);
+  //   // WebSocket handlers removed - using synchronous endpoint
+  // }, [replaceJobId]);
 
   // Removed WebSocket completion handlers - now integrated into main function
 
@@ -415,6 +418,89 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
     setEditedQuestion(null);
   };
 
+  // Shuffle options for current question
+  const handleShuffleOptions = async () => {
+    if (!quiz || shuffling) return;
+    const question = quiz.questions[currentQuestionIndex];
+    
+    setShuffling(true);
+    try {
+      const response = await fetch(
+        `/api/educator/quiz/${quizId}/question/${question.id}/shuffle-options`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update local state with shuffled options
+        setQuiz(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            questions: prev.questions.map(q => 
+              q.id === question.id 
+                ? { ...q, options: data.options }
+                : q
+            )
+          };
+        });
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to shuffle options");
+      }
+    } catch (error) {
+      logger.error("Error shuffling options:", error);
+      alert("Error shuffling options");
+    } finally {
+      setShuffling(false);
+    }
+  };
+
+  // Shuffle all questions' options
+  const handleShuffleAllOptions = async () => {
+    if (!quiz || shuffleAllLoading) return;
+    
+    if (!confirm("This will randomly shuffle the options for ALL questions in this quiz. Continue?")) {
+      return;
+    }
+    
+    setShuffleAllLoading(true);
+    try {
+      const response = await fetch(
+        `/api/educator/quiz/${quizId}/shuffle-all-options`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Refresh quiz data to get updated options
+        await fetchQuizDetails();
+        
+        // Show distribution improvement
+        if (data.distributionAfter) {
+          const positions = data.distributionAfter.positionCounts;
+          alert(`Options shuffled successfully!\n\nCorrect answer distribution:\nA: ${positions.A} questions\nB: ${positions.B} questions\nC: ${positions.C} questions\nD: ${positions.D} questions`);
+        }
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to shuffle options");
+      }
+    } catch (error) {
+      logger.error("Error shuffling all options:", error);
+      alert("Error shuffling all options");
+    } finally {
+      setShuffleAllLoading(false);
+    }
+  };
+
   const handlePublishQuiz = async () => {
     if (!quiz) return;
 
@@ -523,6 +609,16 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleShuffleAllOptions}
+                disabled={shuffleAllLoading || quiz.status === "published"}
+                title="Shuffle options for all questions to improve distribution"
+              >
+                <Shuffle className="h-4 w-4 mr-2" />
+                {shuffleAllLoading ? "Shuffling All..." : "Shuffle All"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setViewMode("single")}
               >
                 <Eye className="h-4 w-4 mr-2" />
@@ -613,6 +709,16 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleShuffleAllOptions}
+                disabled={shuffleAllLoading || quiz.status === "published"}
+                title="Shuffle options for all questions to improve distribution"
+              >
+                <Shuffle className="h-4 w-4 mr-2" />
+                {shuffleAllLoading ? "Shuffling All..." : "Shuffle All"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setViewMode("grid")}
               >
                 <Grid3x3 className="h-4 w-4 mr-2" />
@@ -667,25 +773,27 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
             {/* Compact Question Navigation Dots */}
             <div className="flex gap-1">
             {quiz.questions.map((_, index) => (
-              <button
+              <Button
                 key={index}
+                variant={index === currentQuestionIndex ? "default" : "outline"}
+                size="sm"
                 onClick={() => goToQuestion(index)}
-                className={`w-7 h-7 rounded text-xs font-medium transition-all relative ${
+                className={`w-7 h-7 p-0 text-xs font-medium transition-all relative ${
                   index === currentQuestionIndex
-                    ? 'bg-amber-600 text-white shadow scale-105'
-                    : 'bg-white hover:bg-amber-50 text-gray-600 border border-gray-300'
+                    ? 'bg-amber-600 text-white shadow scale-105 hover:bg-amber-700'
+                    : 'bg-white hover:bg-amber-50 text-gray-600 border-gray-300'
                 }`}
               >
                 {index + 1}
                 {validationResults[quiz.questions[index].id] && (
                   <div className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${
-                    validationResults[quiz.questions[index].id].score >= 90 ? 'bg-green-500' :
+                    validationResults[quiz.questions[index].id].score >= 90 ? 'bg-amber-500' :
                     validationResults[quiz.questions[index].id].score >= 75 ? 'bg-yellow-500' :
                     validationResults[quiz.questions[index].id].score >= 60 ? 'bg-orange-500' :
-                    'bg-red-500'
+                    'bg-orange-700'
                   }`} />
                 )}
-              </button>
+              </Button>
             ))}
             </div>
           </div>
@@ -742,6 +850,17 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
                           >
                             <Edit2 className="h-4 w-4 mr-1" />
                             Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleShuffleOptions}
+                            disabled={shuffling}
+                            className="border-amber-200 hover:bg-amber-50"
+                            title="Randomly reorder answer options"
+                          >
+                            <Shuffle className="h-4 w-4 mr-1" />
+                            {shuffling ? "Shuffling..." : "Shuffle"}
                           </Button>
                           <Button
                             size="sm"
@@ -840,29 +959,35 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
               {isEditing && editedQuestion && (
                 <div className="mb-4 p-3 bg-amber-50 rounded-lg">
                   <Label className="text-sm text-amber-900">Correct Answer</Label>
-                  <select
+                  <Select
                     value={editedQuestion.correctAnswer}
-                    onChange={(e) => setEditedQuestion({ ...editedQuestion, correctAnswer: e.target.value })}
-                    className="mt-1 w-full px-3 py-1.5 text-sm border rounded-lg"
+                    onValueChange={(value) => setEditedQuestion({ ...editedQuestion, correctAnswer: value })}
                   >
-                    {editedQuestion.options.map((opt, index) => (
-                      <option key={opt.id} value={opt.id}>
-                        Option {String.fromCharCode(65 + index)}: {opt.text.substring(0, 50)}...
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="mt-1 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {editedQuestion.options.map((opt, index) => (
+                        <SelectItem key={opt.id} value={opt.id}>
+                          Option {String.fromCharCode(65 + index)}: {opt.text.substring(0, 50)}...
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
               {/* Explanation */}
               <div className="border-t pt-3">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowExplanation(!showExplanation)}
-                  className="flex items-center gap-2 text-amber-600 hover:text-amber-700 text-sm font-medium"
+                  className="flex items-center gap-2 text-amber-600 hover:text-amber-700 text-sm font-medium p-0 h-auto"
                 >
                   {showExplanation ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                   {showExplanation ? "Hide" : "Show"} Explanation
-                </button>
+                </Button>
                 
                 {showExplanation && (
                   <div className="mt-3 p-3 bg-amber-50 rounded-lg">
@@ -915,15 +1040,19 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
                     </div>
                     <div>
                       <Label>Difficulty</Label>
-                      <select
+                      <Select
                         value={editedQuestion.difficulty || ''}
-                        onChange={(e) => setEditedQuestion({ ...editedQuestion, difficulty: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
+                        onValueChange={(value) => setEditedQuestion({ ...editedQuestion, difficulty: value })}
                       >
-                        <option value="easy">Easy</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="hard">Hard</option>
-                      </select>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="easy">Easy</SelectItem>
+                          <SelectItem value="intermediate">Intermediate</SelectItem>
+                          <SelectItem value="hard">Hard</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>

@@ -2,11 +2,16 @@
 
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  PageHeader,
+  PageContainer,
+  Section,
+  LoadingState
+} from "@/components/educator-v2";
 import {
-  ArrowLeft,
   BarChart3,
   Trophy,
   Clock,
@@ -114,75 +119,64 @@ export default function OptimizedAnalyticsPage() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 90) return "text-green-600";
-    if (score >= 80) return "text-blue-600";
+    if (score >= 90) return "text-amber-600";
+    if (score >= 80) return "text-amber-500";
     if (score >= 70) return "text-yellow-600";
     if (score >= 60) return "text-orange-600";
-    return "text-red-600";
+    return "text-orange-700";
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading analytics...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState fullPage text="Loading analytics..." />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-6">
-            <div className="flex items-center">
-              <Link href="/educator/dashboard">
-                <Button variant="ghost" size="sm" className="mr-4">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  Performance Analytics
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  Last updated: {lastUpdated.toLocaleTimeString()}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value as "week" | "month" | "all")}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700"
-              >
-                <option value="week">Last Week</option>
-                <option value="month">Last Month</option>
-                <option value="all">All Time</option>
-              </select>
-              <Button 
-                variant="outline" 
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-              <Button variant="outline" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-            </div>
+    <>
+      <PageHeader
+        title="Performance Analytics"
+        subtitle={`Last updated: ${lastUpdated.toLocaleTimeString()}`}
+        icon={BarChart3}
+        breadcrumbs={[
+          { label: 'Educator', href: '/educator/dashboard' },
+          { label: 'Analytics' }
+        ]}
+        actions={
+          <div className="flex items-center gap-3">
+            <Select value={timeRange} onValueChange={(value) => setTimeRange(value as "week" | "month" | "all")}>
+              <SelectTrigger className="w-[140px] border-amber-200 dark:border-amber-600">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="week">Last Week</SelectItem>
+                <SelectItem value="month">Last Month</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="border-amber-200 hover:bg-amber-50"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleExport}
+              className="border-amber-200 hover:bg-amber-50"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <PageContainer>
+        <Section transparent>
+          {/* Key Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -205,14 +199,14 @@ export default function OptimizedAnalyticsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Pass Rate</p>
-                  <p className="text-3xl font-bold text-green-600">
+                  <p className="text-3xl font-bold text-amber-600">
                     {overallStats?.passRate.toFixed(0)}%
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     ≥70% score
                   </p>
                 </div>
-                <CheckCircle className="h-10 w-10 text-green-600 opacity-20" />
+                <CheckCircle className="h-10 w-10 text-amber-600 opacity-20" />
               </div>
             </CardContent>
           </Card>
@@ -222,14 +216,14 @@ export default function OptimizedAnalyticsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Completion Rate</p>
-                  <p className="text-3xl font-bold text-blue-600">
+                  <p className="text-3xl font-bold text-amber-600">
                     {overallStats?.completionRate.toFixed(0)}%
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Quizzes finished
                   </p>
                 </div>
-                <Target className="h-10 w-10 text-blue-600 opacity-20" />
+                <Target className="h-10 w-10 text-amber-600 opacity-20" />
               </div>
             </CardContent>
           </Card>
@@ -239,26 +233,27 @@ export default function OptimizedAnalyticsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total Attempts</p>
-                  <p className="text-3xl font-bold text-purple-600">
+                  <p className="text-3xl font-bold text-amber-700">
                     {overallStats?.totalAttempts || 0}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     By {overallStats?.totalStudents || 0} students
                   </p>
                 </div>
-                <Users className="h-10 w-10 text-purple-600 opacity-20" />
+                <Users className="h-10 w-10 text-amber-700 opacity-20" />
               </div>
             </CardContent>
           </Card>
-        </div>
+          </div>
 
-        {/* Tabs */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+          {/* Tabs */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 border border-amber-100">
           <div className="border-b dark:border-gray-700">
             <div className="flex">
               {["overview", "quizzes", "students", "topics"].map((tab) => (
-                <button
+                <Button
                   key={tab}
+                  variant="ghost"
                   onClick={() => {
                     setActiveTab(tab as "overview" | "quizzes" | "students" | "topics");
                     if (tab !== "overview") {
@@ -266,25 +261,23 @@ export default function OptimizedAnalyticsPage() {
                       fetchAnalytics();
                     }
                   }}
-                  className={`px-6 py-3 font-medium capitalize ${
+                  className={`px-6 py-3 font-medium capitalize rounded-none ${
                     activeTab === tab
-                      ? "border-b-2 border-blue-500 text-blue-600"
-                      : "text-gray-600 dark:text-gray-400"
+                      ? "border-b-2 border-amber-500 text-amber-600 hover:text-amber-700"
+                      : "text-gray-600 dark:text-gray-400 hover:text-amber-600 hover:bg-transparent"
                   }`}
                 >
                   {tab}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Tab Content with Code Splitting */}
-        <Suspense fallback={
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        }>
+          {/* Tab Content with Code Splitting */}
+          <Suspense fallback={
+            <LoadingState inline size="md" text="Loading..." />
+          }>
           <>
             {activeTab === "overview" && analyticsData.timeline && (
               <div className="space-y-6">
@@ -319,8 +312,9 @@ export default function OptimizedAnalyticsPage() {
               <TopicAnalysis topics={analyticsData.topics as any[]} />
             )}
           </>
-        </Suspense>
-      </div>
-    </div>
+          </Suspense>
+        </Section>
+      </PageContainer>
+    </>
   );
 }

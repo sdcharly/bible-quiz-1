@@ -13,7 +13,8 @@ export interface QuestionValidationResult {
 }
 
 export interface ValidationIssue {
-  type: 'missing_entity' | 'weak_connection' | 'ambiguous_term' | 'no_entities' | 'low_confidence';
+  type: 'missing_entity' | 'weak_connection' | 'ambiguous_term' | 'no_entities' | 'low_confidence' | 
+        'theological_error' | 'context_mismatch' | 'poor_options' | 'weak_explanation';
   severity: 'low' | 'medium' | 'high';
   message: string;
   entity?: string;
@@ -33,6 +34,14 @@ export interface QuestionToValidate {
 }
 
 export class QuestionValidator {
+  /**
+   * Common protestant theological issues to check
+   */
+  private static readonly PROTESTANT_ISSUES = {
+    catholicTerms: ['purgatory', 'pope', 'papacy', 'transubstantiation', 'immaculate conception', 'rosary', 'hail mary', 'saints intercession'],
+    orthodoxTerms: ['theosis', 'energies', 'icons veneration', 'hesychasm'],
+    protestantPrinciples: ['sola scriptura', 'sola fide', 'sola gratia', 'solus christus', 'soli deo gloria']
+  };
   /**
    * Validate a single quiz question using AI for intelligent scoring
    */
@@ -287,45 +296,30 @@ export class QuestionValidator {
   private static async validateWithAI(question: QuestionToValidate): Promise<QuestionValidationResult> {
     const model = process.env.OPENAI_MODEL || "gpt-4o";
     
-    const prompt = `You are an expert biblical quiz validator. Analyze this quiz question and provide a validation score.
+    // Build concise context string
+    const contextInfo = [
+      question.book && `Book: ${question.book}`,
+      question.chapter && `Ch: ${question.chapter}`,
+      question.topic && `Topic: ${question.topic}`
+    ].filter(Boolean).join(' | ');
+    
+    const prompt = `Protestant theology validator. Analyze this quiz question.
 
-Question Details:
-- Question: ${question.questionText}
-- Options: ${question.options.map((opt, i) => `${i+1}. ${opt.text}`).join('\n')}
-- Correct Answer: Option ${question.options.findIndex(opt => opt.id === question.correctAnswer) + 1}
-${question.explanation ? `- Explanation: ${question.explanation}` : ''}
-${question.book ? `- Biblical Book: ${question.book}` : ''}
-${question.chapter ? `- Chapter: ${question.chapter}` : ''}
-${question.topic ? `- Topic: ${question.topic}` : ''}
-${question.difficulty ? `- Difficulty: ${question.difficulty}` : ''}
+Question: ${question.questionText}
+Options: ${question.options.map((opt, i) => `${String.fromCharCode(65+i)}: ${opt.text}`).join(', ')}
+Correct: ${String.fromCharCode(65 + question.options.findIndex(opt => opt.id === question.correctAnswer))}
+${question.book ? `Book: ${question.book}` : ''}${question.chapter ? ` Chapter: ${question.chapter}` : ''}
+${question.topic ? `Topic: ${question.topic}` : ''}
 
-Evaluate the following aspects:
-1. Biblical Accuracy: Is the content biblically accurate?
-2. Clarity: Is the question clear and unambiguous?
-3. Answer Quality: Are the wrong options plausible but clearly incorrect?
-4. Educational Value: Does it effectively test biblical knowledge?
-5. Context Alignment: Does it match the specified book/chapter/topic if provided?
+Evaluate for Protestant theology (no Catholic/Orthodox doctrine), biblical accuracy, and educational value.
 
-Provide your response in JSON format:
+Return ONLY valid JSON:
 {
-  "score": <number 0-100>,
-  "isValid": <boolean>,
-  "issues": [
-    {
-      "type": "missing_entity" | "weak_connection" | "ambiguous_term" | "no_entities" | "low_confidence",
-      "severity": "low" | "medium" | "high",
-      "message": "<specific issue description>"
-    }
-  ],
-  "suggestions": ["<improvement suggestion 1>", "<improvement suggestion 2>"],
-  "strengths": ["<what's good about this question>"]
-}
-
-Be constructive but honest. Score guidelines:
-- 90-100: Excellent question, biblically accurate, clear, educational
-- 75-89: Good question with minor improvements possible
-- 60-74: Acceptable but needs some work
-- Below 60: Significant issues that should be addressed`;
+  "score": 0-100,
+  "isValid": boolean,
+  "issues": [{"type": "string", "severity": "low|medium|high", "message": "string"}],
+  "suggestions": ["improvement 1", "improvement 2"]
+}`;
 
     try {
       const response = await generateText({
@@ -335,31 +329,182 @@ Be constructive but honest. Score guidelines:
         maxRetries: 1,
       });
 
-      // Parse the AI response
-      const jsonMatch = response.text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No valid JSON found in AI response");
+      // Parse the AI response - handle potential JSON errors
+      let aiValidation: any;
+      try {
+        // First try to extract JSON from the response
+        const jsonMatch = response.text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error("No JSON structure found");
+        }
+        
+        // Clean up common JSON issues
+        let jsonString = jsonMatch[0];
+        
+        // Remove trailing commas before } or ]
+        jsonString = jsonString.replace(/,\s*([}\]])/g, '$1');
+        
+        // Fix unescaped quotes in strings (skip this for now as it's complex)
+        // jsonString = jsonString.replace(/(":\s*"[^"]*)'([^"]*")/g, "$1\\'$2");
+        
+        // Remove any control characters
+        jsonString = jsonString.replace(/[\x00-\x1F\x7F]/g, '');
+        
+        aiValidation = JSON.parse(jsonString);
+      } catch (parseError) {
+        logger.warn("Failed to parse AI JSON, using fallback structure:", parseError);
+        
+        // Try to extract key information using regex as fallback
+        const scoreMatch = response.text.match(/"score"\s*:\s*(\d+)/);
+        const score = scoreMatch ? parseInt(scoreMatch[1]) : 75;
+        
+        // Create a basic validation response
+        aiValidation = {
+          score,
+          isValid: score >= 60,
+          issues: [],
+          suggestions: ["AI validation completed with basic scoring"],
+          optionFixes: {},
+          explanationFix: null
+        };
+        
+        // Try to extract issues
+        const issueMatches = response.text.matchAll(/"message"\s*:\s*"([^"]*)"/g);
+        for (const match of issueMatches) {
+          aiValidation.issues.push({
+            type: 'low_confidence',
+            severity: 'medium',
+            message: match[1]
+          });
+        }
+      }
+      
+      // Build comprehensive suggestions including option and explanation fixes
+      const allSuggestions = [
+        ...(aiValidation.suggestions || [])
+      ];
+      
+      // Add option-specific fixes if provided
+      if (aiValidation.optionFixes && typeof aiValidation.optionFixes === 'object') {
+        Object.entries(aiValidation.optionFixes).forEach(([optionLetter, fix]) => {
+          if (fix && typeof fix === 'string') {
+            allSuggestions.push(`Option ${optionLetter}: ${fix}`);
+          }
+        });
+      }
+      
+      // Add explanation fix if provided
+      if (aiValidation.explanationFix && typeof aiValidation.explanationFix === 'string') {
+        allSuggestions.push(`Explanation: ${aiValidation.explanationFix}`);
       }
 
-      const aiValidation = JSON.parse(jsonMatch[0]);
-      
-      // Add strengths to suggestions if they exist
-      const allSuggestions = [
-        ...(aiValidation.suggestions || []),
-        ...(aiValidation.strengths || []).map((s: string) => `✓ ${s}`)
-      ];
+      // Ensure issues have proper structure
+      const validatedIssues = (Array.isArray(aiValidation.issues) ? aiValidation.issues : []).map((issue: any) => ({
+        type: ['missing_entity', 'weak_connection', 'ambiguous_term', 'no_entities', 'low_confidence',
+               'theological_error', 'context_mismatch', 'poor_options', 'weak_explanation'].includes(issue.type) 
+               ? issue.type : 'low_confidence',
+        severity: ['low', 'medium', 'high'].includes(issue.severity) ? issue.severity : 'medium',
+        message: String(issue.message || 'Issue detected')
+      }));
 
       return {
         isValid: aiValidation.isValid !== false && aiValidation.score >= 60,
-        score: Math.max(0, Math.min(100, aiValidation.score || 75)),
-        issues: aiValidation.issues || [],
+        score: Math.max(0, Math.min(100, Number(aiValidation.score) || 75)),
+        issues: validatedIssues,
         validEntities: [], // Not using entity validation with AI
         invalidEntities: [],
-        suggestions: allSuggestions
+        suggestions: allSuggestions.filter(s => s && typeof s === 'string' && s.length > 0)
       };
     } catch (error) {
-      logger.error("Error parsing AI validation response:", error);
+      logger.error("Error in AI validation:", error);
       throw error;
     }
+  }
+
+  /**
+   * Perform deep theological validation for critical review
+   */
+  static async performDeepValidation(question: QuestionToValidate): Promise<{
+    theologicalScore: number;
+    contextualScore: number;
+    pedagogicalScore: number;
+    detailedSuggestions: {
+      question: string[];
+      options: Record<string, string>;
+      explanation: string[];
+    };
+  }> {
+    const model = process.env.OPENAI_MODEL || "gpt-4o";
+    
+    const prompt = `Deep theological analysis. Protestant perspective ONLY.
+
+Question: ${question.questionText}
+Book/Chapter: ${question.book || 'Not specified'} ${question.chapter || ''}
+Topic: ${question.topic || 'Not specified'}
+
+Analyze:
+1. Theological accuracy (Protestant reformed theology)
+2. Biblical context alignment
+3. Pedagogical effectiveness
+
+Return JSON:
+{
+  "theologicalScore": 85,
+  "contextualScore": 90,
+  "pedagogicalScore": 80,
+  "detailedSuggestions": {
+    "question": ["Specific improvement 1", "Specific improvement 2"],
+    "options": {"A": "Make more distinct", "B": "Better distractor"},
+    "explanation": ["Add verse", "Clarify doctrine"]
+  }
+}`;
+
+    try {
+      const response = await generateText({
+        model: openai(model),
+        prompt,
+        temperature: 0.2,
+        maxRetries: 1,
+      });
+
+      const jsonMatch = response.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No valid JSON in deep validation");
+      }
+
+      return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      logger.error("Deep validation failed:", error);
+      return {
+        theologicalScore: 0,
+        contextualScore: 0,
+        pedagogicalScore: 0,
+        detailedSuggestions: {
+          question: ["Unable to perform deep validation"],
+          options: {},
+          explanation: []
+        }
+      };
+    }
+  }
+
+  /**
+   * Quick theological term check
+   */
+  static quickTheologyCheck(text: string): { hasIssues: boolean; problematicTerms: string[] } {
+    const lowerText = text.toLowerCase();
+    const problematicTerms: string[] = [];
+    
+    // Check for Catholic/Orthodox terms
+    [...this.PROTESTANT_ISSUES.catholicTerms, ...this.PROTESTANT_ISSUES.orthodoxTerms].forEach(term => {
+      if (lowerText.includes(term.toLowerCase())) {
+        problematicTerms.push(term);
+      }
+    });
+    
+    return {
+      hasIssues: problematicTerms.length > 0,
+      problematicTerms
+    };
   }
 }

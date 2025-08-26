@@ -28,7 +28,7 @@ export const Section: FC<SectionProps> = ({
 }) => {
   if (transparent) {
     return (
-      <div className={cn('space-y-4', className)}>
+      <div className={cn('space-y-4 mb-6', className)}>
         {(title || actions) && (
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             {title && (
@@ -55,7 +55,7 @@ export const Section: FC<SectionProps> = ({
   }
 
   return (
-    <Card className={cn('border-amber-100 shadow-sm', className)}>
+    <Card className={cn('border-amber-100 shadow-sm mb-6', className)}>
       {(title || actions) && (
         <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

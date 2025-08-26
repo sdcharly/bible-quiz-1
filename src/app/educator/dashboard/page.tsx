@@ -8,6 +8,14 @@ import { isEducator } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateInTimezone } from "@/lib/timezone";
+import { logger } from "@/lib/logger";
+import {
+  PageHeader,
+  PageContainer,
+  Section,
+  LoadingState,
+  EmptyState
+} from "@/components/educator-v2";
 import {
   DocumentTextIcon,
   ChartBarIcon,
@@ -115,7 +123,7 @@ export default function EducatorDashboard() {
         }));
       }
     } catch (error) {
-      console.error('Error fetching quizzes:', error);
+      logger.error('Error fetching quizzes:', error);
     }
   };
 
@@ -148,7 +156,7 @@ export default function EducatorDashboard() {
         }));
       }
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      logger.error('Error fetching stats:', error);
     }
   };
 
@@ -165,14 +173,14 @@ export default function EducatorDashboard() {
         });
       }
     } catch (error) {
-      console.error('Error fetching performance data:', error);
+      logger.error('Error fetching performance data:', error);
     }
   };
 
   const getStatusBadge = (status: string) => {
     if (status === 'published') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+        <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
           <CheckCircleIcon className="h-3 w-3" />
           Active
         </span>
@@ -212,7 +220,7 @@ export default function EducatorDashboard() {
         alert(`Error: ${error.error}`);
       }
     } catch (error) {
-      console.error('Error deleting quiz:', error);
+      logger.error('Error deleting quiz:', error);
       alert('Failed to delete quiz');
     }
   };
@@ -243,66 +251,56 @@ export default function EducatorDashboard() {
         alert(`Error: ${error.error}`);
       }
     } catch (error) {
-      console.error('Error toggling archive status:', error);
+      logger.error('Error toggling archive status:', error);
       alert('Failed to update quiz status');
     }
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
+    if (score >= 80) return "text-amber-600";
     if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+    return "text-orange-600";
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
-      </div>
-    );
+    return <LoadingState fullPage text="Loading your sacred dashboard..." />;
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50 dark:from-gray-900 dark:to-gray-800">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow-md border-b border-amber-100 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 sm:py-6 gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                Sacred Guide Dashboard
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Welcome back, {user?.name}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-              <Link href="/educator/groups" className="flex-1 sm:flex-none">
-                <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50">
-                  <UserGroupIcon className="h-4 w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Manage </span>Groups
-                </Button>
-              </Link>
-              <Link href="/educator/students" className="flex-1 sm:flex-none">
-                <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50">
-                  <UserGroupIcon className="h-4 w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Guide </span>Disciples
-                </Button>
-              </Link>
-              <Link href="/educator/quiz/create" className="flex-1 sm:flex-none">
-                <Button size="sm" className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white">
-                  <SparklesIcon className="h-4 w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Create </span>Quest
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+  const headerActions = (
+    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+      <Link href="/educator/groups" className="flex-1 sm:flex-none">
+        <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50">
+          <UserGroupIcon className="h-4 w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Manage </span>Groups
+        </Button>
+      </Link>
+      <Link href="/educator/students" className="flex-1 sm:flex-none">
+        <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50">
+          <UserGroupIcon className="h-4 w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Guide </span>Disciples
+        </Button>
+      </Link>
+      <Link href="/educator/quiz/create" className="flex-1 sm:flex-none">
+        <Button size="sm" className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white">
+          <SparklesIcon className="h-4 w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Create </span>Quest
+        </Button>
+      </Link>
+    </div>
+  );
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+  return (
+    <PageContainer className="bg-gradient-to-b from-amber-50 to-orange-50 dark:from-gray-900 dark:to-gray-800">
+      <PageHeader
+        title="Sacred Guide Dashboard"
+        subtitle={`Welcome back, ${user?.name}`}
+        actions={headerActions}
+        className="border-b border-amber-100 dark:border-gray-700"
+      />
+
+      <div className="space-y-4 sm:space-y-6">
         {/* Key Performance Indicators with Graphs */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Performance Overview Card */}
           <Card className="lg:col-span-2 border-amber-100 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
@@ -329,7 +327,7 @@ export default function EducatorDashboard() {
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Score</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl sm:text-3xl font-bold text-green-600">
+                  <div className="text-xl sm:text-3xl font-bold text-amber-600">
                     {performanceData.passRate.toFixed(0)}%
                   </div>
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Enlightenment</p>
@@ -360,7 +358,7 @@ export default function EducatorDashboard() {
                           {avgScore > 0 && (
                             <div 
                               className={`absolute inset-x-0 bottom-0 rounded-t ${
-                                avgScore >= 70 ? 'bg-green-500' : 'bg-orange-500'
+                                avgScore >= 70 ? 'bg-amber-500' : 'bg-orange-500'
                               }`}
                               style={{ height: `${avgScore}%` }}
                             />
@@ -387,67 +385,67 @@ export default function EducatorDashboard() {
             </CardHeader>
             <CardContent className="space-y-3 sm:space-y-4 pt-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <BookOpenSolid className="h-6 sm:h-8 w-6 sm:w-8 text-amber-600 opacity-60" />
-                  <div>
-                    <p className="text-xl sm:text-2xl font-bold">{stats.totalQuizzes}</p>
-                    <p className="text-xs text-gray-600">Total Quests</p>
+                <div className="flex items-center gap-3">
+                  <BookOpenSolid className="h-7 w-7 text-amber-600 opacity-60 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stats.totalQuizzes}</p>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Total Quests</p>
                   </div>
                 </div>
-                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">
                   {stats.activeQuizzes} active
                 </span>
               </div>
               
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <UserGroupIcon className="h-6 sm:h-8 w-6 sm:w-8 text-orange-600 opacity-60" />
-                  <div>
-                    <p className="text-xl sm:text-2xl font-bold">{stats.totalStudents}</p>
-                    <p className="text-xs text-gray-600">Disciples</p>
+                <div className="flex items-center gap-3">
+                  <UserGroupIcon className="h-7 w-7 text-amber-600 opacity-60 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stats.totalStudents}</p>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Disciples</p>
                   </div>
                 </div>
-                {stats.totalStudents > 0 && (
-                  <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
-                )}
+                {stats.totalStudents > 0 ? (
+                  <ArrowTrendingUpIcon className="h-4 w-4 text-amber-500" />
+                ) : null}
               </div>
               
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <DocumentTextIcon className="h-6 sm:h-8 w-6 sm:w-8 text-amber-700 opacity-60" />
-                  <div>
-                    <p className="text-xl sm:text-2xl font-bold">{stats.totalDocuments}</p>
-                    <p className="text-xs text-gray-600">Sacred Scrolls</p>
+                <div className="flex items-center gap-3">
+                  <DocumentTextIcon className="h-7 w-7 text-amber-600 opacity-60 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stats.totalDocuments}</p>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Sacred Scrolls</p>
                   </div>
                 </div>
               </div>
               
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <UserGroupIcon className="h-6 sm:h-8 w-6 sm:w-8 text-purple-600 opacity-60" />
-                  <div>
-                    <p className="text-xl sm:text-2xl font-bold">{stats.totalGroups}</p>
-                    <p className="text-xs text-gray-600">Student Groups</p>
+                <div className="flex items-center gap-3">
+                  <UserGroupIcon className="h-7 w-7 text-amber-600 opacity-60 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stats.totalGroups}</p>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Student Groups</p>
                   </div>
                 </div>
-                {stats.totalGroups > 0 && (
+                {stats.totalGroups > 0 ? (
                   <Link href="/educator/groups">
-                    <ChevronRightIcon className="h-4 w-4 text-purple-600 hover:text-purple-700" />
+                    <ChevronRightIcon className="h-4 w-4 text-amber-600 hover:text-amber-700" />
                   </Link>
-                )}
+                ) : null}
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Action Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           <Link href="/educator/groups" className="block">
-            <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-purple-500 bg-gradient-to-br from-white to-purple-50 dark:from-gray-800 dark:to-purple-900/20">
+            <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-amber-500 bg-gradient-to-br from-white to-amber-50 dark:from-gray-800 dark:to-amber-900/20">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <UserGroupIcon className="h-6 sm:h-8 w-6 sm:w-8 text-purple-600 mb-2" />
+                    <UserGroupIcon className="h-6 sm:h-8 w-6 sm:w-8 text-amber-600 mb-2" />
                     <h3 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">Student Groups</h3>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
                       Organize disciples
@@ -460,11 +458,11 @@ export default function EducatorDashboard() {
           </Link>
 
           <Link href="/educator/analytics" className="block">
-            <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-amber-500 bg-gradient-to-br from-white to-amber-50 dark:from-gray-800 dark:to-amber-900/20">
+            <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-orange-500 bg-gradient-to-br from-white to-orange-50 dark:from-gray-800 dark:to-orange-900/20">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <ChartBarIcon className="h-6 sm:h-8 w-6 sm:w-8 text-amber-600 mb-2" />
+                    <ChartBarIcon className="h-6 sm:h-8 w-6 sm:w-8 text-orange-600 mb-2" />
                     <h3 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">Wisdom Analytics</h3>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
                       View insights
@@ -477,11 +475,11 @@ export default function EducatorDashboard() {
           </Link>
 
           <Link href="/educator/documents/upload" className="block">
-            <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-orange-500 bg-gradient-to-br from-white to-orange-50 dark:from-gray-800 dark:to-orange-900/20">
+            <Card className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-amber-700 bg-gradient-to-br from-white to-amber-50 dark:from-gray-800 dark:to-amber-900/20">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <ArrowUpTrayIcon className="h-6 sm:h-8 w-6 sm:w-8 text-orange-600 mb-2" />
+                    <ArrowUpTrayIcon className="h-6 sm:h-8 w-6 sm:w-8 text-amber-700 mb-2" />
                     <h3 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">Upload Scroll</h3>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
                       Add materials
@@ -498,7 +496,7 @@ export default function EducatorDashboard() {
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <UserGroupIcon className="h-6 sm:h-8 w-6 sm:w-8 text-green-600 mb-2" />
+                    <UserGroupIcon className="h-6 sm:h-8 w-6 sm:w-8 text-amber-600 mb-2" />
                     <h3 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">Disciples</h3>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
                       Invite & guide
@@ -512,154 +510,145 @@ export default function EducatorDashboard() {
         </div>
 
         {/* Recent Quizzes */}
-        <Card className="border-amber-100 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <div>
-                <CardTitle className="text-base sm:text-lg font-semibold text-amber-800 dark:text-amber-300">Recent Wisdom Quests</CardTitle>
-                <CardDescription className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Manage your sacred learning journeys</CardDescription>
-              </div>
-              <Link href="/educator/quiz/create">
-                <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
-                  <SparklesIcon className="h-4 w-4 mr-1" />
-                  <span className="hidden sm:inline">New Quest</span>
-                  <span className="sm:hidden">New</span>
-                </Button>
-              </Link>
+        <Section
+          title="Recent Wisdom Quests"
+          description="Manage your sacred learning journeys"
+          actions={
+            <Link href="/educator/quiz/create">
+              <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+                <SparklesIcon className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">New Quest</span>
+                <span className="sm:hidden">New</span>
+              </Button>
+            </Link>
+          }
+        >
+          {quizzes.length === 0 ? (
+            <EmptyState
+              icon={BookOpenSolid}
+              title="No wisdom quests created yet"
+              action={{
+                label: "Create Your First Quest",
+                href: "/educator/quiz/create"
+              }}
+            />
+          ) : (
+            <div className="space-y-2">
+              {quizzes.slice(0, 5).map((quiz) => (
+                <div
+                  key={quiz.id}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-gray-700 dark:to-gray-600 rounded-lg hover:shadow-md transition-all duration-200 border border-amber-100 dark:border-gray-600 hover:border-amber-300 dark:hover:border-amber-700"
+                >
+                  <div className="flex-1 min-w-0 mb-2 sm:mb-0 sm:pr-4">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">
+                        {quiz.title}
+                      </h3>
+                      {getStatusBadge(quiz.status)}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <BookOpenSolid className="h-3 w-3" />
+                        {quiz.totalQuestions} <span className="hidden sm:inline">revelations</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <ClockIcon className="h-3 w-3" />
+                        {quiz.duration}m
+                      </span>
+                      {quiz.status === 'published' ? (
+                        <span className="flex items-center gap-1">
+                          <UserGroupIcon className="h-3 w-3" />
+                          {quiz.enrolledStudents} <span className="hidden sm:inline">disciples</span>
+                        </span>
+                      ) : null}
+                      <span className="flex items-center gap-1 hidden sm:flex">
+                        <CalendarDaysIcon className="h-3 w-3" />
+                        {formatDateInTimezone(quiz.startTime || quiz.createdAt, quiz.timezone || 'Asia/Kolkata', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 w-full sm:w-auto">
+                    {quiz.status === 'draft' ? (
+                      <>
+                        <Link href={`/educator/quiz/${quiz.id}/review`} className="flex-1 sm:flex-none">
+                          <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50 text-amber-700">
+                            <PencilSquareIcon className="h-4 w-4 mr-1" />
+                            <span className="hidden sm:inline">Refine</span>
+                            <span className="sm:hidden">Edit</span>
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDeleteQuiz(quiz.id, quiz.title)}
+                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : quiz.status === 'published' ? (
+                      <>
+                        <Link href={`/educator/quiz/${quiz.id}/results`} className="flex-1 sm:flex-none">
+                          <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50 text-amber-700">
+                            <ChartBarIcon className="h-4 w-4 mr-1" />
+                            <span className="hidden sm:inline">Insights</span>
+                            <span className="sm:hidden">Stats</span>
+                          </Button>
+                        </Link>
+                        <Link href={`/educator/quiz/${quiz.id}/manage`}>
+                          <Button variant="ghost" size="sm" className="hover:bg-amber-50">
+                            <Cog6ToothIcon className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleToggleArchive(quiz.id, quiz.status)}
+                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        >
+                          <ArchiveBoxIcon className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Link href={`/educator/quiz/${quiz.id}/review`} className="flex-1 sm:flex-none">
+                          <Button variant="ghost" size="sm" className="w-full sm:w-auto hover:bg-amber-50">
+                            <EyeIcon className="h-4 w-4 mr-1" />
+                            <span className="hidden sm:inline">Behold</span>
+                            <span className="sm:hidden">View</span>
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleToggleArchive(quiz.id, quiz.status)}
+                          className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                        >
+                          <ArchiveBoxArrowDownIcon className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {quizzes.length > 5 ? (
+                <div className="text-center pt-4">
+                  <Link href="/educator/quizzes">
+                    <Button variant="outline" size="sm" className="border-amber-200 hover:bg-amber-50 text-amber-700">
+                      <span>View All {quizzes.length} Quests</span>
+                      <ChevronRightIcon className="h-4 w-4 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
+              ) : null}
             </div>
-          </CardHeader>
-          <CardContent className="pt-2">
-            {quizzes.length === 0 ? (
-              <div className="text-center py-8 sm:py-12">
-                <BookOpenSolid className="h-10 sm:h-12 w-10 sm:w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  No wisdom quests created yet
-                </p>
-                <Link href="/educator/quiz/create">
-                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
-                    <SparklesIcon className="h-4 w-4 mr-2" />
-                    Create Your First Quest
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {quizzes.slice(0, 5).map((quiz) => (
-                  <div
-                    key={quiz.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-gray-700 dark:to-gray-600 rounded-lg hover:shadow-md transition-all duration-200 border border-amber-100 dark:border-gray-600 hover:border-amber-300 dark:hover:border-amber-700"
-                  >
-                    <div className="flex-1 min-w-0 mb-2 sm:mb-0 sm:pr-4">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">
-                          {quiz.title}
-                        </h3>
-                        {getStatusBadge(quiz.status)}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <BookOpenSolid className="h-3 w-3" />
-                          {quiz.totalQuestions} <span className="hidden sm:inline">revelations</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <ClockIcon className="h-3 w-3" />
-                          {quiz.duration}m
-                        </span>
-                        {quiz.status === 'published' && (
-                          <span className="flex items-center gap-1">
-                            <UserGroupIcon className="h-3 w-3" />
-                            {quiz.enrolledStudents} <span className="hidden sm:inline">disciples</span>
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1 hidden sm:flex">
-                          <CalendarDaysIcon className="h-3 w-3" />
-                          {formatDateInTimezone(quiz.startTime || quiz.createdAt, quiz.timezone || 'Asia/Kolkata', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 w-full sm:w-auto">
-                      {quiz.status === 'draft' ? (
-                        <>
-                          <Link href={`/educator/quiz/${quiz.id}/review`} className="flex-1 sm:flex-none">
-                            <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50 text-amber-700">
-                              <PencilSquareIcon className="h-4 w-4 mr-1" />
-                              <span className="hidden sm:inline">Refine</span>
-                              <span className="sm:hidden">Edit</span>
-                            </Button>
-                          </Link>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDeleteQuiz(quiz.id, quiz.title)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : quiz.status === 'published' ? (
-                        <>
-                          <Link href={`/educator/quiz/${quiz.id}/results`} className="flex-1 sm:flex-none">
-                            <Button variant="outline" size="sm" className="w-full sm:w-auto border-amber-200 hover:bg-amber-50 text-amber-700">
-                              <ChartBarIcon className="h-4 w-4 mr-1" />
-                              <span className="hidden sm:inline">Insights</span>
-                              <span className="sm:hidden">Stats</span>
-                            </Button>
-                          </Link>
-                          <Link href={`/educator/quiz/${quiz.id}/manage`}>
-                            <Button variant="ghost" size="sm" className="hover:bg-amber-50">
-                              <Cog6ToothIcon className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleToggleArchive(quiz.id, quiz.status)}
-                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                          >
-                            <ArchiveBoxIcon className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Link href={`/educator/quiz/${quiz.id}/review`} className="flex-1 sm:flex-none">
-                            <Button variant="ghost" size="sm" className="w-full sm:w-auto hover:bg-amber-50">
-                              <EyeIcon className="h-4 w-4 mr-1" />
-                              <span className="hidden sm:inline">Behold</span>
-                              <span className="sm:hidden">View</span>
-                            </Button>
-                          </Link>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleToggleArchive(quiz.id, quiz.status)}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                          >
-                            <ArchiveBoxArrowDownIcon className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {quizzes.length > 5 && (
-                  <div className="text-center pt-4">
-                    <Link href="/educator/quizzes">
-                      <Button variant="outline" size="sm" className="border-amber-200 hover:bg-amber-50 text-amber-700">
-                        <span>View All {quizzes.length} Quests</span>
-                        <ChevronRightIcon className="h-4 w-4 ml-1" />
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          )}
+        </Section>
       </div>
-    </div>
+    </PageContainer>
   );
 }

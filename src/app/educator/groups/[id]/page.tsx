@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -37,6 +36,11 @@ import {
   X,
   Info,
 } from "lucide-react";
+import { PageHeader } from "@/components/educator-v2/layout/PageHeader";
+import { PageContainer } from "@/components/educator-v2/layout/PageContainer";
+import { Section } from "@/components/educator-v2/layout/Section";
+import { LoadingState } from "@/components/educator-v2/feedback/LoadingState";
+import { EmptyState } from "@/components/educator-v2/feedback/EmptyState";
 import { logger } from "@/lib/logger";
 
 interface GroupDetails {
@@ -92,9 +96,14 @@ export default function GroupManagePage() {
 
   useEffect(() => {
     const loadData = async () => {
-      await fetchGroupDetails();
-      await fetchMembers();
-      await fetchOtherGroups();
+      // Load all data in parallel for better performance
+      setLoading(true);
+      await Promise.all([
+        fetchGroupDetails(),
+        fetchMembers(),
+        fetchOtherGroups()
+      ]);
+      setLoading(false);
     };
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -306,11 +315,7 @@ export default function GroupManagePage() {
   );
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
+    return <LoadingState fullPage text="Loading group details..." />;
   }
 
   if (!group) {
@@ -318,161 +323,143 @@ export default function GroupManagePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center gap-4">
-              <Link href="/educator/groups">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-              <div>
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: group.color }}
-                  />
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {group.name}
-                  </h1>
-                </div>
-                {group.description && (
-                  <p className="text-gray-600 dark:text-gray-400 mt-1">
-                    {group.description}
-                  </p>
-                )}
-              </div>
-            </div>
-            <Button onClick={() => setShowAddMembersDialog(true)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Members
-            </Button>
-          </div>
-        </div>
+    <PageContainer>
+      <PageHeader
+        title={group.name}
+        subtitle={group.description || undefined}
+        icon={Users}
+        backButton={{
+          href: "/educator/groups",
+          label: "Groups"
+        }}
+        actions={
+          <Button
+            onClick={() => setShowAddMembersDialog(true)}
+            className="bg-amber-600 hover:bg-amber-700"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Members
+          </Button>
+        }
+      />
+
+      {/* Group Color Indicator */}
+      <div className="flex items-center gap-3 mb-6">
+        <div 
+          className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+          style={{ backgroundColor: group.color }}
+        />
+        <span className="text-sm text-gray-600 dark:text-gray-400">Group Color</span>
       </div>
 
       {/* Stats */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Members</p>
-                  <p className="text-2xl font-bold">{group.memberCount} / {group.maxSize}</p>
-                </div>
-                <Users className="h-8 w-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Capacity</p>
-                  <p className="text-2xl font-bold">
-                    {Math.round((group.memberCount / group.maxSize) * 100)}%
-                  </p>
-                </div>
-                <div className="w-12 h-12">
-                  <svg className="transform -rotate-90 w-12 h-12">
-                    <circle
-                      cx="24"
-                      cy="24"
-                      r="20"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                      className="text-gray-200"
-                    />
-                    <circle
-                      cx="24"
-                      cy="24"
-                      r="20"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                      strokeDasharray={`${(group.memberCount / group.maxSize) * 126} 126`}
-                      className="text-green-500"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Assigned Quizzes</p>
-                  <p className="text-2xl font-bold">{group.assignedQuizzes}</p>
-                </div>
-                <BookOpen className="h-8 w-8 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Available Slots</p>
-                  <p className="text-2xl font-bold">{group.maxSize - group.memberCount}</p>
-                </div>
-                <UserPlus className="h-8 w-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Members</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{group.memberCount} / {group.maxSize}</p>
+            </div>
+            <Users className="h-8 w-8 text-amber-600 opacity-20" />
+          </div>
+        </div>
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Capacity</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {Math.round((group.memberCount / group.maxSize) * 100)}%
+              </p>
+            </div>
+            <div className="w-12 h-12">
+              <svg className="transform -rotate-90 w-12 h-12">
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="20"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                  className="text-gray-200"
+                />
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="20"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                  strokeDasharray={`${(group.memberCount / group.maxSize) * 126} 126`}
+                  className="text-amber-600"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Assigned Quizzes</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{group.assignedQuizzes}</p>
+            </div>
+            <BookOpen className="h-8 w-8 text-amber-600 opacity-20" />
+          </div>
+        </div>
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Available Slots</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{group.maxSize - group.memberCount}</p>
+            </div>
+            <UserPlus className="h-8 w-8 text-amber-600 opacity-20" />
+          </div>
         </div>
       </div>
 
       {/* Actions Bar */}
       {selectedMembers.size > 0 && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium">
-                    {selectedMembers.size} member(s) selected
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setSelectedMembers(new Set())}
-                  >
-                    Clear Selection
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowMoveDialog(true)}
-                    disabled={otherGroups.length === 0}
-                  >
-                    <MoveRight className="h-4 w-4 mr-2" />
-                    Move to Group
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={handleRemoveMembers}
-                  >
-                    <UserMinus className="h-4 w-4 mr-2" />
-                    Remove from Group
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Section transparent className="mb-4">
+          <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                {selectedMembers.size} member(s) selected
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedMembers(new Set())}
+                className="text-amber-700 hover:text-amber-800"
+              >
+                Clear Selection
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowMoveDialog(true)}
+                disabled={otherGroups.length === 0}
+                className="border-amber-200 hover:bg-amber-50"
+              >
+                <MoveRight className="h-4 w-4 mr-2" />
+                Move to Group
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleRemoveMembers}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                <UserMinus className="h-4 w-4 mr-2" />
+                Remove from Group
+              </Button>
+            </div>
+          </div>
+        </Section>
       )}
 
       {/* Search and Select All */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+      <Section transparent>
         <div className="flex items-center gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -487,79 +474,72 @@ export default function GroupManagePage() {
           <Button
             variant="outline"
             onClick={selectAllMembers}
+            className="border-amber-200 hover:bg-amber-50"
           >
             {selectedMembers.size === filteredMembers.length ? "Deselect All" : "Select All"}
           </Button>
         </div>
-      </div>
+      </Section>
 
       {/* Members List */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 pb-8">
+      <Section
+        title="Group Members"
+        description={`${filteredMembers.length} member${filteredMembers.length !== 1 ? 's' : ''} found`}
+        icon={Users}
+      >
         {filteredMembers.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                No members found
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                {searchTerm ? "Try adjusting your search" : "Add students to this group to get started"}
-              </p>
-              {!searchTerm && (
-                <Button onClick={() => setShowAddMembersDialog(true)}>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Members
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Users}
+            title="No members found"
+            description={searchTerm ? "Try adjusting your search" : "Add students to this group to get started"}
+            action={!searchTerm ? {
+              label: "Add Members",
+              onClick: () => setShowAddMembersDialog(true)
+            } : undefined}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredMembers.map((member) => (
-              <Card key={member.memberId} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 dark:text-white">
-                        {member.name}
-                      </h3>
+              <div key={member.memberId} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors border border-amber-100">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900 dark:text-white">
+                      {member.name}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
+                      <Mail className="h-3 w-3" />
+                      {member.email}
+                    </div>
+                    {member.phoneNumber && (
                       <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        <Mail className="h-3 w-3" />
-                        {member.email}
+                        <Phone className="h-3 w-3" />
+                        {member.phoneNumber}
                       </div>
-                      {member.phoneNumber && (
-                        <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                          <Phone className="h-3 w-3" />
-                          {member.phoneNumber}
-                        </div>
-                      )}
-                    </div>
-                    <Checkbox
-                      checked={selectedMembers.has(member.studentId)}
-                      onCheckedChange={() => toggleMemberSelection(member.studentId)}
-                    />
+                    )}
                   </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-3 w-3 text-gray-500" />
-                      <span>{member.totalEnrollments} enrolled</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-3 w-3 text-green-500" />
-                      <span>{member.completedQuizzes} completed</span>
-                    </div>
+                  <Checkbox
+                    checked={selectedMembers.has(member.studentId)}
+                    onCheckedChange={() => toggleMemberSelection(member.studentId)}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-3 w-3 text-gray-500" />
+                    <span>{member.totalEnrollments} enrolled</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Joined {new Date(member.joinedAt).toLocaleDateString()}
-                  </p>
-                </CardContent>
-              </Card>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-3 w-3 text-amber-500" />
+                    <span>{member.completedQuizzes} completed</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Joined {new Date(member.joinedAt).toLocaleDateString()}
+                </p>
+              </div>
             ))}
           </div>
         )}
-      </div>
+      </Section>
 
       {/* Add Members Dialog */}
       <Dialog open={showAddMembersDialog} onOpenChange={setShowAddMembersDialog}>
@@ -587,12 +567,13 @@ export default function GroupManagePage() {
                 size="sm"
                 variant="outline"
                 onClick={selectAllAvailable}
+                className="border-amber-200 hover:bg-amber-50"
               >
                 {selectedNewMembers.size === filteredAvailable.length ? "Deselect All" : "Select All"}
               </Button>
             </div>
 
-            <div className="border rounded-lg max-h-96 overflow-y-auto">
+            <div className="border rounded-lg max-h-96 overflow-y-auto border-amber-100">
               {filteredAvailable.length === 0 ? (
                 <div className="p-8 text-center">
                   <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
@@ -607,7 +588,7 @@ export default function GroupManagePage() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{student.name}</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{student.name}</span>
                             {student.inOtherGroup && (
                               <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
                                 In another group
@@ -628,8 +609,8 @@ export default function GroupManagePage() {
             </div>
 
             {selectedNewMembers.size > 0 && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
                   {selectedNewMembers.size} student(s) selected
                 </p>
               </div>
@@ -644,7 +625,11 @@ export default function GroupManagePage() {
             }}>
               Cancel
             </Button>
-            <Button onClick={handleAddMembers} disabled={processing || selectedNewMembers.size === 0}>
+            <Button
+              onClick={handleAddMembers}
+              disabled={processing || selectedNewMembers.size === 0}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
               {processing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -670,7 +655,7 @@ export default function GroupManagePage() {
           
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Target Group</label>
+              <label className="text-sm font-medium text-gray-900 dark:text-white">Target Group</label>
               <Select value={targetGroupId} onValueChange={setTargetGroupId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a group" />
@@ -685,7 +670,7 @@ export default function GroupManagePage() {
               </Select>
             </div>
 
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg border border-yellow-200">
               <div className="flex gap-2">
                 <Info className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
@@ -702,7 +687,11 @@ export default function GroupManagePage() {
             }}>
               Cancel
             </Button>
-            <Button onClick={handleMoveMembers} disabled={processing || !targetGroupId}>
+            <Button
+              onClick={handleMoveMembers}
+              disabled={processing || !targetGroupId}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
               {processing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -715,6 +704,6 @@ export default function GroupManagePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

@@ -104,7 +104,7 @@ export async function PUT(
     const educatorId = session.user.id;
     const groupId = params.id;
 
-    const { name, description, color, maxSize } = await req.json();
+    const { name, description, theme, color, maxSize } = await req.json();
 
     // Verify group ownership
     const existingGroup = await db
@@ -154,6 +154,7 @@ export async function PUT(
       .set({
         ...(name && { name: name.trim() }),
         ...(description !== undefined && { description: description?.trim() }),
+        ...(theme && { theme }),
         ...(color && { color }),
         ...(maxSize && { maxSize }),
         updatedAt: new Date()
@@ -174,6 +175,14 @@ export async function PUT(
       { status: 500 }
     );
   }
+}
+
+// Add PATCH as an alias for PUT to support both methods
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return PUT(req, context);
 }
 
 export async function DELETE(

@@ -14,6 +14,7 @@ import {
   LoadingState,
   EmptyState
 } from "@/components/educator-v2";
+import { logger } from "@/lib/logger";
 import { 
   FileText, 
   Upload, 
@@ -73,7 +74,7 @@ export default function DocumentsPage() {
         setDocuments(data.documents || []);
       }
     } catch (error) {
-      console.error("Error fetching documents:", error);
+      logger.error("Error fetching documents:", error);
     } finally {
       setLoading(false);
     }
@@ -121,7 +122,7 @@ export default function DocumentsPage() {
         alert(data.error || "Failed to delete document");
       }
     } catch (error) {
-      console.error("Error deleting document:", error);
+      logger.error("Error deleting document:", error);
       alert("Failed to delete document");
     }
   };
@@ -151,7 +152,7 @@ export default function DocumentsPage() {
         alert("Failed to update document");
       }
     } catch (error) {
-      console.error("Error updating document:", error);
+      logger.error("Error updating document:", error);
       alert("Failed to update document");
     }
   };
@@ -300,15 +301,15 @@ export default function DocumentsPage() {
                         <span>Size: {formatFileSize(doc.fileSize)}</span>
                         <span>Uploaded: {formatDate(doc.uploadDate)}</span>
                         {doc.processedData?.lightragDocumentId ? (
-                          <span className="text-green-600">✓ In LightRAG</span>
+                          <span className="text-amber-600">✓ In LightRAG</span>
                         ) : null}
                       </div>
 
                       {doc.status === "failed" && doc.processedData?.error ? (
-                        <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-md">
+                        <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded-md">
                           <div className="flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-red-600" />
-                            <span className="text-sm text-red-700 dark:text-red-400">
+                            <AlertCircle className="h-4 w-4 text-orange-600" />
+                            <span className="text-sm text-orange-700 dark:text-orange-400">
                               {doc.processedData.error}
                             </span>
                           </div>
@@ -342,7 +343,7 @@ export default function DocumentsPage() {
                         size="sm"
                         onClick={() => handleDelete(doc.id, doc.displayName || doc.filename)}
                         disabled={doc.status === "deleted"}
-                        className="border-red-200 hover:bg-red-50 text-red-600 disabled:opacity-50"
+                        className="border-orange-200 hover:bg-orange-50 text-orange-600 disabled:opacity-50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

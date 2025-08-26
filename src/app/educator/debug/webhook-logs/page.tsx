@@ -12,6 +12,7 @@ import {
 } from "@/components/educator-v2";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface LogEntry {
   timestamp: string;
@@ -34,7 +35,7 @@ export default function WebhookLogsPage() {
         setLogs(data.logs);
       }
     } catch (error) {
-      console.error('Failed to fetch logs:', error);
+      logger.error('Failed to fetch logs:', error);
     } finally {
       setLoading(false);
     }
@@ -45,7 +46,7 @@ export default function WebhookLogsPage() {
       await fetch('/api/debug/webhook-logs?clear=true');
       setLogs([]);
     } catch (error) {
-      console.error('Failed to clear logs:', error);
+      logger.error('Failed to clear logs:', error);
     }
   };
 
@@ -77,7 +78,7 @@ export default function WebhookLogsPage() {
 
   const getLevelColor = (level: string) => {
     switch (level) {
-      case 'error': return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
+      case 'error': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400';
       case 'warn': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400';
       case 'info': return 'bg-amber-50 text-amber-600 dark:bg-amber-900/10 dark:text-amber-500';
       default: return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
@@ -127,7 +128,7 @@ export default function WebhookLogsPage() {
               onClick={clearLogs}
               variant="outline"
               size="sm"
-              className="border-red-200 hover:bg-red-50 text-red-600"
+              className="border-orange-200 hover:bg-orange-50 text-orange-600"
             >
               <Trash2 className="h-4 w-4" />
             </Button>

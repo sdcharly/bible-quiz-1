@@ -2,6 +2,17 @@
 
 - Always run the db generate, migrate and build commands to check for errors after completing your changes.
 
+## Educator Panel Design Standards (CRITICAL)
+
+**IMPORTANT**: When creating ANY educator pages, you MUST follow the professional standards documented in `/docs/technical/EDUCATOR_DESIGN_STANDARDS.md`
+
+### Key Rules:
+- **ALWAYS use educator-v2 components** - Never write duplicate UI code
+- **ALWAYS use TabNavigation component** for tabs - More prominent and accessible  
+- **ALWAYS use amber theme colors** - Never use blue/purple
+- **ALWAYS handle loading/empty states** professionally
+- **NEVER write code like a novice** - Follow the architectural patterns
+
 ## Performance Optimization - Logger Usage
 
 **IMPORTANT**: To optimize performance, we use a custom logger that only outputs in development mode.

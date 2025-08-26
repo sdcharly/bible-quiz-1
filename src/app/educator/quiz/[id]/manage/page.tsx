@@ -36,8 +36,11 @@ import {
   Loader2,
   RefreshCw,
   AlertCircle,
+  Settings,
 } from "lucide-react";
 import { ShareLinkButton } from "@/components/quiz/ShareLinkButton";
+import { PageHeader, PageContainer, Section, LoadingState } from "@/components/educator-v2";
+import { logger } from "@/lib/logger";
 
 interface QuizDetails {
   id: string;
@@ -126,10 +129,15 @@ export default function QuizManagePage() {
 
   useEffect(() => {
     const loadData = async () => {
-      await fetchQuizDetails();
-      await fetchEnrolledStudents();
-      await fetchAvailableStudents();
-      await fetchGroups();
+      setLoading(true);
+      // Fetch all data in parallel for much faster loading
+      await Promise.all([
+        fetchQuizDetails(),
+        fetchEnrolledStudents(),
+        fetchAvailableStudents(),
+        fetchGroups()
+      ]);
+      setLoading(false);
     };
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -143,7 +151,7 @@ export default function QuizManagePage() {
         setQuiz(data);
       }
     } catch (error) {
-      console.error("Error fetching quiz details:", error);
+      logger.error("Error fetching quiz details:", error);
     }
   };
 
@@ -155,7 +163,7 @@ export default function QuizManagePage() {
         setEnrolledStudents(data.enrollments || []);
       }
     } catch (error) {
-      console.error("Error fetching enrolled students:", error);
+      logger.error("Error fetching enrolled students:", error);
     }
   };
 
@@ -168,7 +176,7 @@ export default function QuizManagePage() {
         setEnrollmentStats({ total: data.total, enrolled: data.enrolled });
       }
     } catch (error) {
-      console.error("Error fetching available students:", error);
+      logger.error("Error fetching available students:", error);
     } finally {
       setLoading(false);
     }
@@ -192,7 +200,7 @@ export default function QuizManagePage() {
         setGroups(groupsWithCounts);
       }
     } catch (error) {
-      console.error("Error fetching groups:", error);
+      logger.error("Error fetching groups:", error);
     }
   };
 
@@ -204,7 +212,7 @@ export default function QuizManagePage() {
         setGroupMembers(data.members || []);
       }
     } catch (error) {
-      console.error("Error fetching group members:", error);
+      logger.error("Error fetching group members:", error);
     }
   };
 
@@ -242,7 +250,7 @@ export default function QuizManagePage() {
         alert(error.error || "Failed to assign quiz to group");
       }
     } catch (error) {
-      console.error("Error assigning quiz to group:", error);
+      logger.error("Error assigning quiz to group:", error);
       alert("Error assigning quiz to group");
     } finally {
       setAssigningGroup(false);
@@ -282,7 +290,7 @@ export default function QuizManagePage() {
         alert(error.error || "Failed to enroll students");
       }
     } catch (error) {
-      console.error("Error enrolling students:", error);
+      logger.error("Error enrolling students:", error);
       alert("Error enrolling students");
     } finally {
       setEnrolling(false);
@@ -321,7 +329,7 @@ export default function QuizManagePage() {
         setReassignmentStudents(data.students || []);
       }
     } catch (error) {
-      console.error("Error fetching reassignment students:", error);
+      logger.error("Error fetching reassignment students:", error);
     } finally {
       setLoadingReassignment(false);
     }
@@ -360,7 +368,7 @@ export default function QuizManagePage() {
         alert(error.error || "Failed to reassign quiz");
       }
     } catch (error) {
-      console.error("Error reassigning quiz:", error);
+      logger.error("Error reassigning quiz:", error);
       alert("Error reassigning quiz");
     } finally {
       setReassigning(false);
@@ -402,7 +410,7 @@ export default function QuizManagePage() {
     switch (status) {
       case "completed":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
             <CheckCircle className="h-3 w-3" />
             Completed {score !== undefined && `(${score}%)`}
           </span>
@@ -416,7 +424,7 @@ export default function QuizManagePage() {
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
             <Users className="h-3 w-3" />
             Enrolled
           </span>
@@ -425,16 +433,67 @@ export default function QuizManagePage() {
   };
 
   if (loading || !quiz) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingState fullPage text="Loading quiz details..." />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <PageHeader
+        title="Quiz Management"
+        subtitle="Manage student enrollments and track progress"
+        icon={Settings}
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/educator/dashboard' },
+          { label: 'Quizzes', href: '/educator/quizzes' },
+          { label: 'Manage' }
+        ]}
+        actions={
+          <div className="flex gap-2">
+            <ShareLinkButton 
+              quizId={quizId}
+              quizTitle={quiz?.title || "Quiz"}
+              variant="outline"
+              size="sm"
+            />
+            <Link href={`/educator/quiz/${quizId}/review`}>
+              <Button variant="outline" size="sm">
+                <Eye className="h-4 w-4 mr-2" />
+                View Quiz
+              </Button>
+            </Link>
+            <Button 
+              onClick={openReassignDialog}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reassign Quiz
+            </Button>
+            <Button 
+              onClick={() => {
+                fetchGroups();
+                setShowGroupAssign(true);
+              }}
+              variant="outline"
+              size="sm"
+              disabled={groups.length === 0}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Assign to Group
+            </Button>
+            <Button 
+              onClick={() => setShowBulkEnroll(true)}
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Assign Students
+            </Button>
+          </div>
+        }
+      />
+
+      <PageContainer>
         {/* Check if quiz is published and properly scheduled */}
         {quiz && quiz.status !== "published" && (
           <Card className="mb-6 border-yellow-200 bg-yellow-50">
@@ -460,174 +519,124 @@ export default function QuizManagePage() {
             </CardContent>
           </Card>
         )}
-        
-        {/* Header */}
-        <div className="mb-8">
-          <Link href="/educator/dashboard" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-4">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Dashboard
-          </Link>
-          
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                Quiz Management
-              </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Manage student enrollments and track progress
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <ShareLinkButton 
-                quizId={quizId}
-                quizTitle={quiz?.title || "Quiz"}
-                variant="outline"
-                size="sm"
-              />
-              <Link href={`/educator/quiz/${quizId}/review`}>
-                <Button variant="outline" size="sm">
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Quiz
-                </Button>
-              </Link>
-              <Button 
-                onClick={openReassignDialog}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Reassign Quiz
-              </Button>
-              <Button 
-                onClick={() => {
-                  fetchGroups(); // Refresh groups when opening dialog
-                  setShowGroupAssign(true);
-                }}
-                variant="outline"
-                size="sm"
-                disabled={groups.length === 0}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Assign to Group
-              </Button>
-              <Button 
-                onClick={() => setShowBulkEnroll(true)}
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Assign Students
-              </Button>
-            </div>
-          </div>
-        </div>
 
-        {/* Quiz Info Card */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  {quiz.title}
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  {quiz.description}
-                </p>
-                <div className="flex items-center gap-6 text-sm text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <BookOpen className="h-4 w-4" />
-                    {quiz.totalQuestions} Questions
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {quiz.duration} minutes
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {quiz.startTime ? (
-                      <>Start: {formatDateInTimezone(quiz.startTime, quiz.timezone || 'Asia/Kolkata', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit'
-                      })}</>
-                    ) : (
-                      <>Published {formatDateInTimezone(quiz.createdAt, quiz.timezone || 'Asia/Kolkata', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}</>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg border border-green-200">
+        {/* Quiz Info */}
+        <Section 
+          title={quiz.title}
+          description={quiz.description || undefined}
+          icon={BookOpen}
+          actions={
+            quiz.status === "published" && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 text-amber-700 rounded-lg border border-amber-200">
                 <CheckCircle className="h-4 w-4" />
                 <span className="text-sm font-medium">Published</span>
               </div>
+            )
+          }
+        >
+          <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-center gap-1">
+              <BookOpen className="h-4 w-4 text-amber-600" />
+              {quiz.totalQuestions} Questions
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4 text-amber-600" />
+              {quiz.duration} minutes
+            </div>
+            <div className="flex items-center gap-1">
+              <Calendar className="h-4 w-4 text-amber-600" />
+              {quiz.startTime ? (
+                <>Start: {formatDateInTimezone(quiz.startTime, quiz.timezone || 'Asia/Kolkata', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit'
+                })}</>
+              ) : (
+                <>Published {formatDateInTimezone(quiz.createdAt, quiz.timezone || 'Asia/Kolkata', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}</>
+              )}
+            </div>
+          </div>
+        </Section>
 
         {/* Student Enrollment */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Stats */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quiz Statistics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Total Enrolled</span>
-                  <span className="font-semibold">{enrolledStudents.length}</span>
+          <div className="lg:col-span-1 space-y-4">
+            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Total Enrolled</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {enrolledStudents.length}
+                  </p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Completed</span>
-                  <span className="font-semibold text-green-600">
+                <Users className="h-8 w-8 text-amber-600 opacity-20" />
+              </div>
+            </div>
+            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Completed</p>
+                  <p className="text-2xl font-bold text-amber-600">
                     {enrolledStudents.filter(s => s.status === "completed").length}
-                  </span>
+                  </p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">In Progress</span>
-                  <span className="font-semibold text-yellow-600">
+                <CheckCircle className="h-8 w-8 text-amber-600 opacity-20" />
+              </div>
+            </div>
+            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">In Progress</p>
+                  <p className="text-2xl font-bold text-yellow-600">
                     {enrolledStudents.filter(s => s.status === "in_progress").length}
-                  </span>
+                  </p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Not Started</span>
-                  <span className="font-semibold text-blue-600">
+                <Clock className="h-8 w-8 text-yellow-600 opacity-20" />
+              </div>
+            </div>
+            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Not Started</p>
+                  <p className="text-2xl font-bold text-amber-600">
                     {enrolledStudents.filter(s => s.status === "enrolled").length}
-                  </span>
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+                <Users className="h-8 w-8 text-amber-600 opacity-20" />
+              </div>
+            </div>
           </div>
 
           {/* Enrolled Students */}
           <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg">Enrolled Students</CardTitle>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowBulkEnroll(true)}
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Assign More
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
+            <Section
+              title="Enrolled Students"
+              icon={Users}
+              actions={
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowBulkEnroll(true)}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Assign More
+                </Button>
+              }
+              noPadding
+            >
                 {enrolledStudents.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">No students enrolled yet</p>
                     <Button 
-                      className="mt-4" 
+                      className="mt-4 bg-amber-600 hover:bg-amber-700 text-white" 
                       onClick={() => setShowBulkEnroll(true)}
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
@@ -642,8 +651,8 @@ export default function QuizManagePage() {
                         className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium text-blue-600">
+                          <div className="h-8 w-8 bg-amber-100 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-amber-600">
                               {student.name.charAt(0).toUpperCase()}
                             </span>
                           </div>
@@ -679,8 +688,7 @@ export default function QuizManagePage() {
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+            </Section>
           </div>
         </div>
 
@@ -723,7 +731,7 @@ export default function QuizManagePage() {
                           student.isEnrolled
                             ? "bg-gray-50 dark:bg-gray-800 opacity-50 cursor-not-allowed"
                             : selectedStudents.has(student.studentId)
-                            ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                            ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
                             : "hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
                         }`}
                         onClick={() => !student.isEnrolled && toggleStudent(student.studentId)}
@@ -740,7 +748,7 @@ export default function QuizManagePage() {
                           <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{student.email}</div>
                         </div>
                         {student.isEnrolled && (
-                          <span className="text-xs text-green-600 dark:text-green-400 font-medium shrink-0">Enrolled</span>
+                          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium shrink-0">Enrolled</span>
                         )}
                       </div>
                     ))}
@@ -750,20 +758,24 @@ export default function QuizManagePage() {
 
               {/* Quick Actions */}
               <div className="flex gap-2 text-sm shrink-0">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={selectAll}
                   disabled={enrollmentStats.total === enrollmentStats.enrolled}
-                  className="text-blue-600 hover:text-blue-700 disabled:text-gray-400 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="h-auto p-0 text-amber-600 hover:text-amber-700 disabled:text-gray-400 dark:text-amber-400 dark:hover:text-amber-300"
                 >
                   Select All
-                </button>
+                </Button>
                 <span className="text-gray-300 dark:text-gray-600">|</span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={deselectAll}
-                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="h-auto p-0 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                 >
                   Clear Selection
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -848,7 +860,7 @@ export default function QuizManagePage() {
                           !student.isEligibleForReassignment
                             ? "bg-gray-50 dark:bg-gray-800 opacity-50"
                             : selectedReassignStudents.has(student.studentId)
-                            ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                            ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
                             : "hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
                         }`}
                         onClick={() => student.isEligibleForReassignment && toggleReassignStudent(student.studentId)}
@@ -873,7 +885,7 @@ export default function QuizManagePage() {
                           <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
                             {student.originalStatus === "completed" ? (
                               <>
-                                <CheckCircle className="h-3 w-3 text-green-500" />
+                                <CheckCircle className="h-3 w-3 text-amber-500" />
                                 <span>Completed (Score: {student.latestScore}%)</span>
                               </>
                             ) : student.originalStatus === "in_progress" ? (
@@ -883,7 +895,7 @@ export default function QuizManagePage() {
                               </>
                             ) : student.originalStatus === "enrolled" ? (
                               <>
-                                <Users className="h-3 w-3 text-blue-500" />
+                                <Users className="h-3 w-3 text-amber-500" />
                                 <span>Not Started</span>
                               </>
                             ) : (
@@ -907,19 +919,23 @@ export default function QuizManagePage() {
 
               {/* Quick Actions */}
               <div className="flex gap-2 text-sm shrink-0">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={selectAllEligible}
-                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="h-auto p-0 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                 >
                   Select All Eligible
-                </button>
+                </Button>
                 <span className="text-gray-300 dark:text-gray-600">|</span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={deselectAllReassign}
-                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="h-auto p-0 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                 >
                   Clear Selection
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -1080,7 +1096,7 @@ export default function QuizManagePage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-    </div>
+      </PageContainer>
+    </>
   );
 }

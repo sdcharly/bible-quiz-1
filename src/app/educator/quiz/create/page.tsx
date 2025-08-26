@@ -15,16 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  DocumentTextIcon,
-  CheckCircleIcon,
-  ArrowPathIcon,
-} from "@heroicons/react/24/outline";
-import {
-  CheckIcon,
-} from "@heroicons/react/24/solid";
 import { 
   getCurrentTimeInUserTimezone,
   getDefaultTimezone,
@@ -35,8 +25,14 @@ import { Progress } from "@/components/ui/progress";
 import { Loading } from "@/components/ui/loading";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, BookOpen, Upload, Clock, Calendar, Globe, BookOpenCheck, BrainIcon, RefreshCw } from "lucide-react";
+import { 
+  AlertCircle, BookOpen, Upload, Clock, Calendar, Globe, 
+  BookOpenCheck, Brain, RefreshCw, ArrowLeft, ArrowRight,
+  FileText, CheckCircle, Check
+} from "lucide-react";
 import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/feature-flags";
+import { PageHeader, PageContainer, Section, LoadingState } from "@/components/educator-v2";
+import { logger } from "@/lib/logger";
 
 // ... Keep all the existing interfaces and types ...
 
@@ -97,7 +93,7 @@ function CreateQuizContent() {
               useDeferredScheduling: flagEnabled
             }));
           } catch (error) {
-            console.error('Error checking feature flag:', error);
+            logger.error('Error checking feature flag:', error);
             setIsDeferredEnabled(false);
           }
         } else {
@@ -111,13 +107,13 @@ function CreateQuizContent() {
               useDeferredScheduling: flagEnabled
             }));
           } catch (error) {
-            console.error('Error checking feature flag:', error);
+            logger.error('Error checking feature flag:', error);
             setIsDeferredEnabled(false);
           }
         }
       })
       .catch((error) => {
-        console.error('Error fetching user role:', error);
+        logger.error('Error fetching user role:', error);
         // If error, still allow but feature flag will default to false
         setEducatorId('');
         try {
@@ -128,7 +124,7 @@ function CreateQuizContent() {
             useDeferredScheduling: flagEnabled
           }));
         } catch (flagError) {
-          console.error('Error checking feature flag:', flagError);
+          logger.error('Error checking feature flag:', flagError);
           setIsDeferredEnabled(false);
         }
       })
@@ -210,15 +206,15 @@ function CreateQuizContent() {
             );
             setDocuments(validDocs);
           } else {
-            console.error("Documents response is not an array:", data);
+            logger.error("Documents response is not an array:", data);
             setDocuments([]);
           }
         } else {
-          console.error("Failed to fetch documents:", response.status);
+          logger.error("Failed to fetch documents:", response.status);
           setDocuments([]);
         }
       } catch (error) {
-        console.error("Error fetching documents:", error);
+        logger.error("Error fetching documents:", error);
         setDocuments([]);
       }
     };
@@ -260,7 +256,7 @@ function CreateQuizContent() {
         
         if (response.ok) {
           const status = await response.json();
-          console.log(`[POLL-QUIZ] Job ${jobId} status:`, status.status, `progress:`, status.progress);
+          logger.log(`[POLL-QUIZ] Job ${jobId} status:`, status.status, `progress:`, status.progress);
           
           // Update progress UI with time-aware messages for AI workflows
           const elapsedSeconds = attempts;
@@ -285,7 +281,7 @@ function CreateQuizContent() {
           
           if (status.status === 'completed' && !isCompletingRef.current) {
             isCompletingRef.current = true;
-            console.log(`[POLL-QUIZ] Job ${jobId} completed with quizId:`, quizId);
+            logger.log(`[POLL-QUIZ] Job ${jobId} completed with quizId:`, quizId);
             
             // Stop polling
             if (pollIntervalRef.current) {
@@ -301,7 +297,7 @@ function CreateQuizContent() {
               router.push(`/educator/quiz/${quizId}/review`);
             }, 1000);
           } else if (status.status === 'failed') {
-            console.error(`[POLL-QUIZ] Job ${jobId} failed:`, status.error);
+            logger.error(`[POLL-QUIZ] Job ${jobId} failed:`, status.error);
             
             // Stop polling immediately - no retries for failed jobs
             if (pollIntervalRef.current) {
@@ -342,10 +338,10 @@ function CreateQuizContent() {
           }
         } else {
           consecutiveErrors++;
-          console.error(`[POLL-QUIZ] Polling error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, response.status);
+          logger.error(`[POLL-QUIZ] Polling error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, response.status);
           
           if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-            console.error(`[POLL-QUIZ] Too many consecutive errors, attempting to check if quiz exists`);
+            logger.error(`[POLL-QUIZ] Too many consecutive errors, attempting to check if quiz exists`);
             
             // Stop polling
             if (pollIntervalRef.current) {
@@ -358,12 +354,12 @@ function CreateQuizContent() {
               const checkResponse = await fetch(`/api/educator/quiz/${quizId}`);
               if (checkResponse.ok) {
                 // Quiz exists, just redirect
-                console.log(`[POLL-QUIZ] Quiz exists, redirecting despite polling errors`);
+                logger.log(`[POLL-QUIZ] Quiz exists, redirecting despite polling errors`);
                 router.push(`/educator/quiz/${quizId}/review`);
                 return;
               }
             } catch (checkError) {
-              console.error(`[POLL-QUIZ] Failed to check quiz existence:`, checkError);
+              logger.error(`[POLL-QUIZ] Failed to check quiz existence:`, checkError);
             }
             
             setLoading(false);
@@ -374,10 +370,10 @@ function CreateQuizContent() {
         }
       } catch (error) {
         consecutiveErrors++;
-        console.error(`[POLL-QUIZ] Network error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, error);
+        logger.error(`[POLL-QUIZ] Network error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, error);
         
         if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-          console.error(`[POLL-QUIZ] Too many consecutive errors, checking quiz existence`);
+          logger.error(`[POLL-QUIZ] Too many consecutive errors, checking quiz existence`);
           
           // Stop polling
           if (pollIntervalRef.current) {
@@ -390,12 +386,12 @@ function CreateQuizContent() {
             const checkResponse = await fetch(`/api/educator/quiz/${quizId}`);
             if (checkResponse.ok) {
               // Quiz exists, just redirect
-              console.log(`[POLL-QUIZ] Quiz exists, redirecting despite polling errors`);
+              logger.log(`[POLL-QUIZ] Quiz exists, redirecting despite polling errors`);
               router.push(`/educator/quiz/${quizId}/review`);
               return;
             }
           } catch (checkError) {
-            console.error(`[POLL-QUIZ] Failed to check quiz existence:`, checkError);
+            logger.error(`[POLL-QUIZ] Failed to check quiz existence:`, checkError);
           }
           
           setLoading(false);
@@ -410,7 +406,7 @@ function CreateQuizContent() {
   const handleSubmit = async () => {
     // Prevent multiple submissions using both state and ref
     if (loading || isSubmittingRef.current) {
-      console.log("Quiz creation already in progress, ignoring duplicate submission");
+      logger.log("Quiz creation already in progress, ignoring duplicate submission");
       return;
     }
     
@@ -466,7 +462,7 @@ function CreateQuizContent() {
           setGenerationMessage("Beginning to craft biblical study questions...");
           
           // Start polling immediately for job status updates
-          console.log('[QUIZ-CREATE] Starting polling for job status updates');
+          logger.log('[QUIZ-CREATE] Starting polling for job status updates');
           pollJobStatus(data.jobId, data.quizId || data.quiz?.id);
         } else if (data.quiz?.id) {
           // Direct creation (deferred mode might return immediately)
@@ -482,7 +478,7 @@ function CreateQuizContent() {
         isSubmittingRef.current = false;
       }
     } catch (error) {
-      console.error("Error creating quiz:", error);
+      logger.error("Error creating quiz:", error);
       alert("Failed to create quiz. Please try again.");
       setLoading(false);
       isSubmittingRef.current = false;
@@ -604,42 +600,23 @@ function CreateQuizContent() {
   
   // Show loading state while checking feature flags
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-8 flex items-center justify-center">
-        <Loading />
-      </div>
-    );
+    return <LoadingState fullPage text="Loading quiz creation..." />;
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-8">
-      {/* Your existing JSX render code stays exactly the same */}
-      <div className="max-w-4xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            href="/educator/dashboard"
-            className="inline-flex items-center text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 mb-4 transition-colors"
-          >
-            <ArrowLeftIcon className="h-5 w-5 mr-2" />
-            Back to Dashboard
-          </Link>
-          
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-amber-200 dark:border-gray-700 p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-100">
-                  Create Quiz
-                </h1>
-                {isDeferredEnabled && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                    ✨ Create now, schedule later
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+    <>
+      <PageHeader
+        title="Create Quiz"
+        subtitle={isDeferredEnabled ? "✨ Create now, schedule later" : "Create a new biblical quiz from your documents"}
+        icon={BookOpen}
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/educator/dashboard' },
+          { label: 'Quizzes', href: '/educator/quizzes' },
+          { label: 'Create' }
+        ]}
+      />
+      
+      <PageContainer>
 
         {/* Progress Bar */}
         <div className="mb-8">
@@ -659,7 +636,7 @@ function CreateQuizContent() {
                   }`}
                 >
                   {step < currentStep ? (
-                    <CheckIcon className="h-5 w-5" />
+                    <Check className="h-5 w-5" />
                   ) : (
                     <span className="font-semibold">{step}</span>
                   )}
@@ -695,7 +672,7 @@ function CreateQuizContent() {
             <div className="space-y-4">
               <div>
                 <Label className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                  <DocumentTextIcon className="h-4 w-4 mr-2 text-amber-600" />
+                  <FileText className="h-4 w-4 mr-2 text-amber-600" />
                   Select Documents
                 </Label>
                 
@@ -753,7 +730,7 @@ function CreateQuizContent() {
                             <span>{(doc.fileSize / 1024).toFixed(1)} KB</span>
                           </div>
                         </div>
-                        <CheckCircleIcon className="h-5 w-5 text-green-500 flex-shrink-0" />
+                        <CheckCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
                       </label>
                     ))}
                   </div>
@@ -849,7 +826,7 @@ function CreateQuizContent() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="title" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Quiz Title <span className="text-red-500">*</span>
+                    Quiz Title <span className="text-orange-500">*</span>
                   </Label>
                   <Input
                     id="title"
@@ -942,7 +919,7 @@ function CreateQuizContent() {
                       <div>
                         <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />
-                          Start Date & Time <span className="text-red-500">*</span>
+                          Start Date & Time <span className="text-orange-500">*</span>
                         </Label>
                         <div className="grid grid-cols-2 gap-2">
                           <Input
@@ -971,8 +948,8 @@ function CreateQuizContent() {
                   )}
                   
                   {config.useDeferredScheduling && (
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <p className="text-sm text-blue-700 dark:text-blue-400">
+                    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                      <p className="text-sm text-amber-700 dark:text-amber-400">
                         <Clock className="h-4 w-4 inline mr-1" />
                         You&apos;ll set the quiz start time when you&apos;re ready to publish it to students.
                       </p>
@@ -1095,7 +1072,7 @@ function CreateQuizContent() {
                     <SelectContent>
                       <SelectItem value="easy">
                         <span className="flex items-center">
-                          <span className="text-green-600 mr-2">●</span>
+                          <span className="text-amber-600 mr-2">●</span>
                           Easy - Basic Understanding
                         </span>
                       </SelectItem>
@@ -1107,7 +1084,7 @@ function CreateQuizContent() {
                       </SelectItem>
                       <SelectItem value="hard">
                         <span className="flex items-center">
-                          <span className="text-red-600 mr-2">●</span>
+                          <span className="text-orange-600 mr-2">●</span>
                           Hard - Advanced Comprehension
                         </span>
                       </SelectItem>
@@ -1119,9 +1096,9 @@ function CreateQuizContent() {
               {/* Learning Objectives - Bloom's Taxonomy */}
               <div>
                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
-                  <BrainIcon className="h-4 w-4 mr-2 text-amber-600" />
+                  <Brain className="h-4 w-4 mr-2 text-amber-600" />
                   Learning Objectives (Bloom&apos;s Taxonomy)
-                  <span className="text-red-500 ml-1">*</span>
+                  <span className="text-orange-500 ml-1">*</span>
                 </Label>
                 <div className="space-y-3">
                   {complexityLevels.map((level, index) => (
@@ -1157,7 +1134,7 @@ function CreateQuizContent() {
                   ))}
                 </div>
                 {config.bloomsLevels.length === 0 && (
-                  <p className="text-sm text-red-500 mt-2">
+                  <p className="text-sm text-orange-500 mt-2">
                     Please select at least one learning objective
                   </p>
                 )}
@@ -1192,7 +1169,7 @@ function CreateQuizContent() {
               variant="outline"
               className="border-amber-600 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 min-h-[44px] w-full sm:w-auto"
             >
-              <ArrowLeftIcon className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Previous
             </Button>
 
@@ -1203,22 +1180,22 @@ function CreateQuizContent() {
                 className="bg-amber-600 hover:bg-amber-700 text-white min-h-[44px] w-full sm:w-auto"
               >
                 Next
-                <ArrowRightIcon className="h-4 w-4 ml-2" />
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
               <Button
                 onClick={handleSubmit}
                 disabled={!canProceed() || loading}
-                className="bg-green-600 hover:bg-green-700 text-white min-h-[44px] w-full sm:w-auto"
+                className="bg-amber-600 hover:bg-amber-700 text-white min-h-[44px] w-full sm:w-auto"
               >
                 {loading ? (
                   <>
-                    <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                     Creating Quiz...
                   </>
                 ) : (
                   <>
-                    <CheckCircleIcon className="h-4 w-4 mr-2" />
+                    <CheckCircle className="h-4 w-4 mr-2" />
                     Create Quiz
                   </>
                 )}
@@ -1261,8 +1238,8 @@ function CreateQuizContent() {
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </PageContainer>
+    </>
   );
 }
 

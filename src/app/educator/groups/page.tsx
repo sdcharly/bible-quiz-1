@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { 
+  PageHeader,
+  PageContainer,
+  Section,
+  LoadingState,
+  EmptyState
+} from "@/components/educator-v2";
 import {
   Users,
   Plus,
@@ -25,7 +33,6 @@ import {
   BookOpen,
   UserPlus,
   ChevronRight,
-  Loader2,
   Info,
   Crown,
   Shield,
@@ -78,14 +85,14 @@ export default function GroupsPage() {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [creating, setCreating] = useState(false);
   const [totalStudents, setTotalStudents] = useState(0);
-  
-  // Form state
-  const [groupName, setGroupName] = useState("");
-  const [groupDescription, setGroupDescription] = useState("");
-  const [selectedColor, setSelectedColor] = useState("#3B82F6");
-  const [maxSize, setMaxSize] = useState(30);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [colors, setColors] = useState<string[]>([]);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    theme: "Disciples",
+    color: "amber",
+    maxSize: 30,
+  });
 
   useEffect(() => {
     fetchGroups();
@@ -98,8 +105,6 @@ export default function GroupsPage() {
         const data = await response.json();
         setGroups(data.groups || []);
         setTotalStudents(data.totalStudents || 0);
-        setSuggestions(data.suggestions || []);
-        setColors(data.colors || []);
       }
     } catch (error) {
       logger.error("Error fetching groups:", error);
@@ -109,479 +114,430 @@ export default function GroupsPage() {
   };
 
   const handleCreateGroup = async () => {
-    if (!groupName.trim()) {
-      alert("Group name is required");
-      return;
-    }
-
+    if (!formData.name.trim()) return;
+    
     setCreating(true);
     try {
       const response = await fetch("/api/educator/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: groupName,
-          description: groupDescription,
-          color: selectedColor,
-          maxSize
-        })
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        alert(data.message);
+        const text = await response.text();
+        if (text) {
+          try {
+            const data = JSON.parse(text);
+            // The API might return the group directly or wrapped in an object
+            if (data.group) {
+              setGroups([...groups, data.group]);
+            } else if (data && data.id) {
+              setGroups([...groups, data]);
+            } else {
+              // If response structure is unexpected, refetch
+              await fetchGroups();
+            }
+          } catch (e) {
+            // If response is not JSON, just refetch the groups
+            await fetchGroups();
+          }
+        } else {
+          // If response is empty, just refetch the groups
+          await fetchGroups();
+        }
         setShowCreateDialog(false);
-        resetForm();
-        fetchGroups();
+        setFormData({
+          name: "",
+          description: "",
+          theme: "Disciples",
+          color: "amber",
+          maxSize: 30,
+        });
       } else {
-        const error = await response.json();
-        alert(error.error || "Failed to create group");
+        const text = await response.text();
+        try {
+          const error = text ? JSON.parse(text) : {};
+          alert(error.message || "Failed to create group");
+        } catch (e) {
+          alert("Failed to create group");
+        }
       }
     } catch (error) {
       logger.error("Error creating group:", error);
-      alert("Error creating group");
+      alert("Failed to create group");
     } finally {
       setCreating(false);
     }
   };
 
-  const handleEditGroup = async () => {
-    if (!selectedGroup || !groupName.trim()) return;
-
+  const handleUpdateGroup = async () => {
+    if (!selectedGroup || !formData.name.trim()) return;
+    
     setCreating(true);
     try {
       const response = await fetch(`/api/educator/groups/${selectedGroup.id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: groupName,
-          description: groupDescription,
-          color: selectedColor,
-          maxSize
-        })
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        alert(data.message);
+        const text = await response.text();
+        if (text) {
+          try {
+            const data = JSON.parse(text);
+            // The API returns { success, message, group }
+            if (data.group) {
+              setGroups(groups.map(g => g.id === selectedGroup.id ? data.group : g));
+            } else if (data && data.id) {
+              // In case the API returns the group directly
+              setGroups(groups.map(g => g.id === selectedGroup.id ? data : g));
+            } else {
+              // If response structure is unexpected, refetch
+              await fetchGroups();
+            }
+          } catch (e) {
+            // If response is not JSON, just refetch the groups
+            await fetchGroups();
+          }
+        } else {
+          // If response is empty, just refetch the groups
+          await fetchGroups();
+        }
         setShowEditDialog(false);
-        resetForm();
-        fetchGroups();
+        setSelectedGroup(null);
       } else {
-        const error = await response.json();
-        alert(error.error || "Failed to update group");
+        const text = await response.text();
+        try {
+          const error = text ? JSON.parse(text) : {};
+          alert(error.message || "Failed to update group");
+        } catch (e) {
+          alert("Failed to update group");
+        }
       }
     } catch (error) {
       logger.error("Error updating group:", error);
-      alert("Error updating group");
+      alert("Failed to update group");
     } finally {
       setCreating(false);
     }
   };
 
   const handleDeleteGroup = async (group: Group) => {
-    const confirmMessage = group.memberCount > 0 
-      ? `Are you sure you want to delete "${group.name}"? This group has ${group.memberCount} member(s).`
-      : `Are you sure you want to delete "${group.name}"?`;
-    
-    if (!confirm(confirmMessage)) return;
+    if (group.memberCount > 0) {
+      alert(`Cannot delete group "${group.name}" because it has ${group.memberCount} members. Please remove all members first.`);
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the group "${group.name}"?`)) {
+      return;
+    }
 
     try {
       const response = await fetch(`/api/educator/groups/${group.id}`, {
-        method: "DELETE"
+        method: "DELETE",
       });
 
       if (response.ok) {
-        const data = await response.json();
-        alert(data.message);
-        fetchGroups();
+        setGroups(groups.filter(g => g.id !== group.id));
       } else {
-        const error = await response.json();
-        alert(error.error || "Failed to delete group");
+        const text = await response.text();
+        try {
+          const error = text ? JSON.parse(text) : {};
+          alert(error.message || "Failed to delete group");
+        } catch (e) {
+          alert("Failed to delete group");
+        }
       }
     } catch (error) {
       logger.error("Error deleting group:", error);
-      alert("Error deleting group");
+      alert("Failed to delete group");
     }
   };
 
   const openEditDialog = (group: Group) => {
     setSelectedGroup(group);
-    setGroupName(group.name);
-    setGroupDescription(group.description || "");
-    setSelectedColor(group.color);
-    setMaxSize(group.maxSize);
+    setFormData({
+      name: group.name,
+      description: group.description || "",
+      theme: group.theme,
+      color: group.color,
+      maxSize: group.maxSize,
+    });
     setShowEditDialog(true);
   };
 
-  const resetForm = () => {
-    setGroupName("");
-    setGroupDescription("");
-    setSelectedColor("#3B82F6");
-    setMaxSize(30);
-    setSelectedGroup(null);
-  };
+  const filteredGroups = groups.filter(group => {
+    if (!group || !group.name) return false;
+    const nameMatch = group.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const descMatch = group.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+    return nameMatch || descMatch;
+  });
 
-  const filteredGroups = groups.filter(group =>
-    group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    group.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getGroupIcon = (groupName: string) => {
-    const Icon = GROUP_ICONS[groupName] || Users;
-    return Icon;
+  const getGroupColorClasses = (color: string) => {
+    const colors: Record<string, { bg: string; text: string; border: string }> = {
+      amber: { bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-200" },
+      blue: { bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-200" },
+      green: { bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-200" },
+      purple: { bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-200" },
+      red: { bg: "bg-orange-100", text: "text-orange-800", border: "border-orange-200" },
+    };
+    return colors[color] || colors.amber;
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
+    return <LoadingState fullPage text="Loading groups..." />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Student Groups
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Organize your students into biblical-themed groups
-              </p>
+    <>
+      <PageHeader
+        title="Biblical Study Groups"
+        subtitle="Organize your disciples into focused study groups"
+        icon={Users}
+        breadcrumbs={[
+          { label: 'Educator', href: '/educator/dashboard' },
+          { label: 'Groups' }
+        ]}
+        actions={
+          <Button 
+            onClick={() => setShowCreateDialog(true)}
+            className="bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create Group
+          </Button>
+        }
+      />
+
+      <PageContainer>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Total Groups</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{groups.length}</p>
+              </div>
+              <Users className="h-8 w-8 text-amber-600 opacity-20" />
             </div>
-            <div className="flex gap-3">
-              <Link href="/educator/dashboard">
-                <Button variant="outline">Back to Dashboard</Button>
-              </Link>
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Group
-              </Button>
+          </div>
+
+          <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Total Students</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalStudents}</p>
+              </div>
+              <UserPlus className="h-8 w-8 text-amber-600 opacity-20" />
+            </div>
+          </div>
+
+          <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Active Groups</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {groups.filter(g => g.isActive).length}
+                </p>
+              </div>
+              <BookOpen className="h-8 w-8 text-amber-600 opacity-20" />
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Stats Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Groups</p>
-                  <p className="text-2xl font-bold">{groups.length}</p>
-                </div>
-                <Users className="h-8 w-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Students</p>
-                  <p className="text-2xl font-bold">{totalStudents}</p>
-                </div>
-                <UserPlus className="h-8 w-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Avg. Group Size</p>
-                  <p className="text-2xl font-bold">
-                    {groups.length > 0 ? Math.round(totalStudents / groups.length) : 0}
-                  </p>
-                </div>
-                <BookOpen className="h-8 w-8 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input
-            type="text"
-            placeholder="Search groups..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
-
-      {/* Groups Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 pb-8">
-        {filteredGroups.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                No groups yet
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Create your first group to start organizing your students
-              </p>
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Your First Group
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredGroups.map((group) => {
-              const Icon = getGroupIcon(group.name);
-              return (
-                <Card key={group.id} className="hover:shadow-lg transition-shadow cursor-pointer"
-                      onClick={() => router.push(`/educator/groups/${group.id}`)}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="p-2 rounded-lg" style={{ backgroundColor: group.color + "20" }}>
-                        <Icon className="h-6 w-6" style={{ color: group.color }} />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditDialog(group);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteGroup(group);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <CardTitle className="text-xl">{group.name}</CardTitle>
-                    {group.description && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {group.description}
-                      </p>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-gray-500" />
-                        <span>{group.memberCount} / {group.maxSize} members</span>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <div className="mt-2">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="h-2 rounded-full transition-all"
-                          style={{ 
-                            width: `${(group.memberCount / group.maxSize) * 100}%`,
-                            backgroundColor: group.color 
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+        <Section transparent>
+          {/* Search Bar */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search groups..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Create Group Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
+          {/* Groups Grid */}
+          {filteredGroups.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title={searchTerm ? "No groups found" : "No groups created yet"}
+              description={searchTerm 
+                ? "Try adjusting your search criteria" 
+                : "Create your first study group to organize your disciples"}
+              action={{
+                label: "Create Group",
+                onClick: () => setShowCreateDialog(true)
+              }}
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredGroups.map((group) => {
+                const GroupIcon = GROUP_ICONS[group.theme] || Users;
+                const colorClasses = getGroupColorClasses(group.color);
+                
+                return (
+                  <Card 
+                    key={group.id} 
+                    className={`hover:shadow-lg transition-shadow cursor-pointer border ${colorClasses.border}`}
+                    onClick={() => router.push(`/educator/groups/${group.id}`)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${colorClasses.bg}`}>
+                            <GroupIcon className={`h-6 w-6 ${colorClasses.text}`} />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg">{group.name}</CardTitle>
+                            <p className="text-sm text-gray-500">{group.theme}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditDialog(group);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteGroup(group);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-orange-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {group.description ? (
+                        <p className="text-sm text-gray-600 mb-4">{group.description}</p>
+                      ) : null}
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">
+                          {group.memberCount} / {group.maxSize} members
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </Section>
+      </PageContainer>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={showCreateDialog || showEditDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowCreateDialog(false);
+          setShowEditDialog(false);
+          setSelectedGroup(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Create New Group</DialogTitle>
+            <DialogTitle>
+              {showEditDialog ? "Edit Group" : "Create New Group"}
+            </DialogTitle>
             <DialogDescription>
-              Create a biblical-themed group to organize your students
+              {showEditDialog 
+                ? "Update the details of your study group." 
+                : "Create a new biblical study group for your disciples."}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
               <Label htmlFor="name">Group Name</Label>
               <Input
                 id="name"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                placeholder="Enter group name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Morning Bible Study"
               />
-              {suggestions.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-xs text-gray-500 mb-1">Suggestions:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {suggestions.slice(0, 6).map((suggestion) => (
-                      <Button
-                        key={suggestion}
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setGroupName(suggestion)}
-                      >
-                        {suggestion}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
-            <div>
+            
+            <div className="grid gap-2">
               <Label htmlFor="description">Description (Optional)</Label>
               <Textarea
                 id="description"
-                value={groupDescription}
-                onChange={(e) => setGroupDescription(e.target.value)}
-                placeholder="Enter group description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe the purpose of this group..."
                 rows={3}
               />
             </div>
-            <div>
-              <Label htmlFor="color">Group Color</Label>
-              <div className="flex gap-2 mt-2">
-                {colors.map((color) => (
-                  <button
-                    key={color}
-                    className={`w-8 h-8 rounded-full border-2 ${
-                      selectedColor === color ? "border-gray-900" : "border-gray-300"
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setSelectedColor(color)}
-                  />
-                ))}
-              </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="theme">Biblical Theme</Label>
+              <Select 
+                value={formData.theme}
+                onValueChange={(value) => setFormData({ ...formData, theme: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(GROUP_ICONS).map((theme) => (
+                    <SelectItem key={theme} value={theme}>{theme}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
+            
+            <div className="grid gap-2">
               <Label htmlFor="maxSize">Maximum Size</Label>
               <Input
                 id="maxSize"
                 type="number"
-                value={maxSize}
-                onChange={(e) => setMaxSize(parseInt(e.target.value) || 30)}
-                min={5}
-                max={100}
+                min="1"
+                max="100"
+                value={formData.maxSize}
+                onChange={(e) => setFormData({ ...formData, maxSize: parseInt(e.target.value) || 30 })}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Maximum number of students in this group
-              </p>
             </div>
           </div>
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowCreateDialog(false);
-              resetForm();
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCreateDialog(false);
+                setShowEditDialog(false);
+                setSelectedGroup(null);
+              }}
+            >
               Cancel
             </Button>
-            <Button onClick={handleCreateGroup} disabled={creating}>
+            <Button
+              onClick={showEditDialog ? handleUpdateGroup : handleCreateGroup}
+              disabled={creating || !formData.name.trim()}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
               {creating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
+                <LoadingState inline size="sm" text={showEditDialog ? "Updating..." : "Creating..."} />
               ) : (
-                "Create Group"
+                showEditDialog ? "Update Group" : "Create Group"
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Edit Group Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Group</DialogTitle>
-            <DialogDescription>
-              Update group details
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-name">Group Name</Label>
-              <Input
-                id="edit-name"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                placeholder="Enter group name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-description">Description (Optional)</Label>
-              <Textarea
-                id="edit-description"
-                value={groupDescription}
-                onChange={(e) => setGroupDescription(e.target.value)}
-                placeholder="Enter group description"
-                rows={3}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-color">Group Color</Label>
-              <div className="flex gap-2 mt-2">
-                {colors.map((color) => (
-                  <button
-                    key={color}
-                    className={`w-8 h-8 rounded-full border-2 ${
-                      selectedColor === color ? "border-gray-900" : "border-gray-300"
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setSelectedColor(color)}
-                  />
-                ))}
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="edit-maxSize">Maximum Size</Label>
-              <Input
-                id="edit-maxSize"
-                type="number"
-                value={maxSize}
-                onChange={(e) => setMaxSize(parseInt(e.target.value) || 30)}
-                min={5}
-                max={100}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowEditDialog(false);
-              resetForm();
-            }}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditGroup} disabled={creating}>
-              {creating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                "Update Group"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </>
   );
 }

@@ -4,6 +4,8 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Upload, 
   FileText, 
@@ -13,6 +15,12 @@ import {
   Loader2,
   ArrowLeft
 } from "lucide-react";
+import { PageHeader } from "@/components/educator-v2/layout/PageHeader";
+import { PageContainer } from "@/components/educator-v2/layout/PageContainer";
+import { Section } from "@/components/educator-v2/layout/Section";
+import { LoadingState } from "@/components/educator-v2/feedback/LoadingState";
+import { EmptyState } from "@/components/educator-v2/feedback/EmptyState";
+import { logger } from "@/lib/logger";
 
 interface FileUpload {
   file: File;
@@ -150,15 +158,15 @@ export default function DocumentUploadPage() {
           // Show enhanced success message
           if (responseData.message) {
             if (responseData.message.includes("duplicate")) {
-              console.log(`Note: ${responseData.message}`);
+              logger.log(`Note: ${responseData.message}`);
             } else if (details.retryCount > 0) {
-              console.log(`Upload succeeded after ${details.retryCount} retries`);
+              logger.log(`Upload succeeded after ${details.retryCount} retries`);
             }
           }
           
           // Log warnings for user awareness
           if (warnings.length > 0) {
-            console.warn(`Upload warnings for ${fileUpload.file.name}:`, warnings);
+            logger.warn(`Upload warnings for ${fileUpload.file.name}:`, warnings);
           }
         } else {
           const errorMessage = responseData.error || responseData.message || "Upload failed";
@@ -196,7 +204,7 @@ export default function DocumentUploadPage() {
       if (errorCount > 0) message += `, ${errorCount} failed`;
       if (warningCount > 0) message += `, ${warningCount} with warnings`;
       
-      console.log(message);
+      logger.log(message);
     }
     
     // Redirect to documents page after successful upload (only if all succeeded)
@@ -214,41 +222,30 @@ export default function DocumentUploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center py-6">
-            <Link href="/educator/documents">
-              <Button variant="ghost" size="sm" className="mr-4">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Upload Documents
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Upload biblical study materials for quiz generation
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <PageContainer maxWidth="2xl">
+      <PageHeader
+        title="Upload Documents"
+        subtitle="Upload biblical study materials for quiz generation"
+        icon={Upload}
+        backButton={{
+          href: "/educator/documents",
+          label: "Documents"
+        }}
+      />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Upload Area */}
+      {/* Upload Area */}
+      <Section transparent>
         <div
           className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
             isDragging
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-              : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+              ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+              : "border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800"
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <Upload className="h-12 w-12 text-amber-600 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             Drop files here or click to browse
           </h3>
@@ -256,7 +253,7 @@ export default function DocumentUploadPage() {
             Supported formats: PDF, DOCX, DOC, TXT<br/>
             <span className="text-xs">Max 2MB per file • PDF files max 10 pages • To protect server resources</span>
           </p>
-          <input
+          <Input
             type="file"
             id="file-upload"
             className="hidden"
@@ -264,28 +261,51 @@ export default function DocumentUploadPage() {
             accept=".pdf,.docx,.doc,.txt"
             onChange={handleFileSelect}
           />
-          <label htmlFor="file-upload">
-            <Button variant="outline" className="cursor-pointer" asChild>
+          <Label htmlFor="file-upload">
+            <Button variant="outline" className="cursor-pointer border-amber-200 hover:bg-amber-50" asChild>
               <span>Select Files</span>
             </Button>
-          </label>
+          </Label>
         </div>
+      </Section>
 
-        {/* File List */}
-        {files.length > 0 && (
-          <div className="mt-8 space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              Selected Files ({files.length})
-            </h3>
-            
+      {/* File List */}
+      {files.length > 0 && (
+        <Section
+          title={`Selected Files (${files.length})`}
+          description={`${files.filter(f => f.status === "success").length} of ${files.length} uploaded`}
+          icon={FileText}
+          actions={
+            <div className="flex gap-3">
+              <Link href="/educator/documents">
+                <Button variant="outline" className="border-amber-200 hover:bg-amber-50">Cancel</Button>
+              </Link>
+              <Button
+                onClick={uploadFiles}
+                disabled={isUploading || files.length === 0 || files.every(f => f.status === "success")}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Upload Files"
+                )}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
             {files.map((fileUpload) => (
               <div
                 key={fileUpload.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow p-4"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100 p-4"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <FileText className="h-8 w-8 text-blue-600" />
+                    <FileText className="h-8 w-8 text-amber-600" />
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white">
                         {fileUpload.file.name}
@@ -302,20 +322,21 @@ export default function DocumentUploadPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeFile(fileUpload.id)}
+                        className="hover:bg-orange-50 hover:text-orange-600"
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     )}
                     {fileUpload.status === "uploading" && (
-                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                      <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
                     )}
                     {fileUpload.status === "success" && (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <CheckCircle className="h-5 w-5 text-amber-500" />
                     )}
                     {fileUpload.status === "error" && (
                       <div className="flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5 text-red-500" />
-                        <div className="text-sm text-red-500">
+                        <AlertCircle className="h-5 w-5 text-orange-500" />
+                        <div className="text-sm text-orange-500">
                           <div>{fileUpload.error}</div>
                           {fileUpload.retryCount && fileUpload.retryCount > 0 && (
                             <div className="text-xs mt-1">Failed after {fileUpload.retryCount} retries</div>
@@ -325,8 +346,8 @@ export default function DocumentUploadPage() {
                     )}
                     {fileUpload.status === "success" && fileUpload.warnings && fileUpload.warnings.length > 0 && (
                       <div className="flex items-center gap-1 ml-2">
-                        <AlertCircle className="h-4 w-4 text-yellow-500" />
-                        <span className="text-xs text-yellow-600" title={fileUpload.warnings.join('; ')}>
+                        <AlertCircle className="h-4 w-4 text-amber-500" />
+                        <span className="text-xs text-amber-600" title={fileUpload.warnings.join('; ')}>
                           Warnings
                         </span>
                       </div>
@@ -353,7 +374,7 @@ export default function DocumentUploadPage() {
                     <div className="flex justify-between items-center">
                       <span>Upload completed successfully</span>
                       {fileUpload.processingRequired && (
-                        <span className="text-blue-600 dark:text-blue-400">
+                        <span className="text-amber-600 dark:text-amber-400">
                           Processing in background...
                         </span>
                       )}
@@ -364,9 +385,9 @@ export default function DocumentUploadPage() {
                       </div>
                     )}
                     {fileUpload.warnings && fileUpload.warnings.length > 0 && (
-                      <div className="mt-1 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
-                        <div className="text-xs text-yellow-800 dark:text-yellow-200 font-medium mb-1">Warnings:</div>
-                        <ul className="text-xs text-yellow-700 dark:text-yellow-300 list-disc list-inside space-y-0.5">
+                      <div className="mt-1 p-2 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800">
+                        <div className="text-xs text-amber-800 dark:text-amber-200 font-medium mb-1">Warnings:</div>
+                        <ul className="text-xs text-amber-700 dark:text-amber-300 list-disc list-inside space-y-0.5">
                           {fileUpload.warnings.map((warning, idx) => (
                             <li key={idx}>{warning}</li>
                           ))}
@@ -377,33 +398,9 @@ export default function DocumentUploadPage() {
                 )}
               </div>
             ))}
-            
-            <div className="flex justify-between items-center pt-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {files.filter(f => f.status === "success").length} of {files.length} uploaded
-              </p>
-              <div className="flex gap-3">
-                <Link href="/educator/documents">
-                  <Button variant="outline">Cancel</Button>
-                </Link>
-                <Button
-                  onClick={uploadFiles}
-                  disabled={isUploading || files.length === 0 || files.every(f => f.status === "success")}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    "Upload Files"
-                  )}
-                </Button>
-              </div>
-            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </Section>
+      )}
+    </PageContainer>
   );
 }

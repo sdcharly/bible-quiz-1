@@ -16,6 +16,12 @@ import {
   AlertCircle,
   Eye,
 } from "lucide-react";
+import { PageHeader } from "@/components/educator-v2/layout/PageHeader";
+import { PageContainer } from "@/components/educator-v2/layout/PageContainer";
+import { Section } from "@/components/educator-v2/layout/Section";
+import { LoadingState } from "@/components/educator-v2/feedback/LoadingState";
+import { EmptyState } from "@/components/educator-v2/feedback/EmptyState";
+import { logger } from "@/lib/logger";
 
 interface StudentAttempt {
   id: string;
@@ -66,10 +72,10 @@ export default function EducatorQuizResultsPage() {
         const data = await response.json();
         setResults(data);
       } else {
-        console.error("Failed to fetch quiz results");
+        logger.error("Failed to fetch quiz results");
       }
     } catch (error) {
-      console.error("Error fetching quiz results:", error);
+      logger.error("Error fetching quiz results:", error);
     } finally {
       setLoading(false);
     }
@@ -95,255 +101,249 @@ export default function EducatorQuizResultsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingState fullPage text="Loading quiz results..." />;
   }
 
   if (!results) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">No Results Yet</h2>
-          <p className="text-gray-600 mb-4">No students have attempted this quiz yet.</p>
-          <Link href="/educator/dashboard">
-            <Button>Return to Dashboard</Button>
-          </Link>
-        </div>
-      </div>
+      <PageContainer>
+        <EmptyState
+          icon={AlertCircle}
+          title="No Results Yet"
+          description="No students have attempted this quiz yet."
+          action={{
+            label: "Return to Dashboard",
+            onClick: () => window.location.href = "/educator/dashboard"
+          }}
+        />
+      </PageContainer>
     );
   }
 
   const filteredAttempts = getFilteredAttempts();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center py-6">
-            <Link href="/educator/dashboard">
-              <Button variant="ghost" size="sm" className="mr-4">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Quiz Results
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                {results.quizTitle}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Quiz Results"
+        subtitle={results.quizTitle}
+        icon={TrendingUp}
+        backButton={{
+          href: "/educator/dashboard",
+          label: "Dashboard"
+        }}
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Users className="h-8 w-8 text-blue-600" />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Total Attempts</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {results.statistics.totalAttempts}
-              </span>
+              </p>
             </div>
-            <p className="text-gray-600 dark:text-gray-400">Total Attempts</p>
+            <Users className="h-8 w-8 text-amber-600 opacity-20" />
           </div>
+        </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <TrendingUp className="h-8 w-8 text-green-600" />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Average Score</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {results.statistics.averageScore.toFixed(1)}%
-              </span>
+              </p>
             </div>
-            <p className="text-gray-600 dark:text-gray-400">Average Score</p>
+            <TrendingUp className="h-8 w-8 text-amber-600 opacity-20" />
           </div>
+        </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Trophy className="h-8 w-8 text-yellow-600" />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pass Rate</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {results.statistics.passRate.toFixed(1)}%
-              </span>
+              </p>
             </div>
-            <p className="text-gray-600 dark:text-gray-400">Pass Rate</p>
+            <Trophy className="h-8 w-8 text-amber-600 opacity-20" />
           </div>
+        </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Clock className="h-8 w-8 text-purple-600" />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Avg. Time</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {formatTime(results.statistics.averageTime)}
-              </span>
+              </p>
             </div>
-            <p className="text-gray-600 dark:text-gray-400">Avg. Time</p>
+            <Clock className="h-8 w-8 text-amber-600 opacity-20" />
           </div>
-        </div>
-
-        {/* Score Distribution */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Score Distribution
-          </h3>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Highest Score</p>
-              <p className="text-2xl font-bold text-green-600">
-                {results.statistics.highestScore}%
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Average Score</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {results.statistics.averageScore.toFixed(1)}%
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Lowest Score</p>
-              <p className="text-2xl font-bold text-red-600">
-                {results.statistics.lowestScore}%
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Student Attempts Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="p-6 border-b dark:border-gray-700">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Student Attempts
-              </h3>
-              <div className="flex gap-2">
-                <Button
-                  variant={filterStatus === "all" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilterStatus("all")}
-                >
-                  All ({results.attempts.length})
-                </Button>
-                <Button
-                  variant={filterStatus === "passed" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilterStatus("passed")}
-                >
-                  Passed ({results.attempts.filter(a => a.isPassed).length})
-                </Button>
-                <Button
-                  variant={filterStatus === "failed" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilterStatus("failed")}
-                >
-                  Failed ({results.attempts.filter(a => !a.isPassed).length})
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {filteredAttempts.length === 0 ? (
-            <div className="p-12 text-center">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">
-                No attempts match the selected filter.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Student
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Score
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Correct/Total
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Time Taken
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Completed
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y dark:divide-gray-700">
-                  {filteredAttempts.map((attempt) => (
-                    <tr key={attempt.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {attempt.studentName}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {attempt.studentEmail}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-lg font-bold ${
-                          attempt.isPassed ? "text-green-600" : "text-red-600"
-                        }`}>
-                          {attempt.score}%
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {attempt.isPassed ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Passed
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Failed
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {attempt.correctAnswers}/{attempt.totalQuestions}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {formatTime(attempt.timeTaken)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {attempt.completedAt && attempt.status === "completed" 
-                          ? new Date(attempt.completedAt).toLocaleDateString()
-                          : attempt.status === "failed" 
-                            ? "Failed" 
-                            : "Not completed"
-                        }
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Link href={`/educator/quiz/${quizId}/attempt/${attempt.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       </div>
-    </div>
+
+      {/* Score Distribution */}
+      <Section
+        title="Score Distribution"
+        description="Performance overview across all attempts"
+        icon={TrendingUp}
+        className="mb-8"
+      >
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Highest Score</p>
+            <p className="text-2xl font-bold text-amber-600">
+              {results.statistics.highestScore}%
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Average Score</p>
+            <p className="text-2xl font-bold text-amber-600">
+              {results.statistics.averageScore.toFixed(1)}%
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Lowest Score</p>
+            <p className="text-2xl font-bold text-orange-600">
+              {results.statistics.lowestScore}%
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      {/* Student Attempts Table */}
+      <Section
+        title="Student Attempts"
+        description="Detailed view of all quiz attempts"
+        icon={Users}
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant={filterStatus === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterStatus("all")}
+              className={filterStatus === "all" ? "bg-amber-600 hover:bg-amber-700" : "border-amber-200 hover:bg-amber-50"}
+            >
+              All ({results.attempts.length})
+            </Button>
+            <Button
+              variant={filterStatus === "passed" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterStatus("passed")}
+              className={filterStatus === "passed" ? "bg-amber-600 hover:bg-amber-700" : "border-amber-200 hover:bg-amber-50"}
+            >
+              Passed ({results.attempts.filter(a => a.isPassed).length})
+            </Button>
+            <Button
+              variant={filterStatus === "failed" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterStatus("failed")}
+              className={filterStatus === "failed" ? "bg-amber-600 hover:bg-amber-700" : "border-amber-200 hover:bg-amber-50"}
+            >
+              Failed ({results.attempts.filter(a => !a.isPassed).length})
+            </Button>
+          </div>
+        }
+      >
+        {filteredAttempts.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title="No attempts match the selected filter"
+            description="Try changing the filter to view different results."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-amber-50 dark:bg-amber-900/20">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Student
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Score
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Correct/Total
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Time Taken
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Completed
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y dark:divide-gray-700">
+                {filteredAttempts.map((attempt) => (
+                  <tr key={attempt.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {attempt.studentName}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {attempt.studentEmail}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`text-lg font-bold ${
+                        attempt.isPassed ? "text-amber-600" : "text-orange-600"
+                      }`}>
+                        {attempt.score}%
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {attempt.isPassed ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Passed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Failed
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {attempt.correctAnswers}/{attempt.totalQuestions}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {formatTime(attempt.timeTaken)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {attempt.completedAt && attempt.status === "completed" 
+                        ? new Date(attempt.completedAt).toLocaleDateString()
+                        : attempt.status === "failed" 
+                          ? "Failed" 
+                          : "Not completed"
+                      }
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Link href={`/educator/quiz/${quizId}/attempt/${attempt.id}`}>
+                        <Button variant="ghost" size="sm" className="hover:bg-amber-50">
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+    </PageContainer>
   );
 }
