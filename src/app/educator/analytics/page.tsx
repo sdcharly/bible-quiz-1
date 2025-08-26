@@ -2,16 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { logger } from "@/lib/logger";
+import { formatDateInTimezone } from "@/lib/timezone";
 import { 
   PageHeader,
   PageContainer,
   Section,
   LoadingState,
-  TabNavigation
+  TabNavigation,
+  EmptyState
 } from "@/components/educator-v2";
 import {
   BarChart3,
@@ -26,6 +29,10 @@ import {
   Brain,
   Award,
   Download,
+  RefreshCw,
+  PlusCircle,
+  FileText,
+  Calendar
 } from "lucide-react";
 
 interface OverallStats {
@@ -80,6 +87,8 @@ interface TimelineData {
 export default function EducatorAnalyticsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "quizzes" | "students" | "topics">("overview");
   const [timeRange, setTimeRange] = useState<"week" | "month" | "all">("month");
   
@@ -93,27 +102,91 @@ export default function EducatorAnalyticsPage() {
     fetchAnalytics();
   }, [timeRange]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (refresh = false) => {
     try {
+      if (refresh) {
+        setRefreshing(true);
+      }
+      setError(null);
+      
       const response = await fetch(`/api/educator/analytics?timeRange=${timeRange}`);
       if (response.ok) {
         const data = await response.json();
         setOverallStats(data.overall);
-        setQuizPerformance(data.quizzes);
-        setStudentPerformance(data.students);
-        setTopicPerformance(data.topics);
-        setTimelineData(data.timeline);
+        setQuizPerformance(data.quizzes || []);
+        setStudentPerformance(data.students || []);
+        setTopicPerformance(data.topics || []);
+        setTimelineData(data.timeline || []);
+      } else {
+        throw new Error(`Failed to fetch analytics: ${response.status}`);
       }
     } catch (error) {
       logger.error("Error fetching analytics:", error);
+      setError("Failed to load analytics data. Please try again.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchAnalytics(true);
+  };
+
+  const handleExportReport = async () => {
+    try {
+      const data = {
+        timeRange,
+        overallStats,
+        quizPerformance,
+        studentPerformance,
+        topicPerformance,
+        generatedAt: new Date().toISOString()
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analytics-report-${timeRange}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      logger.error("Error exporting report:", error);
+      alert("Failed to export report. Please try again.");
     }
   };
 
   const formatTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
-    return `${minutes}m`;
+    const remainingSeconds = seconds % 60;
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return formatDateInTimezone(dateString, 'short');
+    } catch {
+      return new Date(dateString).toLocaleDateString();
+    }
+  };
+
+  const formatRelativeDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+      
+      if (diffInHours < 1) return "Less than an hour ago";
+      if (diffInHours < 24) return `${diffInHours} hours ago`;
+      if (diffInHours < 168) return `${Math.floor(diffInHours / 24)} days ago`;
+      return formatDate(dateString);
+    } catch {
+      return "Unknown";
+    }
   };
 
   const getScoreColor = (score: number) => {
@@ -134,6 +207,22 @@ export default function EducatorAnalyticsPage() {
     return <LoadingState fullPage text="Loading analytics..." />;
   }
 
+  if (error) {
+    return (
+      <PageContainer>
+        <EmptyState
+          icon={AlertTriangle}
+          title="Unable to Load Analytics"
+          description={error}
+          action={{
+            label: "Try Again",
+            onClick: () => fetchAnalytics()
+          }}
+        />
+      </PageContainer>
+    );
+  }
+
   return (
     <>
       <PageHeader
@@ -145,9 +234,9 @@ export default function EducatorAnalyticsPage() {
           { label: 'Analytics' }
         ]}
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Select value={timeRange} onValueChange={(value) => setTimeRange(value as "week" | "month" | "all")}>
-              <SelectTrigger className="w-[140px] border-amber-200 dark:border-amber-600">
+              <SelectTrigger className="w-[140px] border-amber-200 dark:border-amber-600 focus:ring-amber-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -158,10 +247,22 @@ export default function EducatorAnalyticsPage() {
             </Select>
             <Button 
               variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="border-amber-200 hover:bg-amber-50"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={handleExportReport}
               className="border-amber-200 hover:bg-amber-50"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export Report
+              Export
             </Button>
           </div>
         }
@@ -169,8 +270,23 @@ export default function EducatorAnalyticsPage() {
 
       <PageContainer>
         <Section transparent>
-          {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* No Data State */}
+          {overallStats && overallStats.totalQuizzes === 0 ? (
+            <div className="py-12">
+              <EmptyState
+                icon={BarChart3}
+                title="No Analytics Data Yet"
+                description="Create your first quiz and invite students to start seeing analytics insights"
+                action={{
+                  label: "Create Your First Quiz",
+                  onClick: () => router.push('/educator/quiz/create')
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              {/* Key Metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
               <div className="flex items-center justify-between">
                 <div>
@@ -257,18 +373,70 @@ export default function EducatorAnalyticsPage() {
                 </CardHeader>
                 <CardContent>
                   {timelineData.length > 0 ? (
-                    <div className="h-64 flex items-end justify-between gap-2">
-                      {timelineData.map((data, index) => (
-                        <div key={index} className="flex-1 flex flex-col items-center">
-                          <div className="w-full bg-amber-200 rounded-t" 
-                               style={{ height: `${(data.averageScore / 100) * 200}px` }}>
-                          </div>
-                          <p className="text-xs mt-2 text-gray-600">{data.date}</p>
+                    <div className="h-64">
+                      <div className="flex items-end justify-between gap-3 h-48 mb-4">
+                        {timelineData.map((data, index) => {
+                          const maxScore = Math.max(...timelineData.map(d => d.averageScore), 1);
+                          const height = Math.max((data.averageScore / maxScore) * 180, 4); // Minimum 4px height
+                          const maxAttempts = Math.max(...timelineData.map(d => d.attempts), 1);
+                          const attemptsRatio = data.attempts / maxAttempts;
+                          
+                          return (
+                            <div key={index} className="flex-1 flex flex-col items-center group relative">
+                              <div 
+                                className="w-full bg-gradient-to-t from-amber-300 to-amber-500 rounded-t hover:from-amber-400 hover:to-amber-600 transition-colors cursor-pointer"
+                                style={{ height: `${height}px` }}
+                                title={`${data.attempts} attempts, ${data.averageScore.toFixed(1)}% avg score`}
+                              >
+                                {/* Score indicator overlay */}
+                                <div 
+                                  className="w-full bg-gradient-to-t from-orange-400 to-orange-600 rounded-t opacity-60"
+                                  style={{ height: `${Math.min(attemptsRatio * 100, 100)}%` }}
+                                />
+                              </div>
+                              
+                              {/* Tooltip on hover */}
+                              <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+                                <div>{data.attempts} attempts</div>
+                                <div>{data.averageScore.toFixed(1)}% avg</div>
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Date labels */}
+                      <div className="flex justify-between text-xs text-gray-600">
+                        {timelineData.map((data, index) => (
+                          <span key={index} className="flex-1 text-center">
+                            {formatDate(data.date)}
+                          </span>
+                        ))}
+                      </div>
+                      
+                      {/* Chart legend */}
+                      <div className="flex justify-center gap-6 mt-4 text-xs text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-gradient-to-t from-amber-300 to-amber-500 rounded"></div>
+                          <span>Score Trend</span>
                         </div>
-                      ))}
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-gradient-to-t from-orange-400 to-orange-600 rounded opacity-60"></div>
+                          <span>Activity Volume</span>
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <p className="text-gray-500">No data available for this time range</p>
+                    <EmptyState
+                      icon={BarChart3}
+                      title="No Activity Data"
+                      description="Activity insights will appear here once students start taking quizzes"
+                      action={{
+                        label: "View Quizzes",
+                        onClick: () => router.push('/educator/quizzes')
+                      }}
+                    />
                   )}
                 </CardContent>
               </Card>
@@ -361,9 +529,19 @@ export default function EducatorAnalyticsPage() {
                       ))}
                     </tbody>
                   </table>
-                  {quizPerformance.length === 0 ? (
-                    <p className="text-center py-8 text-gray-500">No quiz data available</p>
-                  ) : null}
+                  {quizPerformance.length === 0 && (
+                    <div className="py-12">
+                      <EmptyState
+                        icon={BookOpen}
+                        title="No Quiz Performance Data"
+                        description="Create and publish quizzes to see detailed performance analytics here"
+                        action={{
+                          label: "Create Your First Quiz",
+                          onClick: () => router.push('/educator/quiz/create')
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -386,6 +564,7 @@ export default function EducatorAnalyticsPage() {
                         <th className="text-center py-2 px-4">Quizzes</th>
                         <th className="text-center py-2 px-4">Avg Score</th>
                         <th className="text-center py-2 px-4">Time Spent</th>
+                        <th className="text-center py-2 px-4">Last Activity</th>
                         <th className="text-center py-2 px-4">Trend</th>
                         <th className="text-right py-2 px-4">Actions</th>
                       </tr>
@@ -410,6 +589,9 @@ export default function EducatorAnalyticsPage() {
                           <td className="text-center py-3 px-4">
                             {formatTime(student.totalTimeSpent)}
                           </td>
+                          <td className="text-center py-3 px-4 text-xs text-gray-600">
+                            {formatRelativeDate(student.lastActivity)}
+                          </td>
                           <td className="text-center py-3 px-4">
                             {getTrendIcon(student.trend)}
                           </td>
@@ -427,9 +609,19 @@ export default function EducatorAnalyticsPage() {
                       ))}
                     </tbody>
                   </table>
-                  {studentPerformance.length === 0 ? (
-                    <p className="text-center py-8 text-gray-500">No student data available</p>
-                  ) : null}
+                  {studentPerformance.length === 0 && (
+                    <div className="py-12">
+                      <EmptyState
+                        icon={Users}
+                        title="No Student Activity"
+                        description="Invite students to your quizzes to track their progress and performance"
+                        action={{
+                          label: "Manage Students",
+                          onClick: () => router.push('/educator/students')
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -469,13 +661,25 @@ export default function EducatorAnalyticsPage() {
                       </div>
                     </div>
                   ))}
-                  {topicPerformance.length === 0 ? (
-                    <p className="text-center py-8 text-gray-500">No topic data available</p>
-                  ) : null}
+                  {topicPerformance.length === 0 && (
+                    <div className="py-12">
+                      <EmptyState
+                        icon={Brain}
+                        title="No Topic Analysis Available"
+                        description="Topic performance data will appear as students complete quizzes with categorized questions"
+                        action={{
+                          label: "Review Questions",
+                          onClick: () => router.push('/educator/quizzes')
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ) : null}
+            </>
+          )}
         </Section>
       </PageContainer>
     </>

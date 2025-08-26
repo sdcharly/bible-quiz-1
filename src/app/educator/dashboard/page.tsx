@@ -302,7 +302,7 @@ export default function EducatorDashboard() {
         {/* Key Performance Indicators with Graphs */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Performance Overview Card */}
-          <Card className="lg:col-span-2 border-amber-100 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="lg:col-span-2 border-amber-100 shadow-sm hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
@@ -421,7 +421,7 @@ export default function EducatorDashboard() {
           </Card>
 
           {/* Quick Stats Card */}
-          <Card className="border-amber-100 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="border-amber-100 shadow-sm hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-base sm:text-lg font-semibold text-amber-800 dark:text-amber-300">Sacred Statistics</CardTitle>
               <CardDescription className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Your divine teachings</CardDescription>
