@@ -15,7 +15,7 @@ import {
   ChevronLeft, ChevronRight, Edit2, Save, Eye, EyeOff,
   Grid3x3, Hash, Target, Brain, BarChart3, Shield, Shuffle
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { TranslationModal } from "@/components/quiz/TranslationModal";
@@ -77,6 +77,13 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
   const [replaceJobId, setReplaceJobId] = useState<string | null>(null);
   const [replaceProgress, setReplaceProgress] = useState(0);
   const [replaceMessage, setReplaceMessage] = useState("");
+  const [showReplaceDialog, setShowReplaceDialog] = useState(false);
+  const [questionToReplace, setQuestionToReplace] = useState<string | null>(null);
+  const [replaceOptions, setReplaceOptions] = useState({
+    difficulty: "medium",
+    book: "",
+    chapter: ""
+  });
   
   const isCompletingRef = useRef(false);
   const startTimeRef = useRef<number>(0);
@@ -324,10 +331,26 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
     }, 1000); // Poll every second
   };
 
-  const handleReplaceQuestion = async (questionId: string) => {
-    if (replacingQuestion) return;
+  // Open the replace dialog with the question ID
+  const openReplaceDialog = (questionId: string) => {
+    const question = quiz?.questions.find(q => q.id === questionId);
+    if (question) {
+      setQuestionToReplace(questionId);
+      setReplaceOptions({
+        difficulty: question.difficulty || "medium",
+        book: question.book || "",
+        chapter: question.chapter || ""
+      });
+      setShowReplaceDialog(true);
+    }
+  };
 
-    setReplacingQuestion(questionId);
+  // Handle the actual replacement after configuration
+  const handleReplaceQuestion = async () => {
+    if (!questionToReplace || replacingQuestion) return;
+
+    setShowReplaceDialog(false);
+    setReplacingQuestion(questionToReplace);
     setReplaceProgress(5);
     setReplaceMessage("Initiating AI-powered question generation...");
     isCompletingRef.current = false;
@@ -335,10 +358,11 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
 
     try {
       const response = await fetch(
-        `/api/educator/quiz/${quizId}/question/${questionId}/replace-async`,
+        `/api/educator/quiz/${quizId}/question/${questionToReplace}/replace-async`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(replaceOptions)
         }
       );
 
@@ -367,6 +391,7 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
         setReplaceJobId(null);
         setReplaceProgress(0);
         setReplaceMessage("");
+        setQuestionToReplace(null);
       }, 3000);
     }
   };
@@ -875,8 +900,9 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleReplaceQuestion(currentQuestion.id)}
+                            onClick={() => openReplaceDialog(currentQuestion.id)}
                             disabled={replacingQuestion !== null}
+                            className="border-amber-200 hover:bg-amber-50"
                           >
                             <RefreshCw className="h-4 w-4 mr-1" />
                             Replace
@@ -1148,12 +1174,97 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
           </Button>
         </div>
 
-        {/* Replace Question Modal */}
+        {/* Replace Question Configuration Modal */}
+        <Dialog open={showReplaceDialog} onOpenChange={setShowReplaceDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-amber-900">Replace Question Options</DialogTitle>
+              <DialogDescription className="text-amber-700">
+                Customize the parameters for the replacement question. The AI will generate a new question based on these settings.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="difficulty" className="text-amber-900 font-medium">
+                  Difficulty Level
+                </Label>
+                <Select
+                  value={replaceOptions.difficulty}
+                  onValueChange={(value) => setReplaceOptions(prev => ({ ...prev, difficulty: value }))}
+                >
+                  <SelectTrigger id="difficulty" className="border-amber-200 focus:ring-amber-500">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="easy">Easy</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="hard">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="book" className="text-amber-900 font-medium">
+                  Biblical Book
+                </Label>
+                <Input
+                  id="book"
+                  placeholder="e.g., Genesis, Matthew, Psalms"
+                  value={replaceOptions.book}
+                  onChange={(e) => setReplaceOptions(prev => ({ ...prev, book: e.target.value }))}
+                  className="border-amber-200 focus:ring-amber-500 focus:border-amber-500"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="chapter" className="text-amber-900 font-medium">
+                  Chapter & Verse (Optional)
+                </Label>
+                <Input
+                  id="chapter"
+                  placeholder="e.g., 3:16, 1:1-5, 23"
+                  value={replaceOptions.chapter}
+                  onChange={(e) => setReplaceOptions(prev => ({ ...prev, chapter: e.target.value }))}
+                  className="border-amber-200 focus:ring-amber-500 focus:border-amber-500"
+                />
+              </div>
+              
+              <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <p className="text-xs text-amber-800">
+                  💡 The AI will create a contextually relevant question based on your specified book and chapter, 
+                  ensuring theological accuracy and educational value.
+                </p>
+              </div>
+            </div>
+            
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowReplaceDialog(false);
+                  setQuestionToReplace(null);
+                }}
+                className="border-amber-200 hover:bg-amber-50"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleReplaceQuestion}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Generate Replacement
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Replace Question Progress Modal */}
         <Dialog open={replacingQuestion !== null} onOpenChange={() => {}}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
+              <DialogTitle className="flex items-center gap-2 text-amber-900">
+                <BookOpen className="h-5 w-5 text-amber-600" />
                 Generating New Question
               </DialogTitle>
             </DialogHeader>
@@ -1164,25 +1275,42 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
                   {replaceMessage}
                 </p>
               </div>
+              
+              {replaceOptions.book && (
+                <div className="p-3 bg-amber-50 rounded-lg">
+                  <p className="text-xs text-amber-800">
+                    📖 Generating for: <strong>{replaceOptions.book}</strong>
+                    {replaceOptions.chapter && ` Chapter ${replaceOptions.chapter}`}
+                    {' • '}<span className="capitalize">{replaceOptions.difficulty}</span> difficulty
+                  </p>
+                </div>
+              )}
+              
               {replaceProgress < 100 && (
                 <p className="text-xs text-gray-500 text-center">
-                  AI is analyzing your biblical content to create meaningful questions.
+                  AI is analyzing biblical content to create a meaningful question...
                 </p>
               )}
+              
               {replaceProgress < 100 && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
+                    if (pollIntervalRef.current) {
+                      clearInterval(pollIntervalRef.current);
+                      pollIntervalRef.current = null;
+                    }
                     setReplacingQuestion(null);
                     setReplaceJobId(null);
                     setReplaceProgress(0);
                     setReplaceMessage("");
+                    setQuestionToReplace(null);
                   }}
-                  className="w-full"
+                  className="w-full border-amber-200 hover:bg-amber-50"
                 >
                   <X className="h-4 w-4 mr-2" />
-                  Cancel
+                  Cancel Generation
                 </Button>
               )}
             </div>
