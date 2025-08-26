@@ -340,40 +340,83 @@ export default function EducatorDashboard() {
                 </div>
               </div>
               
-              {/* Mini Activity Chart */}
-              <div className="h-32 flex items-end gap-1">
-                {performanceData.recentActivity && performanceData.recentActivity.length > 0 ? (
-                  performanceData.recentActivity.map((day, index) => {
-                    const maxAttempts = Math.max(...performanceData.recentActivity.map(d => d.attempts || 0), 1);
-                    const height = ((day.attempts || 0) / maxAttempts) * 100;
-                    const avgScore = day.avgScore || 0;
-                    
-                    return (
-                      <div key={index} className="flex-1 flex flex-col items-center">
-                        <div 
-                          className="w-full bg-amber-200 dark:bg-amber-800 rounded-t hover:bg-amber-300 transition-colors relative"
-                          style={{ height: `${height}%` }}
-                          title={`${day.attempts || 0} attempts, ${avgScore.toFixed(0)}% avg score`}
-                        >
-                          {avgScore > 0 && (
-                            <div 
-                              className={`absolute inset-x-0 bottom-0 rounded-t ${
-                                avgScore >= 70 ? 'bg-amber-500' : 'bg-orange-500'
-                              }`}
-                              style={{ height: `${avgScore}%` }}
-                            />
-                          )}
+              {/* Activity Chart or Getting Started Content */}
+              {performanceData.recentActivity && performanceData.recentActivity.length > 0 ? (
+                <>
+                  <div className="h-24 flex items-end gap-1">
+                    {performanceData.recentActivity.map((day, index) => {
+                      const maxAttempts = Math.max(...performanceData.recentActivity.map(d => d.attempts || 0), 1);
+                      const height = ((day.attempts || 0) / maxAttempts) * 100;
+                      const avgScore = day.avgScore || 0;
+                      
+                      return (
+                        <div key={index} className="flex-1 flex flex-col items-center">
+                          <div 
+                            className="w-full bg-amber-200 dark:bg-amber-800 rounded-t hover:bg-amber-300 transition-colors relative"
+                            style={{ height: `${height}%` }}
+                            title={`${day.attempts || 0} attempts, ${avgScore.toFixed(0)}% avg score`}
+                          >
+                            {avgScore > 0 && (
+                              <div 
+                                className={`absolute inset-x-0 bottom-0 rounded-t ${
+                                  avgScore >= 70 ? 'bg-amber-500' : 'bg-orange-500'
+                                }`}
+                                style={{ height: `${avgScore}%` }}
+                              />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-                    No activity data yet
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 text-center mt-2">Daily activity (last 7 days)</p>
+                  <p className="text-xs text-gray-500 text-center mt-2">Daily activity (last 7 days)</p>
+                </>
+              ) : (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg p-4 space-y-3">
+                  <div className="text-center">
+                    <SparklesIcon className="h-7 w-7 text-amber-500 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">
+                      Begin Your Teaching Journey
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">
+                      Start by creating quizzes to track student progress
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-2 justify-center">
+                    <Link href="/educator/quiz/create">
+                      <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white text-xs px-4 py-2 h-7">
+                        <PencilSquareIcon className="h-3 w-3 mr-1.5" />
+                        Create Quiz
+                      </Button>
+                    </Link>
+                    <Link href="/educator/documents/upload">
+                      <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-100 text-xs px-4 py-2 h-7">
+                        <ArrowUpTrayIcon className="h-3 w-3 mr-1.5" />
+                        Upload Docs
+                      </Button>
+                    </Link>
+                  </div>
+
+                  {stats.totalQuizzes > 0 && (
+                    <div className="border-t border-amber-200 pt-3 mt-3">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-500">Your Quizzes:</span>
+                        <span className="font-medium text-amber-700">{stats.totalQuizzes} created</span>
+                      </div>
+                      {stats.activeQuizzes > 0 && (
+                        <div className="flex justify-between items-center text-xs mt-1">
+                          <span className="text-gray-500">Active:</span>
+                          <span className="font-medium text-green-600">{stats.activeQuizzes} published</span>
+                        </div>
+                      )}
+                      <p className="text-xs text-center text-gray-500 mt-2">
+                        Activity insights will show once students begin taking quizzes
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
