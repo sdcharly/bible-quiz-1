@@ -1,14 +1,15 @@
-import { ThemeProvider } from "@/components/theme-provider";
-import { UserProvider } from "@/contexts/UserContext";
+import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { ThemeProvider } from "@/components/theme-provider";
+import { UserProvider } from "@/contexts/UserContext";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MaintenanceCheck } from "@/components/maintenance-check";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Analytics } from "@vercel/analytics/react";
+import "./globals.css";
 import { WebVitalsReporter } from "./web-vitals";
+
 
 const inter = Inter({
   variable: "--font-body",

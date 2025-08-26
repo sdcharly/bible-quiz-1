@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { getAdminSession, logActivity } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
-import { eq } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { validatePermissions } from "@/lib/validation/admin-schemas";
+
 
 async function handlePUT(
   request: NextRequest,

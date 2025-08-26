@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { desc, eq } from "drizzle-orm";
 import { getAdminSession } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { activityLogs, user } from "@/lib/schema";
-import { desc, eq } from "drizzle-orm";
-import ActivityLogsView from "./ActivityLogsView";
+import ActivityLogsViewV2 from "./ActivityLogsViewV2";
+
 
 async function getActivityLogs() {
   const logs = await db
@@ -45,7 +46,7 @@ export default async function ActivityPage() {
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <ActivityLogsView logs={logs} />
+      <ActivityLogsViewV2 logs={logs} />
     </Suspense>
   );
 }

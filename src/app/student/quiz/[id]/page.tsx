@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
+
 import {
   Clock,
   ChevronLeft,
@@ -16,6 +18,7 @@ import {
 import { logger } from "@/lib/logger";
 import { BiblicalPageLoader, BiblicalLoader } from "@/components/ui/biblical-loader";
 import { useSessionManager } from "@/hooks/useSessionManager";
+import { useToast } from "@/hooks/use-toast";
 
 interface Question {
   id: string;
@@ -48,6 +51,7 @@ interface Answer {
 export default function OptimizedQuizTakingPage() {
   const router = useRouter();
   const params = useParams();
+  const { toast } = useToast();
   const quizId = params.id as string;
 
   const [loading, setLoading] = useState(true);
@@ -73,10 +77,15 @@ export default function OptimizedQuizTakingPage() {
   } = useSessionManager({
     isQuizActive: true,
     enableAutoExtend: true,
+    quizId,
     onSessionExpired: () => {
       // Auto-submit quiz on session expiry
       if (quiz && !submitting) {
-        alert("Your session has expired. Your quiz will be automatically submitted.");
+        toast({
+          title: "Session Expired",
+          description: "Your quiz will be automatically submitted.",
+          variant: "destructive"
+        });
         handleSubmit(true);
       }
     },
@@ -373,9 +382,9 @@ export default function OptimizedQuizTakingPage() {
 
   if (quizCompleted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-amber-50/50 to-white dark:from-gray-900 dark:to-gray-950">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
-          <AlertCircle className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             Quiz Already Completed
           </h2>
@@ -401,7 +410,7 @@ export default function OptimizedQuizTakingPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Unable to load quiz</p>
           <Link href="/student/quizzes">
             <Button className="mt-4">Back to Quizzes</Button>
@@ -415,7 +424,7 @@ export default function OptimizedQuizTakingPage() {
   const isTimeLow = timeRemaining < 300;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50/50 to-white dark:from-gray-900 dark:to-gray-950">
       {/* Session Warning */}
       {isWarning && (
         <div className="fixed top-4 left-4 bg-amber-100 dark:bg-amber-900 border border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 px-4 py-3 rounded-lg shadow-lg z-50">
@@ -526,14 +535,14 @@ export default function OptimizedQuizTakingPage() {
 
               {/* Answer Options */}
               <div className="space-y-2 sm:space-y-3">
-                {currentQuestion.options.map((option, index) => (
+                {currentQuestion.options.filter(option => option && option.id).map((option, index) => (
                   <button
                     key={option.id}
                     onClick={() => handleAnswerSelect(option.id)}
                     className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-all touch-manipulation ${
                       currentAnswer?.answer === option.id
                         ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 active:bg-gray-50 dark:active:bg-gray-700'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-amber-300 dark:hover:border-amber-700 active:bg-amber-50/50 dark:active:bg-amber-900/10'
                     }`}
                   >
                     <div className="flex items-start">
@@ -602,8 +611,8 @@ export default function OptimizedQuizTakingPage() {
                 Question Navigator
               </h3>
               <div className="grid grid-cols-4 xl:grid-cols-5 gap-1.5 sm:gap-2">
-                {quiz.questions.map((_, index) => {
-                  const answer = answers[quiz.questions[index].id];
+                {quiz.questions.filter(q => q && q.id).map((question, index) => {
+                  const answer = answers[question.id];
                   const isActive = index === currentQuestionIndex;
                   const isAnswered = !!answer?.answer;
                   const isMarked = !!answer?.markedForReview;
@@ -618,7 +627,7 @@ export default function OptimizedQuizTakingPage() {
                         ${isAnswered && isMarked ? 'bg-amber-500 text-white' :
                           isAnswered ? 'bg-green-500 text-white' :
                           isMarked ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300' :
-                          'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}
+                          'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-amber-100 dark:hover:bg-amber-900/10'}
                       `}
                     >
                       {index + 1}
@@ -683,6 +692,7 @@ export default function OptimizedQuizTakingPage() {
               size="sm"
               onClick={() => {
                 const markedQuestions = quiz.questions
+                  .filter(q => q && q.id)
                   .map((q, i) => ({ question: q, index: i }))
                   .filter(({ question }) => answers[question.id]?.markedForReview);
                 if (markedQuestions.length > 0) {

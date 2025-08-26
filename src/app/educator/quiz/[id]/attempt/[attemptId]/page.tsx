@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
@@ -463,7 +464,7 @@ export default function EducatorAttemptDetailPage() {
                     {/* Options */}
                     <div className="space-y-2">
                       <p className="font-medium text-gray-700 dark:text-gray-300">Options:</p>
-                      {question.options.map((option) => {
+                      {question.options.filter(option => option && option.id).map((option) => {
                         const isSelected = question.selectedAnswer === option.id;
                         const isCorrect = question.correctAnswer === option.id;
                         

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { quizAttempts, questionResponses, questions, quizzes, user } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
+import * as crypto from "crypto";
+import { db } from "@/lib/db";
+import { quizAttempts, questionResponses, questions, quizzes, user } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { quizCache } from "@/lib/quiz-cache";
+
 // REMOVED RATE LIMITING: To support 100+ concurrent students taking quizzes
 // Rate limiting was causing legitimate quiz submissions to fail
 
@@ -102,8 +104,8 @@ export async function POST(
       timeSpent: number;
     }
     
-    const evaluatedAnswers = answers.map((answer: AnswerInput) => {
-      const question = quizQuestions.find(q => q.id === answer.questionId);
+    const evaluatedAnswers = answers.filter((answer: AnswerInput) => answer && answer.questionId && answer.answer != null).map((answer: AnswerInput) => {
+      const question = quizQuestions.find(q => q && q.id === answer.questionId);
       const isCorrect = question?.correctAnswer === answer.answer;
       if (isCorrect) correctAnswers++;
       
@@ -235,7 +237,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error("Error submitting quiz:", error);
+    logger.error("Error submitting quiz:", error);
     return NextResponse.json(
       { error: "Failed to submit quiz" },
       { status: 500 }

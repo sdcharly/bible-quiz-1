@@ -1,10 +1,12 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { eq, desc, and, or, notInArray, sql } from "drizzle-orm";
 import { getAdminSession } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { user, quizzes, enrollments, activityLogs, educatorStudents } from "@/lib/schema";
-import { eq, desc, and, or, notInArray, sql } from "drizzle-orm";
-import AdminDashboard from "./AdminDashboard";
+
+// Using the new V2 dashboard with admin-v2 components
+import AdminDashboardV2 from "./AdminDashboardV2";
 
 async function getAdminStats() {
   const [
@@ -156,7 +158,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <AdminDashboard 
+      <AdminDashboardV2 
         stats={stats} 
         pendingEducators={pendingEducators}
         allEducators={allEducators}

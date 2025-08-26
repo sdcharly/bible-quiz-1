@@ -1,9 +1,10 @@
-import { db } from "@/lib/db";
-import { user } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
+import { db } from "@/lib/db";
+import { user } from "@/lib/schema";
 import { sendPasswordResetEmail } from "@/lib/email-service";
+
 
 // In-memory storage for reset tokens (in production, use database)
 // This is a temporary solution - ideally store in a passwordResetTokens table
@@ -86,7 +87,7 @@ export async function requestPasswordReset(email: string): Promise<{
     try {
       await sendPasswordResetEmail(email, targetUser.name || "User", resetUrl);
     } catch (emailError) {
-      console.error("Failed to send password reset email:", emailError);
+      // [REMOVED: Console statement for performance]
       resetTokens.delete(token);
       return {
         success: false,
@@ -99,7 +100,7 @@ export async function requestPasswordReset(email: string): Promise<{
       message: "If an account exists with this email, a reset link has been sent.",
     };
   } catch (error) {
-    console.error("Password reset request error:", error);
+    // [REMOVED: Console statement for performance]
     return {
       success: false,
       message: "An error occurred. Please try again.",
@@ -212,7 +213,7 @@ export async function resetPasswordWithToken(
       message: "Password has been reset successfully.",
     };
   } catch (error) {
-    console.error("Password reset error:", error);
+    // [REMOVED: Console statement for performance]
     return {
       success: false,
       message: "Failed to reset password. Please try again.",
@@ -268,7 +269,7 @@ export async function resetAdminPassword(
       message: "Admin password updated. Please update SUPER_ADMIN_PASSWORD_HASH in environment variables.",
     };
   } catch (error) {
-    console.error("Admin password reset error:", error);
+    // [REMOVED: Console statement for performance]
     return {
       success: false,
       message: "Failed to reset admin password.",

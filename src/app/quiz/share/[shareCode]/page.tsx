@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BookOpen, Clock, Users, AlertCircle } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Clock, Users, AlertCircle } from "lucide-react";
-import Link from "next/link";
 import { BiblicalPageLoader, BiblicalLoader } from "@/components/ui/biblical-loader";
+import { logger } from "@/lib/logger";
+
 
 interface QuizInfo {
   id: string;
@@ -54,7 +56,7 @@ export default function QuizSharePage() {
         router.push(`/student/quiz/${data.id}`);
       }
     } catch (err) {
-      console.error("Error fetching quiz info:", err);
+      logger.error("Error fetching quiz info:", err);
       setError("Failed to load quiz information");
     } finally {
       setLoading(false);
@@ -110,7 +112,7 @@ export default function QuizSharePage() {
         // Redirect to quiz
         router.push(`/student/quiz/${quizInfo.id}`);
       } catch (err) {
-        console.error("Error enrolling:", err);
+        logger.error("Error enrolling:", err);
         setError("Failed to enroll in quiz");
       } finally {
         setEnrolling(false);

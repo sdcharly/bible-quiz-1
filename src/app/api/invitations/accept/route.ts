@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { invitations, educatorStudents, enrollments, user } from "@/lib/schema";
 import { eq, and, gte } from "drizzle-orm";
 import * as crypto from "crypto";
+import { db } from "@/lib/db";
+import { invitations, educatorStudents, enrollments, user } from "@/lib/schema";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error accepting invitation:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to accept invitation" },
       { status: 500 }

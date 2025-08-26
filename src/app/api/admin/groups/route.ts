@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { studentGroups, user, groupMembers } from "@/lib/schema";
 import { eq, sql, desc } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { studentGroups, user, groupMembers } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+
 
 export async function GET() {
   try {

@@ -1,7 +1,8 @@
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { user, permissionTemplates } from "@/lib/schema";
-import { eq } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+
 
 export interface EducatorPermissions {
   canPublishQuiz: boolean;

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { getBrowserTimezone } from '@/lib/timezone';
 
+
 interface UserContextType {
   timezone: string;
   setTimezone: (timezone: string) => void;
@@ -15,7 +16,7 @@ export function useUserContext() {
   const context = useContext(UserContext);
   if (!context) {
     // Return default values instead of throwing error during initialization
-    console.warn('useUserContext called outside of UserProvider, using defaults');
+    // [REMOVED: Console statement for performance]
     return {
       timezone: 'Asia/Kolkata',
       setTimezone: () => {},
@@ -51,7 +52,7 @@ export function UserProvider({ children }: UserProviderProps) {
         setTimezoneState(storedTz);
       }
     } catch (error) {
-      console.warn('Failed to read timezone from localStorage:', error);
+      // [REMOVED: Console statement for performance]
     }
     
     setIsLoading(false);
@@ -65,7 +66,7 @@ export function UserProvider({ children }: UserProviderProps) {
       try {
         localStorage.setItem('user-timezone', newTimezone);
       } catch (error) {
-        console.warn('Failed to save timezone to localStorage:', error);
+        // [REMOVED: Console statement for performance]
       }
     }
     

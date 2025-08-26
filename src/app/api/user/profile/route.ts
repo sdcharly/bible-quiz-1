@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { user } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { user } from "@/lib/schema";
 import { auth } from "@/lib/auth";
+
 
 export async function GET(req: NextRequest) {
   try {
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error fetching user profile:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to fetch profile" },
       { status: 500 }
@@ -117,7 +118,7 @@ export async function PATCH(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error updating profile:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to update profile" },
       { status: 500 }

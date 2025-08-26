@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { documents } from "@/lib/schema";
 import { eq, desc } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { documents } from "@/lib/schema";
 import { auth } from "@/lib/auth";
+
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
       documents: userDocuments,
     });
   } catch (error) {
-    console.error("Error fetching documents:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to fetch documents" },
       { status: 500 }

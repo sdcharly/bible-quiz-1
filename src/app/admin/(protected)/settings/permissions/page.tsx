@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { adminSettings } from "@/lib/schema";
-import { eq } from "drizzle-orm";
 import { getAdminSession } from "@/lib/admin-auth";
 import PermissionTemplates, { type PermissionTemplate } from "./PermissionTemplates";
+
 
 async function getAdminData() {
   const session = await getAdminSession();

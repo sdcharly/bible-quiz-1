@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { enrollments, user, quizzes, quizAttempts, quizShareLinks } from "@/lib/schema";
 import { eq, and, inArray, or } from "drizzle-orm";
 import * as crypto from "crypto";
+import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { enrollments, user, quizzes, quizAttempts, quizShareLinks } from "@/lib/schema";
 import { sendEmail, emailTemplates } from "@/lib/email-service";
 import { createShortUrl, getShortUrl } from "@/lib/link-shortener";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { logger } from "@/lib/logger";
+
 
 export async function POST(
   req: NextRequest,

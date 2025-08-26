@@ -2,6 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { logger } from "@/lib/logger";
 
+
 export interface TranslationRequest {
   questionText: string;
   options: string[];

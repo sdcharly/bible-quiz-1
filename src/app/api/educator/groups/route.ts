@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { studentGroups, groupMembers, user } from "@/lib/schema";
 import { eq, and, count, sql, desc } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { studentGroups, groupMembers, user } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+
 
 // Biblical group name suggestions
 const BIBLICAL_GROUP_NAMES = [

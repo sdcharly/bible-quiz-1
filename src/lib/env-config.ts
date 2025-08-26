@@ -78,7 +78,7 @@ if (isServer && ENV.isProduction) {
   const missing = required.filter(key => !process.env[key]);
   
   if (missing.length > 0) {
-    console.error(`Missing required environment variables in production: ${missing.join(', ')}`);
+    // [REMOVED: Console statement for performance]}`);
     // Don't throw in production, just warn
     if (ENV.isDevelopment) {
       throw new Error(`Missing required environment variables: ${missing.join(', ')}`);

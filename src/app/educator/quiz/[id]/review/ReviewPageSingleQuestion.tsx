@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
+import {
   RefreshCw, AlertCircle, CheckCircle, 
   Loader2, X, BookOpen, ArrowLeft, Languages,
   ChevronLeft, ChevronRight, Edit2, Save, Eye, EyeOff,
@@ -538,7 +538,7 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
         router.push(`/educator/quiz/${quiz.id}/manage`);
       } else {
         const error = await response.json();
-        throw new Error(error.message || "Failed to publish quiz");
+        throw new Error(error.error || error.message || "Failed to publish quiz");
       }
     } catch (error) {
       logger.error("Error publishing quiz:", error);
@@ -943,7 +943,7 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
 
               {/* Options */}
               <div className="space-y-2 mb-4">
-                {displayQuestion.options.map((option, index) => (
+                {displayQuestion.options.filter(option => option && option.id).map((option, index) => (
                   <div 
                     key={option.id}
                     className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
@@ -993,7 +993,7 @@ export default function ReviewPageSingleQuestion({ quizId }: ReviewPageSingleQue
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {editedQuestion.options.map((opt, index) => (
+                      {editedQuestion.options.filter(opt => opt && opt.id && opt.text).map((opt, index) => (
                         <SelectItem key={opt.id} value={opt.id}>
                           Option {String.fromCharCode(65 + index)}: {opt.text.substring(0, 50)}...
                         </SelectItem>

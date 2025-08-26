@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
+import {
   Users, 
   Mail,
   Calendar,
@@ -70,7 +71,7 @@ export default function AdminGroupDetailsPage() {
         router.push("/admin/groups");
       }
     } catch (error) {
-      console.error("Error fetching group details:", error);
+      // [REMOVED: Console statement for performance]
       toast({
         title: "Error",
         description: "Network error fetching group details",

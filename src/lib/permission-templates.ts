@@ -1,8 +1,9 @@
-import { db } from "@/lib/db";
-import { permissionTemplates, user } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { db } from "@/lib/db";
+import { permissionTemplates, user } from "@/lib/schema";
 import { logger } from "@/lib/logger";
+
 
 export interface PermissionTemplate {
   id: string;

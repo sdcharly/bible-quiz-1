@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  CheckCircle, 
+import {
+
+
+  CheckCircle,
+
+
+
   XCircle, 
   AlertCircle, 
   Info,
@@ -40,7 +46,7 @@ export function QuestionValidationDisplay({
     try {
       await onRevalidate();
     } catch (error) {
-      console.error("Revalidation failed:", error);
+      // [REMOVED: Console statement for performance]
     } finally {
       setIsRevalidating(false);
     }

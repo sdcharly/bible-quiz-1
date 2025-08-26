@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
-import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Get user role error:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to get user role" },
       { status: 500 }
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Get user role error:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to get user role" },
       { status: 500 }

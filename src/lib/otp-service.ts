@@ -1,8 +1,9 @@
-import { db } from "@/lib/db";
-import { verification } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
+import { db } from "@/lib/db";
+import { verification } from "@/lib/schema";
 import { logger } from "./logger";
+
 
 // OTP Configuration
 const OTP_LENGTH = 6;

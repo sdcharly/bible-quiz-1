@@ -4,6 +4,7 @@ import { Cache } from "@/lib/cache-v2";
 import { redisClient } from "@/lib/redis";
 import { logger } from "@/lib/logger";
 
+
 export async function GET(_req: NextRequest) {
   try {
     // Verify admin authentication

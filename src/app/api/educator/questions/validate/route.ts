@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { QuestionValidator, QuestionToValidate } from "@/lib/question-validator";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (error) {
-    console.error("Error validating questions:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { 
         success: false,

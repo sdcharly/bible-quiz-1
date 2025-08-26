@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { quizShareLinks, quizzes, enrollments, user, educatorStudents, invitations } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import * as crypto from "crypto";
+import { db } from "@/lib/db";
+import { quizShareLinks, quizzes, enrollments, user, educatorStudents, invitations } from "@/lib/schema";
+import { auth } from "@/lib/auth";
+import { logger } from "@/lib/logger";
+
 
 export async function GET(
   req: NextRequest,
@@ -155,7 +157,7 @@ export async function GET(
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error("Error fetching quiz info:", error);
+    logger.error("Error fetching quiz info:", error);
     return NextResponse.json(
       { error: "Failed to fetch quiz information" },
       { status: 500 }

@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { quizzes, questions, documents, user } from "@/lib/schema";
 import { inArray, eq } from "drizzle-orm";
 import * as crypto from "crypto";
-import { QuestionValidator, QuestionToValidate } from "@/lib/question-validator";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { quizzes, questions, documents, user } from "@/lib/schema";
+import { QuestionValidator, QuestionToValidate } from "@/lib/question-validator";
 import { auth } from "@/lib/auth";
 import { checkEducatorPermission, checkEducatorLimits, getPermissionMessage } from "@/lib/permissions";
+import { logger } from "@/lib/logger";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -118,7 +120,7 @@ export async function POST(req: NextRequest) {
     // Check if webhook is configured
     if (process.env.QUIZ_GENERATION_WEBHOOK_URL) {
       // Log the webhook URL and payload for debugging
-      console.log("Calling webhook:", process.env.QUIZ_GENERATION_WEBHOOK_URL);
+      // [REMOVED: Console statement for performance]
       
       const webhookPayload = {
         documentIds,
@@ -134,10 +136,10 @@ export async function POST(req: NextRequest) {
         quizDescription: description,
       };
       
-      console.log("Webhook payload:", JSON.stringify(webhookPayload, null, 2));
+      // [REMOVED: Console statement for performance]);
       
       // Call the quiz generation webhook with enhanced document metadata
-      console.log("Calling webhook (waiting for response)...");
+      // [REMOVED: Console statement for performance]...");
       const startTime = Date.now();
       
       let webhookResponse;
@@ -152,10 +154,10 @@ export async function POST(req: NextRequest) {
         });
         
         const responseTime = Date.now() - startTime;
-        console.log(`Webhook responded in ${responseTime}ms (${(responseTime/1000).toFixed(1)}s)`);
+        // [REMOVED: Console statement for performance].toFixed(1)}s)`);
       } catch (fetchError) {
         const responseTime = Date.now() - startTime;
-        console.error(`Fetch error after ${responseTime}ms:`, fetchError);
+        // [REMOVED: Console statement for performance]
         // If the fetch itself times out, use sample questions
         webhookTimedOut = true;
         questionsData = getSampleQuestions(books, difficulty, bloomsLevels);
@@ -166,19 +168,19 @@ export async function POST(req: NextRequest) {
       
       if (webhookResponse) {
 
-      console.log("Webhook response status:", webhookResponse.status);
-      console.log("Webhook response headers:", Object.fromEntries(webhookResponse.headers.entries()));
+      // [REMOVED: Console statement for performance]
+      // [REMOVED: Console statement for performance]));
 
       if (webhookResponse.ok) {
         // First, get the response as text to check if it's empty
         const responseText = await webhookResponse.text();
-        console.log("Webhook response text length:", responseText?.length || 0);
-        console.log("Webhook response text:", responseText);
+        // [REMOVED: Console statement for performance]
+        // [REMOVED: Console statement for performance]
         
         // Check if response is empty
         if (!responseText || responseText.trim() === '') {
-          console.error("Webhook returned empty response");
-          console.error("Response status was OK but body is empty");
+          // [REMOVED: Console statement for performance]
+          // [REMOVED: Console statement for performance]
           // Use sample questions if webhook returns empty
           webhookTimedOut = true;
           questionsData = getSampleQuestions(books, difficulty, bloomsLevels);
@@ -188,7 +190,7 @@ export async function POST(req: NextRequest) {
           try {
             webhookData = JSON.parse(responseText);
           } catch (parseError) {
-            console.error("Failed to parse webhook response:", responseText);
+            // [REMOVED: Console statement for performance]
             // Use sample questions if JSON parsing fails
             webhookTimedOut = true;
             questionsData = getSampleQuestions(books, difficulty, bloomsLevels);
@@ -207,11 +209,11 @@ export async function POST(req: NextRequest) {
               questionsData = webhookData;
             }
             
-            console.log(`Received ${questionsData.length} questions from webhook`);
+            // [REMOVED: Console statement for performance]
             
             // If still no questions, use sample questions
             if (!questionsData || questionsData.length === 0) {
-              console.log("No questions received from webhook, using sample questions");
+              // [REMOVED: Console statement for performance]
               webhookTimedOut = true;
               questionsData = getSampleQuestions(books, difficulty, bloomsLevels);
             }
@@ -220,17 +222,16 @@ export async function POST(req: NextRequest) {
       } else {
         // Handle non-OK responses
         const errorText = await webhookResponse.text();
-        console.error("Webhook failed:", {
+        // [REMOVED: Console statement for performance]
+        logger.error("Webhook error response", {
           status: webhookResponse.status,
-          statusText: webhookResponse.statusText,
-          headers: Object.fromEntries(webhookResponse.headers.entries()),
           error: errorText,
           webhookUrl: process.env.QUIZ_GENERATION_WEBHOOK_URL
         });
         
         // For 504 Gateway Timeout, use sample questions instead of throwing error
         if (webhookResponse.status === 504) {
-          console.error("Gateway timeout (504) - The webhook took too long to respond.");
+          // [REMOVED: Console statement for performance] - The webhook took too long to respond.");
           webhookTimedOut = true;
           questionsData = getSampleQuestions(books, difficulty, bloomsLevels);
         } else if (webhookResponse.status === 404) {
@@ -248,7 +249,7 @@ export async function POST(req: NextRequest) {
       } // End of if (webhookResponse)
     } else {
       // If no webhook configured, use sample questions
-      console.log("No webhook configured, using sample questions");
+      // [REMOVED: Console statement for performance]
       questionsData = getSampleQuestions(books, difficulty, bloomsLevels);
     }
 
@@ -258,7 +259,7 @@ export async function POST(req: NextRequest) {
     
     if (questionsData && questionsData.length > 0) {
       try {
-        console.log("Validating generated questions...");
+        // [REMOVED: Console statement for performance]
         
         // Convert questionsData to QuestionToValidate format
         const questionsToValidate: QuestionToValidate[] = questionsData.map((q: Record<string, unknown>, index: number) => {
@@ -289,19 +290,15 @@ export async function POST(req: NextRequest) {
         validationResults = await QuestionValidator.validateQuestions(questionsToValidate);
         validationSummary = QuestionValidator.getValidationSummary(validationResults);
         
-        console.log(`Question validation completed: ${validationSummary.validQuestions}/${validationSummary.totalQuestions} valid (avg score: ${validationSummary.averageScore})`);
+        // [REMOVED: Console statement for performance]`);
         
         // Log validation issues for debugging
         if (validationSummary.issueCount.high > 0 || validationSummary.issueCount.medium > 0) {
-          console.log("Validation issues found:", {
-            highSeverity: validationSummary.issueCount.high,
-            mediumSeverity: validationSummary.issueCount.medium,
-            lowSeverity: validationSummary.issueCount.low
-          });
+          // [REMOVED: Console statement for performance]
         }
 
       } catch (validationError) {
-        console.error("Error during question validation:", validationError);
+        // [REMOVED: Console statement for performance]
         // Continue with quiz creation even if validation fails
       }
     }
@@ -460,7 +457,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error creating quiz:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create quiz" },
       { status: 500 }

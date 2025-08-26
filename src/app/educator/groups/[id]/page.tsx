@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,6 +35,7 @@ import {
   Loader2,
   MoveRight,
   X,
+
   Info,
 } from "lucide-react";
 import { PageHeader } from "@/components/educator-v2/layout/PageHeader";
@@ -145,7 +147,7 @@ export default function GroupManagePage() {
         const data = await response.json();
         setOtherGroups(
           data.groups
-            .filter((g: {id: string, name: string}) => g.id !== groupId)
+            .filter((g: {id: string, name: string}) => g && g.id && g.id !== groupId)
             .map((g: {id: string, name: string}) => ({ id: g.id, name: g.name }))
         );
       }
@@ -291,7 +293,7 @@ export default function GroupManagePage() {
     if (selectedMembers.size === filtered.length) {
       setSelectedMembers(new Set());
     } else {
-      setSelectedMembers(new Set(filtered.map(m => m.studentId)));
+      setSelectedMembers(new Set(filtered.filter(m => m && m.studentId).map(m => m.studentId)));
     }
   };
 
@@ -300,18 +302,20 @@ export default function GroupManagePage() {
     if (selectedNewMembers.size === filtered.length) {
       setSelectedNewMembers(new Set());
     } else {
-      setSelectedNewMembers(new Set(filtered.map(s => s.studentId)));
+      setSelectedNewMembers(new Set(filtered.filter(s => s && s.studentId).map(s => s.studentId)));
     }
   };
 
   const filteredMembers = members.filter(member =>
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase())
+    member && member.name && member.email &&
+    (member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const filteredAvailable = availableStudents.filter(student =>
-    student.name.toLowerCase().includes(availableSearchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(availableSearchTerm.toLowerCase())
+    student && student.name && student.email &&
+    (student.name.toLowerCase().includes(availableSearchTerm.toLowerCase()) ||
+    student.email.toLowerCase().includes(availableSearchTerm.toLowerCase()))
   );
 
   if (loading) {

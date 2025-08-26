@@ -1,7 +1,8 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Clock, Calendar, CheckCircle, AlertCircle, Archive, Edit } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
 
 interface QuizStatusBadgeProps {
   status: string;

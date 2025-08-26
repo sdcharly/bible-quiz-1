@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin-auth";
 import { logger } from "@/lib/logger";
 
+
 /**
  * Middleware function to check admin authentication for API routes
  * Returns the admin session if authenticated, or returns an unauthorized response

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq, and } from "drizzle-orm";
 import { getAdminSession } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { educatorStudents, user, activityLogs } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+
 
 export async function POST(
   request: NextRequest,

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { eq } from "drizzle-orm";
 import { educatorActivityService } from '@/lib/educator-activity-service';
 import { sendEmail, emailTemplates } from '@/lib/email-service';
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
-import { eq } from "drizzle-orm";
 import { logger } from '@/lib/logger';
+
 
 // This should be called by a cron job once daily
 // Configure in Vercel, your hosting provider, or use a service like cron-job.org

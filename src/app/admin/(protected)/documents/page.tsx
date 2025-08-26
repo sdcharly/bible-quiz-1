@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { 
+import {
   FileText, 
   CheckCircle, 
   XCircle, 
@@ -50,9 +50,9 @@ export default function AdminDocumentsPage() {
       
       if (response.ok) {
         setDocuments(data.documents || []);
-        console.log(`Fetched ${data.documents?.length || 0} documents`);
+        // [REMOVED: Console statement for performance]
       } else {
-        console.error("API Error:", data.error);
+        // [REMOVED: Console statement for performance]
         setDocuments([]);
         
         if (response.status === 401 || response.status === 403) {
@@ -70,7 +70,7 @@ export default function AdminDocumentsPage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching documents:", error);
+      // [REMOVED: Console statement for performance]
       toast({
         title: "Error",
         description: "Network error fetching documents",
@@ -129,7 +129,7 @@ export default function AdminDocumentsPage() {
         });
       }
     } catch (error) {
-      console.error("Error updating document:", error);
+      // [REMOVED: Console statement for performance]
       toast({
         title: "Error",
         description: "Network error updating document",
@@ -163,7 +163,7 @@ export default function AdminDocumentsPage() {
         });
       }
     } catch (error) {
-      console.error("Error running cleanup:", error);
+      // [REMOVED: Console statement for performance]
       toast({
         title: "Error",
         description: "Network error during cleanup",

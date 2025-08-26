@@ -3,6 +3,7 @@ import { getAdminSession, logActivity } from "@/lib/admin-auth";
 import { bulkApplyTemplate } from "@/lib/permission-templates";
 import { logger } from "@/lib/logger";
 
+
 export async function POST(request: NextRequest) {
   // Verify admin authentication
   const session = await getAdminSession();

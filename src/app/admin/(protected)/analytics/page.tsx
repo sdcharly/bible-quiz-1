@@ -1,5 +1,6 @@
-import { AnalyticsClient } from "./AnalyticsClient";
 import { Metadata } from "next";
+import { AnalyticsClientV2 } from "./AnalyticsClientV2";
+
 
 export const metadata: Metadata = {
   title: "Analytics Dashboard - Admin",
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function AnalyticsPage() {
-  return <AnalyticsClient />;
+  return <AnalyticsClientV2 />;
 }

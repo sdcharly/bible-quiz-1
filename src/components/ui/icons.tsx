@@ -1,4 +1,4 @@
-import { 
+import {
   BookOpenIcon, 
   HomeIcon, 
   DocumentTextIcon, 
@@ -21,7 +21,8 @@ import {
   BoltIcon
 } from "@heroicons/react/24/outline";
 
-import { 
+
+import {
   BookOpenIcon as BookOpenSolid,
   HomeIcon as HomeSolid,
   HeartIcon as HeartSolid,

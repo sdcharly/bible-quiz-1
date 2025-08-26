@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin-auth";
 
+
 export async function GET() {
   try {
     const session = await getAdminSession();
@@ -25,7 +26,7 @@ export async function GET() {
       }
     });
   } catch (error) {
-    console.error("Admin session check error:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { 
         authenticated: false,

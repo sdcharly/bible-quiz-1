@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+
 import { Button } from "@/components/ui/button";
+
 import {
   Popover,
   PopoverContent,
@@ -66,7 +68,7 @@ export function ShareLinkButton({
         });
       }
     } catch (error: unknown) {
-      console.error("Error fetching share link:", error);
+      // [REMOVED: Console statement for performance]
       toast({
         title: "Error",
         description: "Failed to get share link",
@@ -100,7 +102,7 @@ export function ShareLinkButton({
         });
       }
     } catch (error: unknown) {
-      console.error("Error regenerating link:", error);
+      // [REMOVED: Console statement for performance]
       toast({
         title: "Error",
         description: "Failed to regenerate link",

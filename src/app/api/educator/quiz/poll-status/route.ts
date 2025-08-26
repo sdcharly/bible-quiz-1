@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { jobStore } from "@/lib/quiz-generation-jobs";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { debugLogger } from "@/lib/debug-logger";
+
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
     const job = jobStore.get(jobId);
 
     if (!job) {
-      console.log(`[POLL-STATUS] Job not found: ${jobId}`);
+      // [REMOVED: Console statement for performance]
       debugLogger.warn("Poll status - job not found", { jobId });
       return NextResponse.json(
         { 
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
       );
     }
     
-    console.log(`[POLL-STATUS] Job ${jobId} status: ${job.status}, progress: ${job.progress}`);
+    // [REMOVED: Console statement for performance]
     
     // Enhanced logging for replacement jobs
     if (jobId.startsWith('replace-')) {
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error polling job status:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to get job status" },
       { status: 500 }

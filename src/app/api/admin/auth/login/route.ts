@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateSuperAdmin, createAdminSession, logActivity } from "@/lib/admin-auth";
 import { headers } from "next/headers";
+import { authenticateSuperAdmin, createAdminSession, logActivity } from "@/lib/admin-auth";
 import { withMiddleware } from "@/lib/api-middleware";
+
 
 async function handleLogin(request: NextRequest) {
   try {
@@ -12,7 +13,7 @@ async function handleLogin(request: NextRequest) {
       email = body.email;
       password = body.password;
     } catch (parseError) {
-      console.error("JSON parse error:", parseError);
+      // [REMOVED: Console statement for performance]
       return NextResponse.json(
         { success: false, error: "Invalid JSON in request body" },
         { status: 400 }
@@ -67,7 +68,7 @@ async function handleLogin(request: NextRequest) {
       message: "Admin authenticated successfully"
     });
   } catch (error) {
-    console.error("Admin login error:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { success: false, error: "Authentication failed" },
       { status: 500 }
@@ -103,7 +104,7 @@ export async function DELETE(request: NextRequest) {
       message: "Logged out successfully"
     });
   } catch (error) {
-    console.error("Admin logout error:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { success: false, error: "Logout failed" },
       { status: 500 }

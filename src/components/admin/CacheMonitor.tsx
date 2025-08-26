@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
+import {
   Zap, RefreshCw, CheckCircle, AlertCircle, Wifi, WifiOff, 
-  Database, Activity, Trash2, TestTube 
+  Database, Activity, Trash2, TestTube
 } from "lucide-react";
 
 interface CacheMetrics {
@@ -76,7 +76,7 @@ export default function CacheMonitor() {
         setCacheMetrics(data);
       }
     } catch (error) {
-      console.error('Error fetching cache metrics:', error);
+      // [REMOVED: Console statement for performance]
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,7 @@ export default function CacheMonitor() {
         setTestResults(data.test);
       }
     } catch (error) {
-      console.error('Error testing cache:', error);
+      // [REMOVED: Console statement for performance]
     } finally {
       setTesting(false);
     }
@@ -122,7 +122,7 @@ export default function CacheMonitor() {
         await fetchCacheMetrics();
       }
     } catch (error) {
-      console.error('Error flushing cache:', error);
+      // [REMOVED: Console statement for performance]
     } finally {
       setFlushing(false);
     }

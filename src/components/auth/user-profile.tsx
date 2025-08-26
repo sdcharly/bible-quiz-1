@@ -1,11 +1,12 @@
 "use client";
 
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import { useSession } from "@/lib/auth-client";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { SignInButton } from "./sign-in-button";
 import { SignOutButton } from "./sign-out-button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import Link from "next/link";
-import { Cog6ToothIcon } from "@heroicons/react/24/outline";
+
 
 export function UserProfile() {
   const { data: session, isPending } = useSession();

@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateInTimezone } from "@/lib/timezone";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+
 import {
   Select,
   SelectContent,
@@ -310,7 +312,7 @@ export default function QuizManagePage() {
 
   const selectAll = () => {
     const notEnrolled = availableStudents
-      .filter(s => !s.isEnrolled && s.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      .filter(s => s && !s.isEnrolled && s.name && s.name.toLowerCase().includes(searchTerm.toLowerCase()))
       .map(s => s.studentId);
     setSelectedStudents(new Set(notEnrolled));
   };
@@ -392,7 +394,7 @@ export default function QuizManagePage() {
 
   const selectAllEligible = () => {
     const eligible = reassignmentStudents
-      .filter(s => s.isEligibleForReassignment)
+      .filter(s => s && s.isEligibleForReassignment && s.studentId)
       .map(s => s.studentId);
     setSelectedReassignStudents(new Set(eligible));
   };

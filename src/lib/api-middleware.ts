@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, rateLimitHeaders } from "./rate-limit";
 
+
 type RouteHandler = (
   request: NextRequest
 ) => Promise<NextResponse> | NextResponse;
@@ -52,7 +53,7 @@ export function withMiddleware(
       // If no rate limiting, just call the handler
       return await handler(request);
     } catch (error) {
-      console.error("API middleware error:", error);
+      // [REMOVED: Console statement for performance]
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500 }

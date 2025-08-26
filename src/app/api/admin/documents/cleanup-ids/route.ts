@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { documents } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { documents } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { LightRAGService } from "@/lib/lightrag-service";
+
 
 /**
  * Cleanup endpoint to fix document IDs in the database
@@ -32,7 +33,7 @@ export async function POST() {
       .select()
       .from(documents);
 
-    console.error(`[CLEANUP] Found ${allDocs.length} documents to check`);
+    // [REMOVED: Console statement for performance]
 
     const results = [];
     let fixedCount = 0;
@@ -45,14 +46,14 @@ export async function POST() {
       const currentLightragId = processedData?.lightragDocumentId as string | undefined;
       const permanentDocId = processedData?.permanentDocId as string | undefined;
 
-      console.error(`[CLEANUP] Checking document ${doc.id}:`);
-      console.error(`  - Track ID: ${trackId}`);
-      console.error(`  - Current LightRAG ID: ${currentLightragId}`);
-      console.error(`  - Permanent Doc ID: ${permanentDocId}`);
+      // [REMOVED: Console statement for performance]
+      // [REMOVED: Console statement for performance]
+      // [REMOVED: Console statement for performance]
+      // [REMOVED: Console statement for performance]
 
       // Skip if already has correct permanent doc ID
       if (permanentDocId && permanentDocId.startsWith('doc-')) {
-        console.error(`  ✓ Already has correct permanent ID`);
+        // [REMOVED: Console statement for performance]
         alreadyCorrectCount++;
         results.push({
           documentId: doc.id,
@@ -65,7 +66,7 @@ export async function POST() {
 
       // Check if current lightragDocumentId is already correct
       if (currentLightragId && currentLightragId.startsWith('doc-')) {
-        console.error(`  ✓ Has correct LightRAG ID, updating permanentDocId`);
+        // [REMOVED: Console statement for performance]
         
         // Update to ensure permanentDocId is set
         await db.update(documents)
@@ -90,13 +91,13 @@ export async function POST() {
 
       // If we have a track ID but it's not a doc ID, query LightRAG
       if (trackId && !trackId.startsWith('doc-')) {
-        console.error(`  - Querying LightRAG for track ID: ${trackId}`);
+        // [REMOVED: Console statement for performance]
         
         try {
           const trackStatus = await LightRAGService.checkDocumentTrackStatus(trackId);
           
           if (trackStatus.documentId && trackStatus.documentId.startsWith('doc-')) {
-            console.error(`  ✓ Found permanent ID from LightRAG: ${trackStatus.documentId}`);
+            // [REMOVED: Console statement for performance]
             
             // Update database with correct ID
             await db.update(documents)
@@ -119,7 +120,7 @@ export async function POST() {
               trackId: trackId
             });
           } else {
-            console.error(`  ⚠ No permanent ID found from LightRAG`);
+            // [REMOVED: Console statement for performance]
             results.push({
               documentId: doc.id,
               filename: doc.filename,
@@ -128,7 +129,7 @@ export async function POST() {
             });
           }
         } catch (error) {
-          console.error(`  ✗ Error querying LightRAG:`, error);
+          // [REMOVED: Console statement for performance]
           results.push({
             documentId: doc.id,
             filename: doc.filename,
@@ -141,7 +142,7 @@ export async function POST() {
         await new Promise(resolve => setTimeout(resolve, 500));
       } else if (trackId && trackId.startsWith('doc-')) {
         // Track ID is actually the doc ID
-        console.error(`  ✓ Track ID is actually doc ID: ${trackId}`);
+        // [REMOVED: Console statement for performance]
         
         await db.update(documents)
           .set({
@@ -161,7 +162,7 @@ export async function POST() {
           permanentDocId: trackId
         });
       } else {
-        console.error(`  ⚠ No track ID to work with`);
+        // [REMOVED: Console statement for performance]
         noTrackIdCount++;
         results.push({
           documentId: doc.id,
@@ -186,7 +187,7 @@ export async function POST() {
     });
 
   } catch (error) {
-    console.error("Error in cleanup:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json({
       error: "Failed to cleanup document IDs",
       details: error instanceof Error ? error.message : 'Unknown error'

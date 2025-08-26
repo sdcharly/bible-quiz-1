@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { startQuizSession } from '@/lib/session-config';
 import { logger } from '@/lib/logger';
 
+
 export async function POST(request: NextRequest) {
   try {
     // Get session
@@ -33,7 +34,25 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const body = await request.json();
+    // Parse request body with error handling
+    let body;
+    try {
+      const text = await request.text();
+      if (!text.trim()) {
+        return NextResponse.json(
+          { error: 'Request body required' },
+          { status: 400 }
+        );
+      }
+      body = JSON.parse(text);
+    } catch (parseError) {
+      logger.error('JSON parse error:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+    
     const { quizId } = body;
     
     if (!quizId) {

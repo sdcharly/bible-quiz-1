@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { endQuizSession } from '@/lib/session-config';
 import { logger } from '@/lib/logger';
 
+
 export async function POST(request: NextRequest) {
   try {
     // Get session
@@ -31,12 +32,26 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Parse request body (optional for quiz-end)
+    let quizId;
+    try {
+      const text = await request.text();
+      if (text.trim()) {
+        const body = JSON.parse(text);
+        quizId = body.quizId;
+      }
+    } catch (parseError) {
+      // Ignore parse errors for quiz-end - it's optional
+      logger.debug('Quiz-end parse error (ignored):', parseError);
+    }
+    
     // End quiz session
     await endQuizSession(sessionId);
     
     logger.info('Quiz session ended', {
       sessionId,
       userId,
+      quizId,
     });
     
     return NextResponse.json({

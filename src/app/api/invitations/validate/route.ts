@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq, and, gte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { invitations, user } from "@/lib/schema";
-import { eq, and, gte } from "drizzle-orm";
+
 
 export async function GET(req: NextRequest) {
   try {
@@ -55,7 +56,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error validating invitation:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to validate invitation" },
       { status: 500 }

@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { eq, desc, sql } from "drizzle-orm";
 import { getAdminSession } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { user, enrollments, quizAttempts, educatorStudents } from "@/lib/schema";
-import { eq, desc, sql } from "drizzle-orm";
-import StudentsManagement from "./StudentsManagement";
+import StudentsManagementV2 from "./StudentsManagementV2";
+
 
 async function getStudents() {
   const students = await db
@@ -62,7 +63,7 @@ export default async function StudentsPage() {
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <StudentsManagement students={students} />
+      <StudentsManagementV2 students={students} />
     </Suspense>
   );
 }

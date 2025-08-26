@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { quizzes, questions, documents } from "@/lib/schema";
 import { inArray, eq } from "drizzle-orm";
 import * as crypto from "crypto";
-import { QuestionValidator, QuestionToValidate } from "@/lib/question-validator";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { quizzes, questions, documents } from "@/lib/schema";
+import { QuestionValidator, QuestionToValidate } from "@/lib/question-validator";
 import { auth } from "@/lib/auth";
 import { checkEducatorPermission, checkEducatorLimits, getPermissionMessage } from "@/lib/permissions";
 import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/feature-flags";
+
 
 /**
  * Phase 2.1: New quiz creation endpoint that supports deferred time scheduling
@@ -221,7 +222,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error("Error creating quiz:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { 
         error: "Failed to create quiz", 

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { eq, and } from "drizzle-orm";
 import { educatorActivityService } from '@/lib/educator-activity-service';
 import { emailTemplates } from '@/lib/email-service';
 import { db } from "@/lib/db";
 import { user, educatorActivityMetrics, educatorReminderEmails } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
 import { logger } from '@/lib/logger';
 import { getAdminSession } from "@/lib/admin-auth";
+
 
 // This is a testing endpoint for admins to test the educator reminder system
 // It allows testing without sending real emails or affecting production data

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { enrollments, educatorStudents, user, quizzes, quizShareLinks } from "@/lib/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import * as crypto from "crypto";
+import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { enrollments, educatorStudents, user, quizzes, quizShareLinks } from "@/lib/schema";
 import { sendEmail, emailTemplates } from "@/lib/email-service";
 import { createShortUrl, getShortUrl } from "@/lib/link-shortener";
-import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getQuizAvailabilityStatus } from "@/lib/quiz-scheduling";
+
 
 export async function POST(
   req: NextRequest,
@@ -210,7 +211,7 @@ export async function POST(
       
       // Send emails in parallel but don't wait for them
       Promise.all(emailPromises).catch(error => {
-        console.error("Error sending enrollment emails:", error);
+        // [REMOVED: Console statement for performance]
       });
     }
 
@@ -224,7 +225,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error("Error bulk enrolling students:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to enroll students" },
       { status: 500 }
@@ -294,7 +295,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error("Error fetching students for enrollment:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to fetch students" },
       { status: 500 }

@@ -3,6 +3,7 @@ import { notifyEducatorSignup } from "@/lib/admin-notifications";
 import { emailTemplates, sendEmail } from "@/lib/email-service";
 import { logger } from "@/lib/logger";
 
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

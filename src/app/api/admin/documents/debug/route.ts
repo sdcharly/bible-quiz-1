@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+
 
 /**
  * Debug endpoint to check document database connection
  */
 export async function GET() {
-  console.log("[Documents Debug] Starting diagnostic...");
+  // [REMOVED: Console statement for performance]
   
   const diagnostics: any = {
     timestamp: new Date().toISOString(),
@@ -41,25 +42,25 @@ export async function GET() {
 
     // Test raw SQL query
     try {
-      console.log("[Documents Debug] Testing raw SQL count...");
+      // [REMOVED: Console statement for performance]
       const countResult = await db.execute(sql`SELECT COUNT(*) as count FROM documents`);
       diagnostics.rawSqlCount = {
         success: true,
         count: (countResult as any)[0]?.count || 0,
         rowsReturned: (countResult as any).length || 0
       };
-      console.log("[Documents Debug] Raw SQL result:", countResult);
+      // [REMOVED: Console statement for performance]
     } catch (e) {
       diagnostics.rawSqlCount = {
         success: false,
         error: e instanceof Error ? e.message : String(e)
       };
-      console.error("[Documents Debug] Raw SQL error:", e);
+      // [REMOVED: Console statement for performance]
     }
 
     // Test Drizzle query
     try {
-      console.log("[Documents Debug] Testing Drizzle query...");
+      // [REMOVED: Console statement for performance]
       const { documents: documentsTable } = await import("@/lib/schema");
       const docs = await db.select().from(documentsTable).limit(5);
       
@@ -73,18 +74,18 @@ export async function GET() {
           hasProcessedData: !!docs[0].processedData
         } : null
       };
-      console.log("[Documents Debug] Drizzle found:", docs.length, "documents");
+      // [REMOVED: Console statement for performance]
     } catch (e) {
       diagnostics.drizzleQuery = {
         success: false,
         error: e instanceof Error ? e.message : String(e)
       };
-      console.error("[Documents Debug] Drizzle error:", e);
+      // [REMOVED: Console statement for performance]
     }
 
     // Check table structure
     try {
-      console.log("[Documents Debug] Checking table structure...");
+      // [REMOVED: Console statement for performance]
       const columnsResult = await db.execute(
         sql`SELECT column_name, data_type 
             FROM information_schema.columns 
@@ -109,7 +110,7 @@ export async function GET() {
     return NextResponse.json(diagnostics, { status: 200 });
 
   } catch (error) {
-    console.error("[Documents Debug] Unexpected error:", error);
+    // [REMOVED: Console statement for performance]
     diagnostics.unexpectedError = error instanceof Error ? error.message : String(error);
     return NextResponse.json(diagnostics, { status: 500 });
   }

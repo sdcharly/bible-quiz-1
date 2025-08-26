@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cleanupExpiredSessions, getSessionStats } from '@/lib/session-config';
 import { logger } from '@/lib/logger';
 
+
 // This should be called by a cron job every 10 minutes
 // Can be configured in Vercel or your hosting provider
 // Or use a service like cron-job.org

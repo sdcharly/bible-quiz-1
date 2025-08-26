@@ -1,11 +1,12 @@
 "use client";
 
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
+
 import { UserProfile } from "@/components/auth/user-profile";
 import { ModeToggle } from "./ui/mode-toggle";
 import { Button } from "./ui/button";
-import { Menu, X } from "lucide-react";
-import { 
+import {
   BookOpenIcon, 
   HomeIcon, 
   DocumentTextIcon, 
@@ -14,7 +15,8 @@ import {
   ClipboardDocumentListIcon,
   ChartBarIcon
 } from "@heroicons/react/24/outline";
-import { 
+
+import {
   BookOpenIcon as BookOpenSolid
 } from "@heroicons/react/24/solid";
 import { useState, useEffect } from "react";
@@ -47,7 +49,7 @@ export function SiteHeader() {
             setUserRole(data.role);
           }
         } catch (error) {
-          console.error("Error fetching user role:", error);
+          // [REMOVED: Console statement for performance]
         }
       } else {
         setUserRole(null);

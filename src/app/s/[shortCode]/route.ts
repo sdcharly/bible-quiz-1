@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveShortUrl } from "@/lib/link-shortener";
+import { logger } from "@/lib/logger";
+
 
 export async function GET(
   req: NextRequest,
@@ -28,7 +30,7 @@ export async function GET(
 
     return NextResponse.redirect(redirectUrl);
   } catch (error) {
-    console.error("Error resolving short URL:", error);
+    logger.error("Error resolving short URL:", error);
     return NextResponse.redirect(new URL('/', req.url));
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateResetToken, resetPasswordWithToken } from "@/lib/password-reset";
 import { withMiddleware } from "@/lib/api-middleware";
 
+
 async function handleValidateToken(request: NextRequest) {
   try {
     const url = new URL(request.url);
@@ -28,7 +29,7 @@ async function handleValidateToken(request: NextRequest) {
       email: result.email,
     });
   } catch (error) {
-    console.error("Token validation error:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to validate token" },
       { status: 500 }
@@ -91,7 +92,7 @@ async function handleResetPassword(request: NextRequest) {
       message: result.message,
     });
   } catch (error) {
-    console.error("Password reset error:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to reset password" },
       { status: 500 }

@@ -7,6 +7,7 @@
 import { quizzes } from "@/lib/schema";
 import { logger } from "@/lib/logger";
 
+
 export interface TimeConfiguration {
   startTime?: string;
   timezone?: string;

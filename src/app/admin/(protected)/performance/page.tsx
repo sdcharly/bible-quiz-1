@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { Loading } from "@/components/ui/loading";
-import PerformanceClient from "./PerformanceClient";
+import PerformanceClientV3 from "./PerformanceClientV3";
+
 
 // This is now a server component that benefits from the layout authentication
 export default async function PerformancePage() {
@@ -13,7 +14,7 @@ export default async function PerformancePage() {
         <Loading />
       </div>
     }>
-      <PerformanceClient />
+      <PerformanceClientV3 />
     </Suspense>
   );
 }

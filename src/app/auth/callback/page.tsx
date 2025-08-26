@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { Loader2 } from "lucide-react";
+
 
 function CallbackHandler() {
   const router = useRouter();
@@ -88,7 +89,7 @@ function CallbackHandler() {
             });
             
             if (!acceptResponse.ok) {
-              console.error('Failed to accept invitation:', await acceptResponse.text());
+              // [REMOVED: Console statement for performance]);
             }
           }
           
@@ -105,7 +106,7 @@ function CallbackHandler() {
             });
             
             if (!acceptResponse.ok) {
-              console.error('Failed to accept pending invitation:', await acceptResponse.text());
+              // [REMOVED: Console statement for performance]);
             }
             sessionStorage.removeItem('pendingInvitation');
           }
@@ -135,7 +136,7 @@ function CallbackHandler() {
         router.push('/auth/signin');
       }
     } catch (error) {
-      console.error('Error in callback:', error);
+      // [REMOVED: Console statement for performance]
       router.push('/auth/signin');
     }
   };

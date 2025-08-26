@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { enrollments, user, quizAttempts } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+
 
 export async function GET(
   req: NextRequest,
@@ -56,7 +57,7 @@ export async function GET(
       enrollments: enrollmentsWithResults
     });
   } catch (error) {
-    console.error("Error fetching enrollments:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to fetch enrollments" },
       { status: 500 }

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { quizzes, enrollments, quizAttempts, educatorStudents } from "@/lib/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { quizzes, enrollments, quizAttempts, educatorStudents } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { withPerformance } from "@/lib/api-performance";
 import { logger } from "@/lib/logger";
+
 
 async function getHandler(req: NextRequest) {
   try {
@@ -44,7 +45,7 @@ async function getHandler(req: NextRequest) {
       });
     }
 
-    const educatorIds = studentEducators.map(se => se.educatorId);
+    const educatorIds = studentEducators.filter(se => se && se.educatorId).map(se => se.educatorId);
 
     // Fetch data in parallel for better performance
     const [educatorQuizzes, studentEnrollments, studentAttempts] = await Promise.all([
@@ -71,15 +72,15 @@ async function getHandler(req: NextRequest) {
     ]);
 
     // Create lookup maps for O(1) access
-    const enrollmentMap = new Map(studentEnrollments.map(e => [e.quizId, e]));
+    const enrollmentMap = new Map(studentEnrollments.filter(e => e && e.quizId).map(e => [e.quizId, e]));
     const attemptMap = new Map(
       studentAttempts
-        .filter(a => a.status === "completed")
+        .filter(a => a && a.status === "completed" && a.quizId)
         .map(a => [a.quizId, a])
     );
 
     // Map quiz data with enrollment and attempt status
-    const quizzesWithStatus = educatorQuizzes.map(quiz => {
+    const quizzesWithStatus = educatorQuizzes.filter(quiz => quiz && quiz.id && quiz.title).map(quiz => {
       const enrollment = enrollmentMap.get(quiz.id);
       const attempt = attemptMap.get(quiz.id);
       

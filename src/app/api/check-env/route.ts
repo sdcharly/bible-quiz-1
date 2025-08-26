@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { envSummary, ENV, getEnvironmentName } from '@/lib/env-config';
 
+
 export async function GET() {
   // Only show detailed info in development or debug mode
   if (ENV.isDevelopment || ENV.isDebugMode) {

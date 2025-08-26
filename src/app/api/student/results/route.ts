@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq, desc } from "drizzle-orm";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { quizAttempts, quizzes } from "@/lib/schema";
-import { eq, desc } from "drizzle-orm";
-import { authClient } from "@/lib/auth-client";
+import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+
 
 export async function GET(req: NextRequest) {
   try {
     // Get the current user's session
-    const session = await authClient.getSession();
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
     
-    if (!session?.data?.user?.id) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const userId = session.data.user.id;
+    const userId = session.user.id;
     
     // Fetch all quiz attempts for this student
     const results = await db
@@ -40,7 +44,7 @@ export async function GET(req: NextRequest) {
       .orderBy(desc(quizAttempts.startTime));
 
     return NextResponse.json({
-      results: results.map(r => ({
+      results: results.filter(r => r && r.id).map(r => ({
         ...r,
         quizTitle: r.quizTitle || "Untitled Quiz"
       }))

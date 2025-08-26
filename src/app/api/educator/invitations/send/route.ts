@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { invitations, user, quizzes, educatorStudents, quizShareLinks } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import * as crypto from "crypto";
-import { sendEmail, emailTemplates } from "@/lib/email-service";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { invitations, user, quizzes, educatorStudents, quizShareLinks } from "@/lib/schema";
+import { sendEmail, emailTemplates } from "@/lib/email-service";
 import { auth } from "@/lib/auth";
 import { createShortUrl, getShortUrl } from "@/lib/link-shortener";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -302,7 +303,7 @@ export async function POST(req: NextRequest) {
         }
         
       } catch (error) {
-        console.error(`Error processing invitation for ${email}:`, error);
+        // [REMOVED: Console statement for performance]
         const errorMessage = error instanceof Error ? error.message : "Failed to process invitation";
         errors.push({ email, error: errorMessage });
       }
@@ -316,7 +317,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error sending invitations:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to send invitations" },
       { status: 500 }

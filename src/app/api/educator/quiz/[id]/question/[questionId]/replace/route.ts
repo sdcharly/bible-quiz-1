@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzes, questions } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+
 // Note: crypto import not needed for this endpoint as we're updating existing questions
 
 export async function PUT(
@@ -23,7 +24,7 @@ export async function PUT(
       };
     } catch (e) {
       // If no body provided, continue with default behavior
-      console.log("No custom options provided, using quiz defaults");
+      // [REMOVED: Console statement for performance]
     }
 
     // Fetch quiz details to get configuration
@@ -56,7 +57,7 @@ export async function PUT(
     // Try to generate new question using webhook if available
     if (process.env.QUIZ_GENERATION_WEBHOOK_URL) {
       try {
-        console.log("Generating replacement question via webhook...");
+        // [REMOVED: Console statement for performance]
         
         // Use custom options if provided, otherwise fall back to quiz config
         const webhookPayload = {
@@ -72,11 +73,7 @@ export async function PUT(
           quizDescription: quizData.description,
         };
         
-        console.log("Webhook payload with custom options:", {
-          books: webhookPayload.books,
-          chapters: webhookPayload.chapters,
-          difficulty: webhookPayload.difficulty
-        });
+        // [REMOVED: Console statement for performance]
 
         const webhookResponse = await fetch(process.env.QUIZ_GENERATION_WEBHOOK_URL, {
           method: "POST",
@@ -106,18 +103,18 @@ export async function PUT(
 
             if (questionsData.length > 0) {
               newQuestionData = questionsData[0];
-              console.log("Successfully generated question via webhook");
+              // [REMOVED: Console statement for performance]
             }
           }
         }
       } catch (webhookError) {
-        console.error("Webhook failed for question replacement:", webhookError);
+        // [REMOVED: Console statement for performance]
       }
     }
 
     // Fallback to sample question if webhook failed
     if (!newQuestionData) {
-      console.log("Using fallback sample question with custom options");
+      // [REMOVED: Console statement for performance]
       newQuestionData = generateSampleQuestion(
         customOptions.book || (config.books as string[])?.[0] || "Genesis", 
         customOptions.difficulty || (config.difficulty as string) || "intermediate", 
@@ -194,7 +191,7 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error("Error replacing question:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to replace question" },
       { status: 500 }

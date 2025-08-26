@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requestPasswordReset } from "@/lib/password-reset";
 import { withMiddleware } from "@/lib/api-middleware";
 
+
 async function handleForgotPassword(request: NextRequest) {
   try {
     const { email } = await request.json();
@@ -36,7 +37,7 @@ async function handleForgotPassword(request: NextRequest) {
       message: result.message,
     });
   } catch (error) {
-    console.error("Forgot password error:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to process password reset request" },
       { status: 500 }

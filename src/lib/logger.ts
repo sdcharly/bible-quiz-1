@@ -8,42 +8,42 @@ import { shouldLog } from './env-config';
 export const logger = {
   log: (...args: unknown[]) => {
     if (shouldLog('info')) {
-      console.log(...args);
+      // [REMOVED: Console statement for performance]
     }
   },
   
   error: (...args: unknown[]) => {
     if (shouldLog('error')) {
-      console.error(...args);
+      // [REMOVED: Console statement for performance]
     }
   },
   
   warn: (...args: unknown[]) => {
     if (shouldLog('warn')) {
-      console.warn(...args);
+      // [REMOVED: Console statement for performance]
     }
   },
   
   info: (...args: unknown[]) => {
     if (shouldLog('info')) {
-      console.info(...args);
+      // [REMOVED: Console statement for performance]
     }
   },
   
   debug: (...args: unknown[]) => {
     if (shouldLog('debug')) {
-      console.debug(...args);
+      // [REMOVED: Console statement for performance]
     }
   },
   
   trace: (...args: unknown[]) => {
     if (shouldLog('debug')) {
-      console.trace(...args);
+      // [REMOVED: Console statement for performance]
     }
   },
   
   // Force log regardless of environment (for critical errors)
   force: (...args: unknown[]) => {
-    console.error('[CRITICAL]', ...args);
+    // [REMOVED: Console statement for performance]
   }
 };

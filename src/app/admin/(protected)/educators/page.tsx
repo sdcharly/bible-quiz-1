@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { eq, or, desc, sql } from "drizzle-orm";
 import { getAdminSession } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { user, quizzes, educatorStudents, permissionTemplates } from "@/lib/schema";
-import { eq, or, desc, sql } from "drizzle-orm";
-import EducatorsManagement from "./EducatorsManagement";
+import EducatorsManagementV2 from "./EducatorsManagementV2";
+
 
 async function getEducators() {
   const educators = await db
@@ -70,7 +71,7 @@ export default async function EducatorsPage() {
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <EducatorsManagement educators={educators} />
+      <EducatorsManagementV2 educators={educators} />
     </Suspense>
   );
 }

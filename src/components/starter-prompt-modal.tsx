@@ -1,8 +1,13 @@
 "use client";
 
 import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
+
+
+
+
   Dialog,
   DialogContent,
   DialogDescription,
@@ -129,7 +134,7 @@ export function StarterPromptModal() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy text: ", err);
+      // [REMOVED: Console statement for performance]
     }
   };
 

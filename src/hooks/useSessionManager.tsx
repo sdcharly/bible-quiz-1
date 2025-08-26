@@ -7,12 +7,14 @@ import { SESSION_CONFIG, SessionState } from '@/lib/session-config-client';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/components/ui/use-toast';
 
+
 interface SessionManagerOptions {
   enableWarnings?: boolean;
   enableAutoExtend?: boolean;
   onSessionExpired?: () => void;
   onSessionWarning?: (remaining: number) => void;
   isQuizActive?: boolean;
+  quizId?: string;
 }
 
 export function useSessionManager(options: SessionManagerOptions = {}) {
@@ -22,6 +24,7 @@ export function useSessionManager(options: SessionManagerOptions = {}) {
     onSessionExpired,
     onSessionWarning,
     isQuizActive = false,
+    quizId,
   } = options;
 
   const router = useRouter();
@@ -282,11 +285,12 @@ export function useSessionManager(options: SessionManagerOptions = {}) {
 
   // Quiz-specific handling
   useEffect(() => {
-    if (isQuizActive && session?.user) {
+    if (isQuizActive && session?.user && quizId) {
       // Notify server about quiz session
       fetch('/api/session/quiz-start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quizId }),
       }).catch(err => {
         logger.debug('Failed to start quiz session:', err);
       });
@@ -296,12 +300,13 @@ export function useSessionManager(options: SessionManagerOptions = {}) {
         fetch('/api/session/quiz-end', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quizId }),
         }).catch(err => {
           logger.debug('Failed to end quiz session:', err);
         });
       };
     }
-  }, [isQuizActive, session]);
+  }, [isQuizActive, session, quizId]);
 
   return {
     sessionState,

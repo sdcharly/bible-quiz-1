@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
+
 type DiagnosticsResponse = {
   timestamp: string;
   env: {

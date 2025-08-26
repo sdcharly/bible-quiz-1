@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { getDefaultDashboardPath } from "@/lib/roles";
 
+
 export default function DashboardPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
@@ -38,7 +39,7 @@ export default function DashboardPage() {
               }),
             });
           } catch (error) {
-            console.error("Error checking invitations:", error);
+            // [REMOVED: Console statement for performance]
           }
         }
         

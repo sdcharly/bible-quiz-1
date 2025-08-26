@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { db } from "@/lib/db";
-import { 
+import {
   quizzes, 
   quizAttempts, 
   educatorStudents, 
@@ -11,6 +12,7 @@ import {
 import { eq, and, gte, desc, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -231,6 +233,53 @@ export async function GET(req: NextRequest) {
     const mostDifficultTopic = sortedTopics[0]?.topic || "N/A";
     const easiestTopic = sortedTopics[sortedTopics.length - 1]?.topic || "N/A";
 
+    // Difficulty analysis based on Bloom's taxonomy
+    const difficultyStats: Record<string, { total: number; correct: number; attempts: number }> = {};
+    
+    // Simple mapping from Bloom's levels to difficulty
+    const bloomsToDifficulty = (bloomsLevel: string | null): string => {
+      if (!bloomsLevel) return "Unknown";
+      const level = bloomsLevel.toLowerCase();
+      if (level === "knowledge" || level === "remember") return "Easy";
+      if (level === "comprehension" || level === "understand") return "Medium";
+      if (level === "application" || level === "apply") return "Medium";
+      if (level === "analysis" || level === "analyze") return "Hard";
+      if (level === "synthesis" || level === "create") return "Hard";
+      if (level === "evaluation" || level === "evaluate") return "Hard";
+      return "Medium"; // Default
+    };
+    
+    for (const attempt of attempts) {
+      const responses = await db
+        .select({
+          isCorrect: questionResponses.isCorrect,
+          bloomsLevel: questions.bloomsLevel,
+        })
+        .from(questionResponses)
+        .innerJoin(questions, eq(questionResponses.questionId, questions.id))
+        .where(eq(questionResponses.attemptId, attempt.id));
+
+      responses.forEach(response => {
+        const difficulty = bloomsToDifficulty(response.bloomsLevel);
+        if (!difficultyStats[difficulty]) {
+          difficultyStats[difficulty] = { total: 0, correct: 0, attempts: 0 };
+        }
+        difficultyStats[difficulty].total++;
+        difficultyStats[difficulty].attempts++;
+        if (response.isCorrect) {
+          difficultyStats[difficulty].correct++;
+        }
+      });
+    }
+
+    const difficultyPerformance = Object.entries(difficultyStats).map(([difficulty, stats]) => ({
+      difficulty,
+      totalQuestions: stats.total,
+      correctAnswers: stats.correct,
+      averageScore: stats.total > 0 ? (stats.correct / stats.total) * 100 : 0,
+      attempts: Math.ceil(stats.attempts / (stats.total / (attempts.length || 1)))
+    }));
+
     // Generate timeline data (last 7 data points)
     const timelineData = [];
     for (let i = 6; i >= 0; i--) {
@@ -279,11 +328,12 @@ export async function GET(req: NextRequest) {
       quizzes: quizPerformance.filter(q => q.attempts > 0),
       students: studentPerformance,
       topics: topicPerformance,
+      difficulty: difficultyPerformance,
       timeline: timelineData
     });
 
   } catch (error) {
-    console.error("Error fetching analytics:", error);
+    logger.error("Error fetching analytics:", error);
     return NextResponse.json(
       { error: "Failed to fetch analytics" },
       { status: 500 }

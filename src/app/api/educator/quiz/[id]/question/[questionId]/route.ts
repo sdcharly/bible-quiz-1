@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { questions } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+
 
 export async function PUT(
   request: NextRequest,
@@ -30,7 +31,7 @@ export async function PUT(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error updating question:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to update question" },
       { status: 500 }

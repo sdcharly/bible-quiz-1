@@ -1,28 +1,25 @@
 import { NextResponse } from "next/server";
+import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { documents } from "@/lib/schema";
 import { getAdminSession } from "@/lib/admin-auth";
-import { sql } from "drizzle-orm";
+
 
 /**
  * List all documents in the database with their current IDs
  * This helps identify which documents need their LightRAG IDs corrected
  */
 export async function GET() {
-  console.log("[Documents API] Starting request...");
+  // [REMOVED: Console statement for performance]
   
   try {
     // Check for admin session (uses JWT token from admin login)
     const adminSession = await getAdminSession();
     
-    console.log("[Documents API] Admin session check:", {
-      hasAdminSession: !!adminSession,
-      adminEmail: adminSession?.email,
-      adminRole: adminSession?.role
-    });
+    // [REMOVED: Console statement for performance]
 
     if (!adminSession) {
-      console.log("[Documents API] No admin session found");
+      // [REMOVED: Console statement for performance]
       return NextResponse.json(
         { error: "Admin access required", documents: [], totalDocuments: 0 },
         { status: 403 }
@@ -32,9 +29,9 @@ export async function GET() {
     // First, let's check if we can connect to the database at all
     try {
       const countResult = await db.execute(sql`SELECT COUNT(*) as count FROM documents`);
-      console.log("[Documents API] Raw count query result:", countResult);
+      // [REMOVED: Console statement for performance]
     } catch (dbError) {
-      console.error("[Documents API] Database connection error:", dbError);
+      // [REMOVED: Console statement for performance]
       return NextResponse.json({
         error: "Database connection error",
         details: dbError instanceof Error ? dbError.message : 'Unknown error',
@@ -44,13 +41,13 @@ export async function GET() {
     }
 
     // Get all documents
-    console.log("[Documents API] Fetching all documents from database...");
+    // [REMOVED: Console statement for performance]
     const allDocs = await db
       .select()
       .from(documents)
       .orderBy(documents.uploadDate);
     
-    console.log(`[Documents API] Found ${allDocs.length} documents in database`);
+    // [REMOVED: Console statement for performance]
 
     const documentList = allDocs.map(doc => {
       const processedData = doc.processedData as Record<string, any> | null;
@@ -102,12 +99,12 @@ export async function GET() {
       instructions: "Please provide the correct LightRAG document IDs (doc-xxx) for each document that needs correction"
     };
 
-    console.log("[Documents API] Returning response with", response.totalDocuments, "documents");
+    // [REMOVED: Console statement for performance]
     
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error("Error listing documents:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json({
       error: "Failed to list documents",
       details: error instanceof Error ? error.message : 'Unknown error'

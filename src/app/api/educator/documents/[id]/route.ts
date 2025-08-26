@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { documents, quizzes } from "@/lib/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { documents, quizzes } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { LightRAGService } from "@/lib/lightrag-service";
 import { logger } from "@/lib/logger";
+
 
 export async function DELETE(
   req: NextRequest,

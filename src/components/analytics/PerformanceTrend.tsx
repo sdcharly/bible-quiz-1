@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function PerformanceTrend({ data }: Props) {
-  const maxAttempts = Math.max(...data.map(d => d.attempts), 1);
+  const maxAttempts = Math.max(...data.filter(d => d && d.attempts != null).map(d => d.attempts), 1);
   
   return (
     <Card>
@@ -25,7 +25,7 @@ export default function PerformanceTrend({ data }: Props) {
       </CardHeader>
       <CardContent>
         <div className="h-64 flex items-end gap-2">
-          {data.map((item, index) => {
+          {data.filter(item => item && item.attempts != null && item.averageScore != null && item.date).map((item, index) => {
             const heightPercentage = (item.attempts / maxAttempts) * 100;
             
             return (

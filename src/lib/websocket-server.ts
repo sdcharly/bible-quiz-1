@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
 import { jobStore } from "@/lib/quiz-generation-jobs";
 
+
 // Server-side WebSocket message sender
 // This would integrate with your WebSocket server implementation
 // For now, we'll use a polling-to-WebSocket bridge

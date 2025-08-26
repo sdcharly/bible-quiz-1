@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { extendSession } from '@/lib/session-config';
 import { logger } from '@/lib/logger';
 
+
 export async function POST(request: NextRequest) {
   try {
     // Get session

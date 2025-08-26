@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { enrollments, quizzes, educatorStudents } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import * as crypto from "crypto";
+import { db } from "@/lib/db";
+import { enrollments, quizzes, educatorStudents } from "@/lib/schema";
+import { auth } from "@/lib/auth";
+
 
 export async function POST(
   req: NextRequest,
@@ -112,7 +113,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error("Error enrolling in quiz:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to enroll in quiz" },
       { status: 500 }

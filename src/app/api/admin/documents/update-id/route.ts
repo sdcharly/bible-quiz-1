@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { documents } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { documents } from "@/lib/schema";
 import { auth } from "@/lib/auth";
+
 
 /**
  * Update a specific document with the correct LightRAG document ID
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(documents.id, internalId));
 
-    console.log(`Updated document ${internalId} with LightRAG ID: ${lightragDocId}`);
+    // [REMOVED: Console statement for performance]
 
     return NextResponse.json({
       success: true,
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error updating document ID:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json({
       error: "Failed to update document ID",
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -203,7 +204,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error in batch update:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json({
       error: "Failed to batch update document IDs",
       details: error instanceof Error ? error.message : 'Unknown error'

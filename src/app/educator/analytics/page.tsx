@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { logger } from "@/lib/logger";
 import { formatDateInTimezone } from "@/lib/timezone";
-import { 
+import {
   PageHeader,
   PageContainer,
   Section,
@@ -375,10 +376,10 @@ export default function EducatorAnalyticsPage() {
                   {timelineData.length > 0 ? (
                     <div className="h-64">
                       <div className="flex items-end justify-between gap-3 h-48 mb-4">
-                        {timelineData.map((data, index) => {
-                          const maxScore = Math.max(...timelineData.map(d => d.averageScore), 1);
+                        {timelineData.filter(d => d && d.averageScore != null && d.attempts != null).map((data, index) => {
+                          const maxScore = Math.max(...timelineData.filter(d => d && d.averageScore != null).map(d => d.averageScore), 1);
                           const height = Math.max((data.averageScore / maxScore) * 180, 4); // Minimum 4px height
-                          const maxAttempts = Math.max(...timelineData.map(d => d.attempts), 1);
+                          const maxAttempts = Math.max(...timelineData.filter(d => d && d.attempts != null).map(d => d.attempts), 1);
                           const attemptsRatio = data.attempts / maxAttempts;
                           
                           return (
@@ -408,7 +409,7 @@ export default function EducatorAnalyticsPage() {
                       
                       {/* Date labels */}
                       <div className="flex justify-between text-xs text-gray-600">
-                        {timelineData.map((data, index) => (
+                        {timelineData.filter(d => d && d.date).map((data, index) => (
                           <span key={index} className="flex-1 text-center">
                             {formatDate(data.date)}
                           </span>

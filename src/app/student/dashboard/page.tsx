@@ -7,9 +7,21 @@ import { authClient } from "@/lib/auth-client";
 import { isStudent } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { GroupInfo } from "@/components/student/GroupInfo";
-import { BiblicalPageLoader } from "@/components/ui/biblical-loader";
 import { useSessionManager } from "@/hooks/useSessionManager";
-import { 
+import { fetchWithCache } from "@/lib/api-cache";
+import { logger } from "@/lib/logger";
+
+
+// Import new student-v2 components
+import {
+  PageContainer,
+  PageHeader,
+  Section,
+  StatCard,
+  LoadingState,
+  EmptyState,
+} from "@/components/student-v2";
+import {
   BookOpen,
   Trophy,
   TrendingUp,
@@ -18,6 +30,22 @@ import {
   CheckCircle,
   AlertCircle
 } from "lucide-react";
+
+interface Quiz {
+  id: string;
+  title: string;
+  startTime: string;
+  totalQuestions: number;
+  duration?: number;
+  enrolled?: boolean;
+}
+
+interface QuizAttempt {
+  id: string;
+  quizId: string;
+  status: string;
+  score: number;
+}
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -29,6 +57,7 @@ export default function StudentDashboard() {
     quizzesAvailable: 0,
     upcomingQuizzes: 0,
   });
+  const [recentQuizzes, setRecentQuizzes] = useState<any[]>([]);
   
   // Session management for student dashboard
   useSessionManager({
@@ -40,282 +69,303 @@ export default function StudentDashboard() {
   });
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const response = await authClient.getSession();
-      if (!response.data?.user) {
-        router.push("/auth/signin");
-        return;
-      }
-      
-      const userWithRole = response.data.user as { role?: string; name?: string; email?: string; id?: string };
-      if (!isStudent(userWithRole.role)) {
-        router.push("/educator/dashboard");
-        return;
-      }
-      
-      // Check and accept any pending invitations for this user
-      if (userWithRole.email && userWithRole.id) {
-        try {
-          const invitationResponse = await fetch("/api/invitations/check-and-accept", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: userWithRole.email,
-              userId: userWithRole.id,
-            }),
-          });
-          
-          if (invitationResponse.ok) {
-            const result = await invitationResponse.json();
-            if (result.acceptedCount > 0) {
-              console.log(`Accepted ${result.acceptedCount} pending invitations`);
-              // You could show a notification here if desired
-            }
-          }
-        } catch (error) {
-          console.error("Error checking invitations:", error);
+    const initializeDashboard = async () => {
+      try {
+        // Check authentication
+        const response = await authClient.getSession();
+        if (!response.data?.user) {
+          router.push("/auth/signin");
+          return;
         }
+        
+        const userWithRole = response.data.user as { role?: string; name?: string; email?: string; id?: string };
+        if (!isStudent(userWithRole.role)) {
+          router.push("/educator/dashboard");
+          return;
+        }
+        
+        setUser(userWithRole);
+
+        // Check and accept any pending invitations
+        if (userWithRole.email && userWithRole.id) {
+          try {
+            const invitationResponse = await fetch("/api/invitations/check-and-accept", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: userWithRole.email,
+                userId: userWithRole.id,
+              }),
+            });
+            
+            if (invitationResponse.ok) {
+              const result = await invitationResponse.json();
+              if (result.acceptedCount > 0) {
+                logger.log(`Accepted ${result.acceptedCount} pending invitations`);
+              }
+            }
+          } catch (error) {
+            logger.error("Error checking invitations:", error);
+          }
+        }
+        
+        // Fetch dashboard data with parallel requests
+        await fetchDashboardData();
+      } catch (error) {
+        logger.error("Error initializing dashboard:", error);
+      } finally {
+        setLoading(false);
       }
-      
-      setUser(userWithRole);
-      
-      // Fetch real stats for the student
-      await fetchStudentStats();
-      
-      setLoading(false);
     };
     
-    checkAuth();
+    initializeDashboard();
   }, [router]);
   
-  const fetchStudentStats = async () => {
+  const fetchDashboardData = async () => {
     try {
-      // Fetch available quizzes
-      const quizzesResponse = await fetch('/api/student/quizzes');
-      if (quizzesResponse.ok) {
-        const quizzesData = await quizzesResponse.json();
-        const available = quizzesData.quizzes?.length || 0;
-        const upcoming = quizzesData.quizzes?.filter((q: any) => 
+      // Parallel API calls with caching
+      const [quizzesResponse, resultsResponse] = await Promise.all([
+        fetchWithCache('/api/student/quizzes', {}, 300), // 5 min cache
+        fetchWithCache('/api/student/results', {}, 60)   // 1 min cache
+      ]);
+
+      if (quizzesResponse.ok && resultsResponse.ok) {
+        const [quizzesData, resultsData] = await Promise.all([
+          quizzesResponse.json(),
+          resultsResponse.json()
+        ]);
+
+        // Process quiz data
+        const quizzes = quizzesData.quizzes || [];
+        const available = quizzes.length;
+        const upcoming = quizzes.filter((q: Quiz) => 
           q.startTime && new Date(q.startTime) > new Date()
-        ).length || 0;
-        
-        setStats(prev => ({
-          ...prev,
-          quizzesAvailable: available,
-          upcomingQuizzes: upcoming
-        }));
-      }
-      
-      // Fetch quiz attempts and calculate stats
-      const resultsResponse = await fetch('/api/student/results');
-      if (resultsResponse.ok) {
-        const resultsData = await resultsResponse.json();
+        ).length;
+
+        // Process results data
         const attempts = resultsData.results || [];
-        const completedAttempts = attempts.filter((a: any) => a.status === 'completed');
-        
-        const totalScore = completedAttempts.reduce((sum: number, attempt: any) => 
-          sum + (parseFloat(attempt.score) || 0), 0
+        const completedAttempts = attempts.filter((a: QuizAttempt) => a.status === 'completed');
+        const totalScore = completedAttempts.reduce((sum: number, attempt: QuizAttempt) => 
+          sum + (attempt.score || 0), 0
         );
         const avgScore = completedAttempts.length > 0 
           ? Math.round(totalScore / completedAttempts.length) 
           : 0;
-        
-        setStats(prev => ({
-          ...prev,
+
+        // Set stats
+        setStats({
           quizzesTaken: completedAttempts.length,
-          averageScore: avgScore
-        }));
+          averageScore: avgScore,
+          quizzesAvailable: available,
+          upcomingQuizzes: upcoming
+        });
+
+        // Set recent quizzes (last 3)
+        setRecentQuizzes(quizzes.slice(0, 3));
       }
     } catch (error) {
-      console.error('Error fetching student stats:', error);
+      logger.error('Error fetching dashboard data:', error);
     }
   };
 
   if (loading) {
-    return (
-      <BiblicalPageLoader text="Loading your dashboard..." />
-    );
+    return <LoadingState fullPage text="Preparing your dashboard..." />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Student Dashboard
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Welcome back, {user?.name}
-              </p>
-            </div>
-            <Link href="/student/quizzes">
-              <Button>
-                <BookOpen className="h-4 w-4 mr-2" />
-                Browse Quizzes
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Student Dashboard"
+        subtitle={`Welcome back, ${user?.name || 'Student'}`}
+        icon={BookOpen}
+        actions={
+          <Link href="/student/quizzes">
+            <Button className="bg-amber-600 hover:bg-amber-700">
+              <BookOpen className="h-4 w-4 mr-2" />
+              Browse Quizzes
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Stats Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-          <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex-1">
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Quizzes Taken</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2">
-                  {stats.quizzesTaken}
-                </p>
-              </div>
-              <CheckCircle className="hidden sm:block h-8 sm:h-10 lg:h-12 w-8 sm:w-10 lg:w-12 text-green-600 opacity-20" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex-1">
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Average Score</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2">
-                  {stats.averageScore}%
-                </p>
-              </div>
-              <Trophy className="hidden sm:block h-8 sm:h-10 lg:h-12 w-8 sm:w-10 lg:w-12 text-amber-600 opacity-20" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex-1">
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Available</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2">
-                  {stats.quizzesAvailable}
-                </p>
-              </div>
-              <BookOpen className="hidden sm:block h-8 sm:h-10 lg:h-12 w-8 sm:w-10 lg:w-12 text-amber-600 opacity-20" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 lg:p-6 rounded-lg shadow">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex-1">
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Upcoming</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2">
-                  {stats.upcomingQuizzes}
-                </p>
-              </div>
-              <Calendar className="hidden sm:block h-8 sm:h-10 lg:h-12 w-8 sm:w-10 lg:w-12 text-amber-600 opacity-20" />
-            </div>
-          </div>
+      <Section transparent noPadding>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Quizzes Taken"
+            value={stats.quizzesTaken}
+            icon={CheckCircle}
+            iconColor="text-green-600 dark:text-green-400"
+            description={stats.quizzesTaken === 0 ? "Start your first quiz!" : undefined}
+          />
+          <StatCard
+            label="Average Score"
+            value={`${stats.averageScore}%`}
+            icon={Trophy}
+            trend={stats.averageScore >= 70 ? {
+              value: stats.averageScore - 70,
+              direction: "up"
+            } : undefined}
+          />
+          <StatCard
+            label="Available"
+            value={stats.quizzesAvailable}
+            icon={BookOpen}
+            description="Ready to take"
+          />
+          <StatCard
+            label="Upcoming"
+            value={stats.upcomingQuizzes}
+            icon={Calendar}
+            description="Scheduled soon"
+          />
         </div>
+      </Section>
 
-        {/* Groups Section */}
-        <div className="mt-8">
-          <GroupInfo />
-        </div>
+      {/* Groups Section */}
+      <Section transparent noPadding>
+        <GroupInfo />
+      </Section>
 
-        {/* Main Content Grid */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Available Quizzes */}
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Available Quizzes
-                </h2>
-                <Link href="/student/quizzes">
-                  <Button variant="ghost" size="sm">
-                    View All
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Available Quizzes */}
+        <Section 
+          className="lg:col-span-2"
+          title="Available Quizzes"
+          actions={
+            <Link href="/student/quizzes">
+              <Button variant="ghost" size="sm">
+                View All
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </Link>
+          }
+        >
+          {recentQuizzes.length > 0 ? (
+            <div className="space-y-3">
+              {recentQuizzes.filter((quiz: Quiz) => quiz && quiz.id && quiz.title).map((quiz: Quiz) => (
+                <Link 
+                  key={quiz.id} 
+                  href={`/student/quiz/${quiz.id}`}
+                  className="block p-4 border border-amber-100 dark:border-amber-900/20 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white">
+                        {quiz.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {quiz.totalQuestions} questions • {quiz.duration} minutes
+                      </p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </div>
                 </Link>
-              </div>
+              ))}
             </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <p className="text-gray-500 dark:text-gray-400 text-sm">
-                  No quizzes available yet. Check back later or contact your educator.
+          ) : (
+            <EmptyState
+              title="No quizzes available"
+              description="Check back later or contact your educator"
+              icon={BookOpen}
+              size="sm"
+            />
+          )}
+        </Section>
+
+        {/* Recent Performance */}
+        <Section
+          title="Recent Performance"
+        >
+          {stats.quizzesTaken > 0 ? (
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-amber-600">
+                  {stats.averageScore}%
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Average Score
                 </p>
               </div>
+              <Link href="/student/results">
+                <Button 
+                  variant="outline" 
+                  className="w-full border-amber-200 hover:bg-amber-50"
+                >
+                  View All Results
+                </Button>
+              </Link>
             </div>
-          </div>
+          ) : (
+            <EmptyState
+              title="No performance data"
+              description="Complete quizzes to track your progress"
+              icon={Trophy}
+              size="sm"
+            />
+          )}
+        </Section>
+      </div>
 
-          {/* Recent Performance */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Recent Performance
-              </h2>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                Complete quizzes to see your performance history here.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+      {/* Quick Actions */}
+      <Section title="Quick Actions" transparent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Link href="/student/quizzes">
-            <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 lg:p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer touch-manipulation">
-              <BookOpen className="h-6 sm:h-7 lg:h-8 w-6 sm:w-7 lg:w-8 text-amber-600 mb-2 sm:mb-3" />
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">
+            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-amber-100 dark:border-amber-900/20 hover:shadow-md transition-all cursor-pointer">
+              <BookOpen className="h-6 w-6 text-amber-600 mb-2" />
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
                 Browse Quizzes
               </h3>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Explore available biblical study quizzes
               </p>
             </div>
           </Link>
 
           <Link href="/student/results">
-            <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 lg:p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer touch-manipulation">
-              <Trophy className="h-6 sm:h-7 lg:h-8 w-6 sm:w-7 lg:w-8 text-amber-600 mb-2 sm:mb-3" />
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">
+            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-amber-100 dark:border-amber-900/20 hover:shadow-md transition-all cursor-pointer">
+              <Trophy className="h-6 w-6 text-amber-600 mb-2" />
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
                 View Results
               </h3>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Review your quiz scores and feedback
               </p>
             </div>
           </Link>
 
           <Link href="/student/progress">
-            <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 lg:p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer touch-manipulation sm:col-span-2 lg:col-span-1">
-              <TrendingUp className="h-6 sm:h-7 lg:h-8 w-6 sm:w-7 lg:w-8 text-green-600 mb-2 sm:mb-3" />
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">
+            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-amber-100 dark:border-amber-900/20 hover:shadow-md transition-all cursor-pointer">
+              <TrendingUp className="h-6 w-6 text-green-600 mb-2" />
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
                 Track Progress
               </h3>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Monitor your learning journey
               </p>
             </div>
           </Link>
         </div>
+      </Section>
 
-        {/* Study Tips */}
-        <div className="mt-6 sm:mt-8 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 sm:p-5 lg:p-6">
-          <div className="flex items-start">
-            <AlertCircle className="h-5 sm:h-6 w-5 sm:w-6 text-amber-600 mt-0.5 sm:mt-1 mr-2 sm:mr-3 flex-shrink-0" />
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Study Tips
-              </h3>
-              <ul className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
-                <li>Review the biblical passages before taking quizzes</li>
-                <li>Take notes during your study sessions</li>
-                <li>Use the review feature to learn from incorrect answers</li>
-                <li>Practice regularly to improve retention</li>
-              </ul>
-            </div>
+      {/* Study Tips */}
+      <Section className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+        <div className="flex items-start">
+          <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
+          <div>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+              Study Tips
+            </h3>
+            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
+              <li>Review the biblical passages before taking quizzes</li>
+              <li>Take notes during your study sessions</li>
+              <li>Use the review feature to learn from incorrect answers</li>
+              <li>Practice regularly to improve retention</li>
+            </ul>
           </div>
         </div>
-      </div>
-    </div>
+      </Section>
+    </PageContainer>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
-import { 
+import {
   UserGroupIcon, 
   ClockIcon, 
   ChartBarIcon, 
@@ -10,7 +11,8 @@ import {
   SparklesIcon,
   HeartIcon
 } from "@heroicons/react/24/outline";
-import { 
+
+import {
   BookOpenIcon as BookOpenSolid
 } from "@heroicons/react/24/solid";
 import { useEffect } from "react";

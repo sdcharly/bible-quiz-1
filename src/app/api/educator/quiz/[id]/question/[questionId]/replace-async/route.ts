@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq, and, inArray } from "drizzle-orm";
+import * as crypto from "crypto";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { quizzes, questions, documents } from "@/lib/schema";
-import { eq, and, inArray } from "drizzle-orm";
 import { jobStore } from "@/lib/quiz-generation-jobs";
-import * as crypto from "crypto";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { debugLogger } from "@/lib/debug-logger";
+
 
 export async function PUT(
   req: NextRequest,
@@ -40,7 +41,7 @@ export async function PUT(
       };
     } catch (e) {
       // If no body provided, continue with default behavior
-      console.log("No custom options provided, using quiz defaults");
+      // [REMOVED: Console statement for performance]
     }
 
     // Fetch quiz details to get configuration
@@ -130,7 +131,7 @@ export async function PUT(
       educatorId: session.user.id,  // Important for WebSocket routing
       questionId: questionId  // For the job store
     });
-    console.log(`[REPLACE-ASYNC] Created job ${jobId} for question ${questionId} in quiz ${quizId}`);
+    // [REMOVED: Console statement for performance]
     
     debugLogger.info("Replacement job created", {
       jobId,
@@ -142,10 +143,10 @@ export async function PUT(
 
     // Check if webhook is configured
     if (process.env.QUIZ_GENERATION_WEBHOOK_URL) {
-      console.log("Calling webhook for question replacement with async pattern");
-      console.log("Job ID:", jobId);
-      console.log("Question ID to replace:", questionId);
-      console.log("Job exists in store:", !!jobStore.get(jobId));
+      // [REMOVED: Console statement for performance]
+      // [REMOVED: Console statement for performance]
+      // [REMOVED: Console statement for performance]
+      // [REMOVED: Console statement for performance]);
       
       try {
         // Call webhook with short timeout - expecting immediate response
@@ -158,14 +159,11 @@ export async function PUT(
           signal: AbortSignal.timeout(10000), // 10 second timeout for immediate response
         });
 
-        console.log(`[REPLACE-ASYNC] Webhook response status: ${webhookResponse.status}`);
+        // [REMOVED: Console statement for performance]
 
         if (!webhookResponse.ok) {
           const errorText = await webhookResponse.text();
-          console.error("Webhook failed to acknowledge:", {
-            status: webhookResponse.status,
-            error: errorText
-          });
+          // [REMOVED: Console statement for performance]
           
           // Update job as failed
           jobStore.update(jobId, {
@@ -185,20 +183,20 @@ export async function PUT(
         let webhookData;
         try {
           webhookData = await webhookResponse.json();
-          console.log(`[REPLACE-ASYNC] Webhook response data:`, webhookData);
+          // [REMOVED: Console statement for performance]
         } catch (e) {
           // If response is not JSON, treat as acknowledgment
-          console.log(`[REPLACE-ASYNC] Webhook acknowledged (non-JSON response)`);
+          // [REMOVED: Console statement for performance]`);
           webhookData = {};
         }
         
         // Check if n8n sent confirmation response (as per workflow)
         if (webhookData.status === 'processing') {
-          console.log("Webhook acknowledged with processing status, expecting callback");
+          // [REMOVED: Console statement for performance]
           // This is the expected n8n response - continue with async flow
         } else if (webhookData.success && webhookData.questionId) {
           // n8n completed the replacement immediately (shouldn't happen with current workflow)
-          console.log("Webhook completed replacement immediately, returning success");
+          // [REMOVED: Console statement for performance]
           
           // Mark job as completed
           jobStore.update(jobId, {
@@ -223,13 +221,13 @@ export async function PUT(
           message: 'Creating new biblical study question...'
         });
 
-        console.log("Webhook acknowledged for replacement, processing in background");
+        // [REMOVED: Console statement for performance]
         
         // Log the expected callback for debugging
-        console.log(`[REPLACE-ASYNC] Service should callback to: ${callbackUrl}`);
-        console.log(`[REPLACE-ASYNC] with jobId: ${jobId}`);
+        // [REMOVED: Console statement for performance]
+        // [REMOVED: Console statement for performance]
       } catch (fetchError) {
-        console.error("Failed to reach webhook:", fetchError);
+        // [REMOVED: Console statement for performance]
         
         // Update job as failed
         jobStore.update(jobId, {
@@ -269,7 +267,7 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error("Error initiating question replacement:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to initiate question replacement" },
       { status: 500 }

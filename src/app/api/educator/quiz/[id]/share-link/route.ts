@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { quizzes, quizShareLinks } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import * as crypto from "crypto";
+import { db } from "@/lib/db";
+import { quizzes, quizShareLinks } from "@/lib/schema";
+import { auth } from "@/lib/auth";
 import { createShortUrl, getShortUrl } from "@/lib/link-shortener";
+
 
 // Generate a short, unique share code
 function generateShareCode(): string {
@@ -112,7 +113,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error("Error creating share link:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to create share link" },
       { status: 500 }
@@ -195,7 +196,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error("Error regenerating share link:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to regenerate share link" },
       { status: 500 }

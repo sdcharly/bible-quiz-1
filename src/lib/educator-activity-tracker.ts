@@ -1,6 +1,7 @@
 import { educatorActivityService } from './educator-activity-service';
 import { logger } from './logger';
 
+
 /**
  * Utility functions to track educator activity throughout the application
  * These should be called whenever educators perform significant actions

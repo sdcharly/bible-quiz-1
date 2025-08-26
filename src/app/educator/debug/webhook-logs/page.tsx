@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { RefreshCw, Trash2, Activity, AlertCircle } from "lucide-react";
-import { 
+
+import { Button } from "@/components/ui/button";
+import {
   PageHeader, 
   PageContainer, 
   Section,
   LoadingState,
-  EmptyState 
+  EmptyState
 } from "@/components/educator-v2";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";

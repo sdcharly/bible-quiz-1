@@ -1,0 +1,172 @@
+"use client";
+
+import { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  BookOpen, 
+  Clock, 
+  Calendar,
+  Users,
+  PlayCircle,
+  Lock,
+  AlertCircle,
+  CheckCircle
+} from "lucide-react";
+
+interface QuizCardProps {
+  title: string;
+  description?: string;
+  totalQuestions: number;
+  duration: number;
+  startTimeFormatted: string;
+  statusText: string;
+  statusColor: "green" | "amber" | "red";
+  attempted: boolean;
+  enrolled: boolean;
+  score?: number;
+  isExpired: boolean;
+  isAvailable: boolean;
+  onEnroll?: () => void;
+  onStart?: () => void;
+  actionElement?: ReactNode;
+  className?: string;
+}
+
+export function QuizCard({
+  title,
+  description,
+  totalQuestions,
+  duration,
+  startTimeFormatted,
+  statusText,
+  statusColor,
+  attempted,
+  enrolled,
+  score,
+  isExpired,
+  isAvailable,
+  onEnroll,
+  onStart,
+  actionElement,
+  className
+}: QuizCardProps) {
+  const statusColorClasses = {
+    green: "text-green-600 dark:text-green-400",
+    amber: "text-amber-600 dark:text-amber-400",
+    red: "text-red-600 dark:text-red-400"
+  };
+
+  return (
+    <div
+      className={cn(
+        "bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md",
+        "transition-all duration-200 border border-amber-100 dark:border-amber-900/20",
+        "hover:border-amber-200 dark:hover:border-amber-800/30",
+        className
+      )}
+    >
+      <div className="p-6">
+        {/* Header */}
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2 mb-2">
+            {title}
+          </h3>
+          {description && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+              {description}
+            </p>
+          )}
+        </div>
+
+        {/* Quiz Details */}
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <BookOpen className="h-4 w-4 mr-2 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{totalQuestions} questions</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <Clock className="h-4 w-4 mr-2 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{duration} minutes</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <Calendar className="h-4 w-4 mr-2 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <span className="truncate">{startTimeFormatted}</span>
+          </div>
+          <div className="flex items-center text-sm">
+            <Users className="h-4 w-4 mr-2 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <span className={cn("font-medium", statusColorClasses[statusColor])}>
+              {statusText}
+            </span>
+          </div>
+        </div>
+
+        {/* Status Badge */}
+        {attempted && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800/30">
+              <div className="flex items-center">
+                <CheckCircle className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
+                <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                  Completed
+                </span>
+              </div>
+              {score !== undefined && (
+                <span className="text-sm font-semibold text-green-700 dark:text-green-300">
+                  Score: {score}%
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Action Section */}
+        <div className="mt-auto">
+          {actionElement ? (
+            actionElement
+          ) : attempted ? (
+            <Button 
+              variant="outline" 
+              className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-900/20"
+            >
+              View Results
+            </Button>
+          ) : enrolled ? (
+            isExpired ? (
+              <Button disabled className="w-full">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                Quiz Expired
+              </Button>
+            ) : isAvailable ? (
+              <Button 
+                onClick={onStart}
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                <PlayCircle className="h-4 w-4 mr-2" />
+                Start Quiz
+              </Button>
+            ) : (
+              <Button disabled className="w-full">
+                <Lock className="h-4 w-4 mr-2" />
+                Not Yet Available
+              </Button>
+            )
+          ) : isExpired ? (
+            <Button disabled variant="outline" className="w-full">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Quiz Expired
+            </Button>
+          ) : (
+            <Button 
+              onClick={onEnroll}
+              variant="outline"
+              className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-900/20"
+            >
+              Enroll in Quiz
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

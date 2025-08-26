@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { quizAttempts, questionResponses, questions, quizzes } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { quizAttempts, questionResponses, questions, quizzes } from "@/lib/schema";
 import { auth } from "@/lib/auth";
+import { logger } from "@/lib/logger";
+
 
 export async function GET(
   req: NextRequest,
@@ -81,8 +83,8 @@ export async function GET(
       .where(eq(questionResponses.attemptId, attemptId));
 
     // Combine questions with responses
-    const questionsWithResults = quizQuestions.map(question => {
-      const response = responses.find(r => r.questionId === question.id);
+    const questionsWithResults = quizQuestions.filter(question => question && question.id && question.questionText && question.options).map(question => {
+      const response = responses.find(r => r && r.questionId === question.id);
       
       return {
         id: question.id,
@@ -100,8 +102,8 @@ export async function GET(
       };
     }).sort((a, b) => {
       // Sort by order if available
-      const questionA = quizQuestions.find(q => q.id === a.id);
-      const questionB = quizQuestions.find(q => q.id === b.id);
+      const questionA = quizQuestions.find(q => q && q.id === a.id);
+      const questionB = quizQuestions.find(q => q && q.id === b.id);
       return (questionA?.orderIndex || 0) - (questionB?.orderIndex || 0);
     });
 
@@ -142,7 +144,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error("Error fetching results:", error);
+    logger.error("Error fetching results:", error);
     return NextResponse.json(
       { error: "Failed to fetch results" },
       { status: 500 }

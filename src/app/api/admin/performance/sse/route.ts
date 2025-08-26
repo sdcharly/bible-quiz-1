@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
+import { count, gte } from "drizzle-orm";
 import { db, pgClient } from "@/lib/db";
 import { user, quizzes, quizAttempts, session } from "@/lib/schema";
-import { count, gte } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+
 
 export async function GET(req: NextRequest) {
   // Set up SSE headers

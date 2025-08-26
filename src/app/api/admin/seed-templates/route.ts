@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { sql } from "drizzle-orm";
 import { getAdminSession, requireAdminAuth } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { permissionTemplates } from "@/lib/schema";
-import { sql } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+
 
 export async function POST() {
   // Verify admin authentication

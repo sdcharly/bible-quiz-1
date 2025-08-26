@@ -1,9 +1,10 @@
 "use client";
 
-import { Card, CardHeader, CardDescription, CardTitle, CardContent } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { type FC } from "react";
+import { Card, CardHeader, CardDescription, CardTitle, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
 
 export interface StatsCardProps {
   title: string;

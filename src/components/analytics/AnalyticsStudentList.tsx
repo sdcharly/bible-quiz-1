@@ -2,10 +2,11 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Users, TrendingUp, TrendingDown, Search, ChevronLeft, ChevronRight 
+import {
+  Users, TrendingUp, TrendingDown, Search, ChevronLeft, ChevronRight
 } from "lucide-react";
 import {
   Select,

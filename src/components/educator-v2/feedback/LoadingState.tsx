@@ -4,6 +4,7 @@ import { type FC } from 'react';
 import { BiblicalLoader, BiblicalPageLoader } from '@/components/ui/biblical-loader';
 import { cn } from '@/lib/utils';
 
+
 export interface LoadingStateProps {
   text?: string;
   fullPage?: boolean;

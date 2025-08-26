@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
+
 export interface LoadingProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: "default" | "page" | "card"
   message?: string

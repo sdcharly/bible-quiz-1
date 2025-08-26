@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { RefreshCw, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+
 
 interface DocumentProcessingStatusProps {
   documentId: string;
@@ -84,7 +85,7 @@ export function DocumentProcessingStatus({
         }
       }
     } catch (error) {
-      console.error("Error fetching document status:", error);
+      // [REMOVED: Console statement for performance]
       toast({
         title: "Error",
         description: "Failed to fetch document status",

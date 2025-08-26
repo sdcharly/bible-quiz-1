@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { logger } from "@/lib/logger";
 
+
 // WebSocket configuration constants
 const MAX_WS_CONNECTIONS_PER_USER = 2;
 const WS_HEARTBEAT_INTERVAL = 30000; // 30 seconds

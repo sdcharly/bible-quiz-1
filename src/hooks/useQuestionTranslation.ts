@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { SupportedLanguage } from "@/lib/translation-service";
 import { logger } from "@/lib/logger";
 
+
 interface TranslationState {
   isTranslating: boolean;
   isModalOpen: boolean;

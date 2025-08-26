@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw, Home } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+
 
 interface Props {
   children: React.ReactNode;
@@ -26,7 +27,7 @@ export class StudentErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("Student module error:", error, errorInfo);
+    // [REMOVED: Console statement for performance]
   }
 
   reset = () => {

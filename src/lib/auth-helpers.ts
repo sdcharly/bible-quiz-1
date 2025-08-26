@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+
 
 /**
  * Get authenticated user session
@@ -15,7 +16,7 @@ export async function getAuthenticatedUser() {
     // Only bypass auth if explicitly enabled via environment variable
     // This should NEVER be true in production
     if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️ AUTH BYPASS ENABLED - DO NOT USE IN PRODUCTION');
+      // [REMOVED: Console statement for performance]
       return null;
     }
     
@@ -37,7 +38,7 @@ export async function requireAuth() {
     if (!user) {
       // Only provide test user if explicitly enabled and NOT in production
       if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
-        console.warn('⚠️ Using test user - AUTH BYPASS ENABLED');
+        // [REMOVED: Console statement for performance]
         // Return a test user for development ONLY
         return {
           id: 'dev-test-user',

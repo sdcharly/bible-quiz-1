@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getAdminSession, createAdminSession } from "@/lib/admin-auth";
+
 
 export async function POST() {
   try {
@@ -40,7 +41,7 @@ export async function POST() {
     });
 
   } catch (error) {
-    console.error("Session refresh error:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to refresh session" },
       { status: 500 }

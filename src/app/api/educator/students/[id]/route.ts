@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { educatorStudents, user, enrollments, quizAttempts, quizzes, questionResponses, questions } from "@/lib/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { educatorStudents, user, enrollments, quizAttempts, quizzes, questionResponses, questions } from "@/lib/schema";
 import { auth } from "@/lib/auth";
+
 
 export async function GET(
   req: NextRequest,
@@ -145,7 +146,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error("Error fetching student details:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to fetch student details" },
       { status: 500 }

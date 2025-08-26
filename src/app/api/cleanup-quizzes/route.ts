@@ -2,34 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { quizzes, questions, enrollments, quizAttempts, questionResponses } from "@/lib/schema";
 
+
 export async function DELETE(req: NextRequest) {
   try {
-    console.log("Starting database cleanup...");
+    // [REMOVED: Console statement for performance]
     
     // Delete all question responses first (due to foreign key constraints)
-    console.log("Deleting question responses...");
+    // [REMOVED: Console statement for performance]
     const deletedResponses = await db.delete(questionResponses).returning();
-    console.log(`Deleted ${deletedResponses.length} question responses`);
+    // [REMOVED: Console statement for performance]
 
     // Delete all quiz attempts
-    console.log("Deleting quiz attempts...");
+    // [REMOVED: Console statement for performance]
     const deletedAttempts = await db.delete(quizAttempts).returning();
-    console.log(`Deleted ${deletedAttempts.length} quiz attempts`);
+    // [REMOVED: Console statement for performance]
 
     // Delete all enrollments
-    console.log("Deleting enrollments...");
+    // [REMOVED: Console statement for performance]
     const deletedEnrollments = await db.delete(enrollments).returning();
-    console.log(`Deleted ${deletedEnrollments.length} enrollments`);
+    // [REMOVED: Console statement for performance]
 
     // Delete all questions
-    console.log("Deleting questions...");
+    // [REMOVED: Console statement for performance]
     const deletedQuestions = await db.delete(questions).returning();
-    console.log(`Deleted ${deletedQuestions.length} questions`);
+    // [REMOVED: Console statement for performance]
 
     // Delete all quizzes
-    console.log("Deleting quizzes...");
+    // [REMOVED: Console statement for performance]
     const deletedQuizzes = await db.delete(quizzes).returning();
-    console.log(`Deleted ${deletedQuizzes.length} quizzes`);
+    // [REMOVED: Console statement for performance]
 
     return NextResponse.json({
       success: true,
@@ -44,7 +45,7 @@ export async function DELETE(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error("Error during cleanup:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to cleanup database", details: error },
       { status: 500 }

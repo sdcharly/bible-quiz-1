@@ -1,6 +1,8 @@
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizShareLinks } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { logger } from "@/lib/logger";
+
 
 /**
  * Simple self-hosted link shortener for quiz share links
@@ -55,7 +57,7 @@ export async function createShortUrl(shareCode: string): Promise<string | null> 
     } while (attempts < maxAttempts);
 
     if (attempts >= maxAttempts) {
-      console.error("Failed to generate unique short code after", maxAttempts, "attempts");
+      logger.error("Failed to generate unique short code after", maxAttempts, "attempts");
       return null;
     }
 
@@ -70,7 +72,7 @@ export async function createShortUrl(shareCode: string): Promise<string | null> 
 
     return shortCode;
   } catch (error) {
-    console.error("Error creating short URL:", error);
+    logger.error("Error creating short URL:", error);
     return null;
   }
 }
@@ -98,7 +100,7 @@ export async function resolveShortUrl(shortCode: string): Promise<string | null>
 
     return shareLink.shareCode;
   } catch (error) {
-    console.error("Error resolving short URL:", error);
+    logger.error("Error resolving short URL:", error);
     return null;
   }
 }

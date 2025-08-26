@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { BookOpenIcon as BookOpenSolid } from "@heroicons/react/24/solid";
+import { ArrowPathIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BookOpenIcon as BookOpenSolid } from "@heroicons/react/24/solid";
-import { ArrowPathIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams();

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { quizzes, questions, quizAttempts, enrollments, educatorStudents } from "@/lib/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import * as crypto from "crypto";
+import { db } from "@/lib/db";
+import { quizzes, questions, quizAttempts, enrollments, educatorStudents } from "@/lib/schema";
+import { auth } from "@/lib/auth";
 import { quizCache } from "@/lib/quiz-cache";
 import { logger } from "@/lib/logger";
+
 
 // Seeded shuffle function for consistent randomization per attempt
 function shuffleArray<T>(array: T[], seed: string): T[] {
@@ -238,7 +239,7 @@ export async function POST(
           .where(eq(questions.quizId, quizId));
 
         // Sort questions - shuffle if enabled, otherwise by orderIndex
-        let sortedQuestions = quizQuestions.map(q => ({
+        let sortedQuestions = quizQuestions.filter(q => q && q.id && q.questionText && q.options).map(q => ({
           id: q.id,
           questionText: q.questionText,
           options: q.options,
@@ -374,7 +375,7 @@ export async function POST(
       .where(eq(enrollments.id, activeEnrollment.id));
 
     // Prepare questions - shuffle if enabled or if this is a reassignment
-    let preparedQuestions = quizQuestions.map(q => ({
+    let preparedQuestions = quizQuestions.filter(q => q && q.id && q.questionText && q.options).map(q => ({
       id: q.id,
       questionText: q.questionText,
       options: q.options,
@@ -426,7 +427,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error("Error starting quiz:", error);
+    logger.error("Error starting quiz:", error);
     return NextResponse.json(
       { error: "Failed to start quiz" },
       { status: 500 }

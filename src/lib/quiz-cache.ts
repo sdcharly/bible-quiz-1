@@ -8,6 +8,7 @@
 import { redisClient } from "./redis";
 import { logger } from "./logger";
 
+
 // Cache key prefixes
 const CACHE_KEYS = {
   QUIZ_DATA: "quiz:data:",           // Full quiz with questions

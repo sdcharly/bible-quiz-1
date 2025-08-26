@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
+
 export function MaintenanceCheck() {
   const router = useRouter();
   const pathname = usePathname();
@@ -28,7 +29,7 @@ export function MaintenanceCheck() {
           }
         }
       } catch (error) {
-        console.error("Failed to check maintenance status:", error);
+        // [REMOVED: Console statement for performance]
       }
     };
 

@@ -1,7 +1,8 @@
+import { eq } from "drizzle-orm";
 import { db } from "./db";
 import { documents } from "./schema";
-import { eq } from "drizzle-orm";
 import { logger } from "./logger";
+
 
 const LIGHTRAG_API_KEY = process.env.LIGHTRAG_API_KEY || "";
 const LIGHTRAG_BASE_URL = process.env.LIGHTRAG_BASE_URL || "https://lightrag-6bki.onrender.com";

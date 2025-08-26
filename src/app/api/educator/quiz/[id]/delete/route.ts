@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizzes, quizAttempts, enrollments } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+
 
 export async function DELETE(
   req: NextRequest,
@@ -94,7 +95,7 @@ export async function DELETE(
     }
 
   } catch (error) {
-    console.error("Error deleting/archiving quiz:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to delete/archive quiz" },
       { status: 500 }
@@ -178,7 +179,7 @@ export async function PATCH(
     }
 
   } catch (error) {
-    console.error("Error toggling quiz status:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to update quiz status" },
       { status: 500 }

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { eq } from "drizzle-orm";
 import { LightRAGService } from "@/lib/lightrag-service";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { documents } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+
 
 export async function GET(
   req: NextRequest,
@@ -71,7 +72,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error("Error getting document status:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : "Failed to get document status" 
@@ -150,7 +151,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error("Error updating document status:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : "Failed to update document status" 

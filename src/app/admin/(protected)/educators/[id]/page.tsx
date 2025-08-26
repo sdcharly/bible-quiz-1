@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { eq, sql } from "drizzle-orm";
 import { getAdminSession } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { user, quizzes, educatorStudents, quizAttempts, enrollments } from "@/lib/schema";
-import { eq, sql } from "drizzle-orm";
 import EducatorDetails from "./EducatorDetails";
+
 
 async function getEducatorDetails(educatorId: string) {
   const [educator] = await db

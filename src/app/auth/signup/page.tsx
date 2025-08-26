@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { BookOpenIcon as BookOpenSolid } from "@heroicons/react/24/solid";
+import { ArrowPathIcon, UserPlusIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
-import { BookOpenIcon as BookOpenSolid } from "@heroicons/react/24/solid";
-import { ArrowPathIcon, UserPlusIcon } from "@heroicons/react/24/outline";
 import { getBrowserTimezone } from "@/lib/timezone";
+
 
 function StudentSignUpForm() {
   const router = useRouter();
@@ -48,7 +49,7 @@ function StudentSignUpForm() {
         setError("Invalid or expired invitation link");
       }
     } catch (err) {
-      console.error("Error validating invitation:", err);
+      // [REMOVED: Console statement for performance]
     }
   };
 
@@ -110,7 +111,7 @@ function StudentSignUpForm() {
         });
         
         if (!acceptResponse.ok) {
-          console.error('Failed to accept invitation:', await acceptResponse.text());
+          // [REMOVED: Console statement for performance]);
         }
         
         // Check if there's a pending quiz share in session storage

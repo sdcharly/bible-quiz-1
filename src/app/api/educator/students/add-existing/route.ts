@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { educatorStudents, user } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import * as crypto from "crypto";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { educatorStudents, user } from "@/lib/schema";
 import { auth } from "@/lib/auth";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error adding student:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to add student" },
       { status: 500 }

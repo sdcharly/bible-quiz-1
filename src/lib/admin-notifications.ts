@@ -1,6 +1,7 @@
 import { sendEmail } from './email-service';
 import { logger } from './logger';
 
+
 export interface NotificationEvent {
   id: string;
   type: NotificationEventType;

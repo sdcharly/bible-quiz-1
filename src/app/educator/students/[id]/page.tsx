@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
@@ -19,7 +20,7 @@ import {
   TrendingUp,
   Award,
 } from "lucide-react";
-import { 
+import {
   PageHeader,
   PageContainer,
   Section,

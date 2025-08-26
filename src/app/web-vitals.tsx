@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { onCLS, onFCP, onLCP, onTTFB, onINP, Metric } from 'web-vitals';
 import { track } from '@vercel/analytics';
 
+
 function sendToAnalytics(metric: Metric) {
   // Send to Vercel Analytics
   const value = Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value);

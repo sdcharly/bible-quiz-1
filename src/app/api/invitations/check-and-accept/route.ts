@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { invitations, educatorStudents, enrollments, user } from "@/lib/schema";
 import { eq, and, gte } from "drizzle-orm";
 import * as crypto from "crypto";
+import { db } from "@/lib/db";
+import { invitations, educatorStudents, enrollments, user } from "@/lib/schema";
 import { logger } from "@/lib/logger";
+
 
 export async function POST(req: NextRequest) {
   try {

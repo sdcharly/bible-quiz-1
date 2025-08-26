@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { quizzes, enrollments, quizAttempts, educatorStudents } from "@/lib/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { quizzes, enrollments, quizAttempts, educatorStudents } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { getQuizAvailabilityStatus } from "@/lib/quiz-scheduling";
+
 
 /**
  * Phase 5: Enhanced student quiz listing with scheduling information
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const educatorIds = studentEducators.map(se => se.educatorId);
+    const educatorIds = studentEducators.filter(se => se && se.educatorId).map(se => se.educatorId);
 
     // Fetch only published quizzes from associated educators
     const educatorQuizzes = await db
@@ -71,9 +72,9 @@ export async function GET(req: NextRequest) {
       .where(eq(quizAttempts.studentId, studentId));
 
     // Map quiz data with enrollment, attempt status, and scheduling info
-    const quizzesWithStatus = educatorQuizzes.map(quiz => {
-      const enrollment = studentEnrollments.find(e => e.quizId === quiz.id);
-      const attempt = studentAttempts.find(a => a.quizId === quiz.id && a.status === "completed");
+    const quizzesWithStatus = educatorQuizzes.filter(quiz => quiz && quiz.id && quiz.title).map(quiz => {
+      const enrollment = studentEnrollments.find(e => e && e.quizId === quiz.id);
+      const attempt = studentAttempts.find(a => a && a.quizId === quiz.id && a.status === "completed");
       
       // Get availability status
       const availability = getQuizAvailabilityStatus({
@@ -166,7 +167,7 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (error) {
-    console.error("Error fetching quizzes:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to fetch quizzes" },
       { status: 500 }

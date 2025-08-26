@@ -42,7 +42,7 @@ function sendToAnalytics(metric: Metric) {
   
   // Optionally, send to custom endpoint
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    console.log('[Web Vitals]', body);
+    // [REMOVED: Console statement for performance]
   }
 
   // Store in localStorage for performance dashboard

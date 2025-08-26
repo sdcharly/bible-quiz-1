@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import { authClient } from "@/lib/auth-client";
 import { isEducator } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
@@ -344,8 +345,8 @@ export default function EducatorDashboard() {
               {performanceData.recentActivity && performanceData.recentActivity.length > 0 ? (
                 <>
                   <div className="h-24 flex items-end gap-1">
-                    {performanceData.recentActivity.map((day, index) => {
-                      const maxAttempts = Math.max(...performanceData.recentActivity.map(d => d.attempts || 0), 1);
+                    {performanceData.recentActivity.filter(day => day && day.attempts != null).map((day, index) => {
+                      const maxAttempts = Math.max(...performanceData.recentActivity.filter(d => d && d.attempts != null).map(d => d.attempts || 0), 1);
                       const height = ((day.attempts || 0) / maxAttempts) * 100;
                       const avgScore = day.avgScore || 0;
                       

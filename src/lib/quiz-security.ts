@@ -5,10 +5,11 @@
  * Designed to support 100+ concurrent students while preventing abuse.
  */
 
+import { eq, and, gte, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { quizAttempts, enrollments } from "@/lib/schema";
-import { eq, and, gte, sql } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+
 
 interface ValidationResult {
   allowed: boolean;

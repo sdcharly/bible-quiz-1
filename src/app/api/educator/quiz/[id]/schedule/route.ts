@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { quizzes, enrollments } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { quizzes, enrollments } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/feature-flags";
+
 // import { sendQuizReminderEmail } from "@/lib/email-service"; // TODO: Implement this function
 
 /**
@@ -159,9 +160,9 @@ export async function POST(
         //     isRescheduling ? 'rescheduled' : 'scheduled'
         //   );
         // }
-        console.log(`Would send notifications to ${existingEnrollments.length} students`);
+        // [REMOVED: Console statement for performance]
       } catch (emailError) {
-        console.error("Error sending notification emails:", emailError);
+        // [REMOVED: Console statement for performance]
         // Don't fail the scheduling operation if emails fail
       }
     }
@@ -178,7 +179,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error("Error scheduling quiz:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { 
         error: "Failed to schedule quiz", 
@@ -251,7 +252,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error("Error getting quiz schedule:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { 
         error: "Failed to get quiz schedule", 

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
-import { eq } from "drizzle-orm";
 import { withAdminAuth } from "@/lib/admin-api-auth";
 import { logger } from "@/lib/logger";
+
 
 export async function DELETE(req: NextRequest) {
   return withAdminAuth(async (session) => {

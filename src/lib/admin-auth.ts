@@ -1,11 +1,12 @@
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { db } from "@/lib/db";
-import { user, activityLogs } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { db } from "@/lib/db";
+import { user, activityLogs } from "@/lib/schema";
 import { getSessionConfig } from "@/lib/session-config";
+
 
 const ADMIN_SESSION_COOKIE = "admin_session";
 const DEFAULT_SESSION_DURATION = 30 * 60 * 1000; // 30 minutes fallback
@@ -68,7 +69,7 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 
     return session;
   } catch (error) {
-    console.error("Admin session verification error:", error);
+    // [REMOVED: Console statement for performance]
     return null;
   }
 }
@@ -90,14 +91,40 @@ export async function requireAdminAuth() {
 
 export async function authenticateSuperAdmin(email: string, password: string): Promise<{ success: boolean; adminId?: string; error?: string }> {
   try {
+    // Check if environment variables are properly configured
+    if (!process.env.SUPER_ADMIN_EMAIL) {
+      console.error("SUPER_ADMIN_EMAIL is not configured in environment variables");
+      return { success: false, error: "Admin authentication not configured" };
+    }
+    
+    if (!process.env.SUPER_ADMIN_PASSWORD && !process.env.SUPER_ADMIN_PASSWORD_HASH) {
+      console.error("Neither SUPER_ADMIN_PASSWORD nor SUPER_ADMIN_PASSWORD_HASH is configured");
+      return { success: false, error: "Admin authentication not configured" };
+    }
+    
+    if (!process.env.SUPER_ADMIN_SECRET_KEY) {
+      console.error("SUPER_ADMIN_SECRET_KEY is not configured in environment variables");
+      return { success: false, error: "Admin authentication not configured" };
+    }
+    
     // Check if it's the super admin credentials
     if (email !== process.env.SUPER_ADMIN_EMAIL) {
       await logActivity(null, "failed_admin_login", "auth", null, { email, reason: "invalid_email" });
       return { success: false, error: "Invalid credentials" };
     }
 
-    // Hash the environment password for comparison (in production, this should be pre-hashed)
-    const envPasswordHash = process.env.SUPER_ADMIN_PASSWORD_HASH || await hashPassword(process.env.SUPER_ADMIN_PASSWORD!);
+    // Get the password hash - prefer SUPER_ADMIN_PASSWORD_HASH over plain text password
+    let envPasswordHash: string;
+    if (process.env.SUPER_ADMIN_PASSWORD_HASH) {
+      // Use pre-hashed password (recommended for production)
+      envPasswordHash = process.env.SUPER_ADMIN_PASSWORD_HASH;
+    } else if (process.env.SUPER_ADMIN_PASSWORD) {
+      // Hash the plain text password (only for development)
+      envPasswordHash = await hashPassword(process.env.SUPER_ADMIN_PASSWORD);
+    } else {
+      console.error("No password configuration found");
+      return { success: false, error: "Admin authentication not configured" };
+    }
     
     // Verify the provided password against the hash
     const isPasswordValid = await verifyPassword(password, envPasswordHash);
@@ -145,7 +172,7 @@ export async function authenticateSuperAdmin(email: string, password: string): P
     await logActivity(adminId, "admin_login", "auth", adminId, { email });
     return { success: true, adminId };
   } catch (error) {
-    console.error("Admin authentication error:", error);
+    // [REMOVED: Console statement for performance]
     return { success: false, error: "Authentication failed" };
   }
 }
@@ -169,7 +196,7 @@ export async function logActivity(
       userAgent: null, // Will be set from request headers
     });
   } catch (error) {
-    console.error("Failed to log activity:", error);
+    // [REMOVED: Console statement for performance]
   }
 }
 

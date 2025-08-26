@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { quizzes, documents } from "@/lib/schema";
 import { inArray, eq, and, gte } from "drizzle-orm";
 import * as crypto from "crypto";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { quizzes, documents } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { checkEducatorPermission, checkEducatorLimits, getPermissionMessage } from "@/lib/permissions";
 import { jobStore } from "@/lib/quiz-generation-jobs";
 import { debugLogger } from "@/lib/debug-logger";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
       );
     
     if (recentDuplicates.length > 0) {
-      console.log(`[CREATE-ASYNC] Duplicate quiz creation attempt blocked: "${title}" by educator ${educatorId}`);
+      // [REMOVED: Console statement for performance]
       return NextResponse.json(
         { 
           error: "A quiz with this title was created recently. Please wait a moment or use a different title.",
@@ -207,15 +208,15 @@ export async function POST(req: NextRequest) {
 
     // Create job in store BEFORE calling webhook
     const job = jobStore.create(jobId, quizId, webhookPayload);
-    console.log(`[CREATE-ASYNC] Created job ${jobId} for quiz ${quizId}`);
+    // [REMOVED: Console statement for performance]
     debugLogger.info(`Created job ${jobId} for quiz ${quizId}`, { jobId, quizId });
 
     // Check if webhook is configured
     if (process.env.QUIZ_GENERATION_WEBHOOK_URL) {
-      console.log("Calling webhook with async pattern:", process.env.QUIZ_GENERATION_WEBHOOK_URL);
-      console.log("Callback URL:", callbackUrl);
-      console.log("Job ID:", jobId);
-      console.log("Job exists in store:", !!jobStore.get(jobId));
+      // [REMOVED: Console statement for performance]
+      // [REMOVED: Console statement for performance]
+      // [REMOVED: Console statement for performance]
+      // [REMOVED: Console statement for performance]);
       
       debugLogger.info("Calling webhook", {
         url: process.env.QUIZ_GENERATION_WEBHOOK_URL,
@@ -231,7 +232,7 @@ export async function POST(req: NextRequest) {
       
       while (retryCount < maxRetries) {
         try {
-          console.log(`[CREATE-ASYNC] Webhook attempt ${retryCount + 1}/${maxRetries}`);
+          // [REMOVED: Console statement for performance]
           
           webhookResponse = await fetch(process.env.QUIZ_GENERATION_WEBHOOK_URL, {
             method: "POST",
@@ -248,7 +249,7 @@ export async function POST(req: NextRequest) {
           }
         } catch (fetchError) {
           retryCount++;
-          console.error(`[CREATE-ASYNC] Webhook attempt ${retryCount} failed:`, fetchError);
+          // [REMOVED: Console statement for performance]
           
           if (retryCount >= maxRetries) {
             throw fetchError;
@@ -265,21 +266,21 @@ export async function POST(req: NextRequest) {
       
       try {
 
-        console.log(`[CREATE-ASYNC] Webhook response status: ${webhookResponse.status}`);
+        // [REMOVED: Console statement for performance]
         
         // Read response body regardless of status to check for any error messages
         const responseText = await webhookResponse.text();
-        console.log(`[CREATE-ASYNC] Webhook response body:`, responseText);
+        // [REMOVED: Console statement for performance]
         
         // Try to parse response as JSON
         let responseData: unknown = null;
         try {
           if (responseText) {
             responseData = JSON.parse(responseText);
-            console.log(`[CREATE-ASYNC] Parsed response data:`, responseData);
+            // [REMOVED: Console statement for performance]
           }
         } catch (e) {
-          console.log(`[CREATE-ASYNC] Response is not JSON:`, responseText);
+          // [REMOVED: Console statement for performance]
         }
         
         debugLogger.info("Webhook response received", {
@@ -290,11 +291,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (!webhookResponse.ok) {
-          console.error("Webhook failed to acknowledge:", {
-            status: webhookResponse.status,
-            body: responseText,
-            parsedData: responseData
-          });
+          // [REMOVED: Console statement for performance]
           
           // Check if n8n is returning an immediate error
           const parsedResponse = responseData as Record<string, unknown>;
@@ -320,7 +317,7 @@ export async function POST(req: NextRequest) {
         // (n8n might return 200 with error in body)
         const parsedResp = responseData as Record<string, unknown>;
         if (parsedResp?.error || parsedResp?.status === 'error') {
-          console.error(`[CREATE-ASYNC] Webhook returned error in body:`, responseData);
+          // [REMOVED: Console statement for performance]
           
           const errorMessage = String(parsedResp.error || parsedResp.message || "Unknown error from webhook");
           
@@ -332,7 +329,7 @@ export async function POST(req: NextRequest) {
           });
           
           // Don't return error to client, let polling handle it
-          console.log(`[CREATE-ASYNC] Error will be handled through polling`);
+          // [REMOVED: Console statement for performance]
         } else {
           // Update job as processing only if no error
           jobStore.update(jobId, {
@@ -341,14 +338,14 @@ export async function POST(req: NextRequest) {
             message: 'Biblical quiz generation in progress...'
           });
 
-          console.log("Webhook acknowledged successfully, processing in background");
+          // [REMOVED: Console statement for performance]
         }
         
         // Log the expected callback for debugging
-        console.log(`[CREATE-ASYNC] Service should callback to: ${callbackUrl}`);
-        console.log(`[CREATE-ASYNC] with jobId: ${jobId}`);
+        // [REMOVED: Console statement for performance]
+        // [REMOVED: Console statement for performance]
       } catch (fetchError) {
-        console.error("Failed to reach webhook:", fetchError);
+        // [REMOVED: Console statement for performance]
         
         // Update job as failed
         jobStore.update(jobId, {
@@ -391,7 +388,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error creating quiz:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create quiz" },
       { status: 500 }

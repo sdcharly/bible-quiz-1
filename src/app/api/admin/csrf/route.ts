@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getClientCSRFToken } from "@/lib/csrf";
 import { getAdminSession } from "@/lib/admin-auth";
 
+
 export async function GET() {
   // Only provide CSRF token to authenticated admin users
   const session = await getAdminSession();

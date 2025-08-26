@@ -3,6 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
+
+
+
+
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -56,7 +60,7 @@ export function SessionMonitor({
         throw new Error("Failed to extend session");
       }
     } catch (error) {
-      console.error("Failed to extend session:", error);
+      // [REMOVED: Console statement for performance]
       toast({
         title: "Error",
         description: "Failed to extend session. Please log in again.",

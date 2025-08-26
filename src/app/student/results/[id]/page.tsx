@@ -3,10 +3,17 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
-import { BiblicalPageLoader } from "@/components/ui/biblical-loader";
+import { logger } from "@/lib/logger";
 import {
-  ArrowLeft,
+  PageContainer,
+  PageHeader,
+  Section,
+  LoadingState,
+  EmptyState
+} from "@/components/student-v2";
+import {
   CheckCircle,
   XCircle,
   Clock,
@@ -15,6 +22,8 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  Target,
+  TrendingUp
 } from "lucide-react";
 
 interface QuestionResult {
@@ -53,20 +62,18 @@ export default function QuizResultsPage() {
   const [result, setResult] = useState<QuizResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
+  const [resultsLocked, setResultsLocked] = useState(false);
+  const [lockMessage, setLockMessage] = useState("");
+  const [availableAt, setAvailableAt] = useState<string | null>(null);
 
   useEffect(() => {
     fetchResults();
   }, [attemptId]);
 
-  const [resultsLocked, setResultsLocked] = useState(false);
-  const [lockMessage, setLockMessage] = useState("");
-  const [availableAt, setAvailableAt] = useState<string | null>(null);
-
   const fetchResults = async () => {
     try {
       const response = await fetch(`/api/student/results/${attemptId}`);
       if (response.status === 425) {
-        // Results not available yet
         const data = await response.json();
         setResultsLocked(true);
         setLockMessage(data.message);
@@ -75,10 +82,10 @@ export default function QuizResultsPage() {
         const data = await response.json();
         setResult(data);
       } else {
-        console.error("Failed to fetch results");
+        logger.error("Failed to fetch results");
       }
     } catch (error) {
-      console.error("Error fetching results:", error);
+      logger.error("Error fetching results:", error);
     } finally {
       setLoading(false);
     }
@@ -100,300 +107,303 @@ export default function QuizResultsPage() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const getOptionLabel = (optionId: string) => {
-    return optionId.toUpperCase();
-  };
-
   if (loading) {
-    return <BiblicalPageLoader text="Loading quiz results..." />;
+    return (
+      <PageContainer>
+        <LoadingState text="Loading quiz results..." fullPage />
+      </PageContainer>
+    );
   }
 
   if (resultsLocked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center max-w-md p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-          <Clock className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Results Not Available Yet</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">{lockMessage}</p>
-          {availableAt && (
+      <PageContainer>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center max-w-md p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-amber-100 dark:border-amber-900/20">
+            <Clock className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+              Results Not Available Yet
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">{lockMessage}</p>
+            {availableAt && (
+              <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
+                Results will be available at: {new Date(availableAt).toLocaleString()}
+              </p>
+            )}
             <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
-              Results will be available at: {new Date(availableAt).toLocaleString()}
+              This security measure ensures fairness for all participants.
             </p>
-          )}
-          <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
-            This security measure ensures fairness for all participants.
-          </p>
-          <Link href="/student/dashboard">
-            <Button>Return to Dashboard</Button>
-          </Link>
+            <Link href="/student/dashboard">
+              <Button className="bg-amber-600 hover:bg-amber-700">Return to Dashboard</Button>
+            </Link>
+          </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (!result) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Results Not Found</h2>
-          <Link href="/student/dashboard">
-            <Button>Return to Dashboard</Button>
-          </Link>
-        </div>
-      </div>
+      <PageContainer>
+        <EmptyState
+          icon={AlertCircle}
+          title="Results Not Found"
+          description="Unable to load quiz results. Please try again later."
+          action={{
+            label: "Return to Dashboard",
+            onClick: () => window.location.href = "/student/dashboard",
+            variant: "default"
+          }}
+        />
+      </PageContainer>
     );
   }
 
+  const isPassed = result.score >= 70;
+  
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center py-6">
-            <Link href="/student/dashboard">
-              <Button variant="ghost" size="sm" className="mr-4">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Quiz Results
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                {result.quizTitle}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Quiz Results"
+        subtitle={result.quizTitle}
+        breadcrumbs={[
+          { label: "Results", href: "/student/results" },
+          { label: "Details" }
+        ]}
+        actions={
+          <Link href="/student/results">
+            <Button variant="outline">
+              Back to Results
+            </Button>
+          </Link>
+        }
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Score Summary */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-          <div className="text-center mb-6">
-            {result.grade.startsWith('A') || result.grade.startsWith('B') ? (
+      {/* Score Summary */}
+      <Section className="mt-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100 dark:border-amber-900/20 p-6">
+          <div className="text-center mb-8">
+            {isPassed ? (
               <div>
-                <Trophy className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <Trophy className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
                   {result.gradeDescription} Performance!
                 </h2>
-              </div>
-            ) : result.grade.startsWith('C') ? (
-              <div>
-                <BookOpen className="h-16 w-16 text-blue-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {result.gradeDescription} - Keep Improving!
-                </h2>
+                <div className="text-4xl font-bold text-amber-600 dark:text-amber-400 mb-2">
+                  {result.score}%
+                </div>
+                <div className="inline-flex items-center px-4 py-2 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full text-sm font-semibold">
+                  Grade: {result.grade}
+                </div>
               </div>
             ) : (
               <div>
-                <AlertCircle className="h-16 w-16 text-orange-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                  More Study Needed
+                <Target className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-2">
+                  Keep Practicing!
                 </h2>
+                <div className="text-4xl font-bold text-amber-600 dark:text-amber-400 mb-2">
+                  {result.score}%
+                </div>
+                <div className="inline-flex items-center px-4 py-2 bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-full text-sm font-semibold">
+                  Grade: {result.grade}
+                </div>
               </div>
             )}
-            
-            <div className="mt-6">
-              <div className="text-6xl font-bold text-gray-900 dark:text-white mb-2">
-                {result.grade}
-              </div>
-              <div className="text-3xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                {result.score}%
-              </div>
-              <p className="text-gray-600 dark:text-gray-400">
-                Grade Points: {result.gradePoints.toFixed(1)}
-              </p>
-            </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg">
+              <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {result.correctAnswers}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Correct</p>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Correct</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">
+            <div className="text-center p-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg">
+              <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {result.wrongAnswers}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Wrong</p>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Wrong</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-600">
+            <div className="text-center p-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg">
+              <BookOpen className="h-8 w-8 text-amber-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {result.totalQuestions}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Total</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
+            <div className="text-center p-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg">
+              <Clock className="h-8 w-8 text-amber-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {formatTime(result.timeTaken)}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Time Taken</p>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Time</div>
             </div>
           </div>
         </div>
+      </Section>
 
-        {/* Question Review */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="p-6 border-b dark:border-gray-700">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Question Review
+      {/* Question Breakdown */}
+      <Section className="mt-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100 dark:border-amber-900/20">
+          <div className="p-6 border-b border-amber-100 dark:border-amber-900/20">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Question Breakdown
             </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Review your answers and see explanations
+            </p>
           </div>
           
-          <div className="divide-y dark:divide-gray-700">
-            {result.questions.map((question, index) => (
-              <div key={question.id} className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-500">
-                      Q{index + 1}
-                    </span>
-                    {question.isCorrect ? (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-500" />
-                    )}
-                    {question.markedForReview && (
-                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                        Marked for Review
-                      </span>
-                    )}
+          <div className="divide-y divide-amber-100 dark:divide-amber-900/20">
+            {result.questions.filter(question => question && question.id && question.options).map((question, index) => {
+              const isExpanded = expandedQuestions.has(question.id);
+              const correctOption = question.options.find(opt => opt && opt.id === question.correctAnswer);
+              const selectedOption = question.options.find(opt => opt && opt.id === question.selectedAnswer);
+              
+              return (
+                <div key={question.id} className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-sm font-semibold text-gray-500">
+                          Question {index + 1}
+                        </span>
+                        {question.isCorrect ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
+                        {question.markedForReview && (
+                          <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-xs rounded">
+                            Marked for Review
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Question metadata */}
+                      {(question.book || question.chapter || question.topic) && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {question.book && (
+                            <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-xs rounded">
+                              {question.book}
+                            </span>
+                          )}
+                          {question.chapter && (
+                            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs rounded">
+                              Chapter {question.chapter}
+                            </span>
+                          )}
+                          {question.topic && (
+                            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-xs rounded">
+                              {question.topic}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      
+                      <p className="text-gray-900 dark:text-white leading-relaxed">
+                        {question.questionText}
+                      </p>
+                    </div>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleQuestionExpansion(question.id)}
+                      className="ml-4"
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleQuestionExpansion(question.id)}
-                  >
-                    {expandedQuestions.has(question.id) ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-
-                {/* Biblical Reference */}
-                {question.book && (
-                  <div className="mb-3">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                      📖 {question.book} {question.chapter}
-                    </span>
-                  </div>
-                )}
-
-                {/* Question Text */}
-                <p className="text-gray-900 dark:text-white mb-4">
-                  {question.questionText}
-                </p>
-
-                {/* Show answers summary */}
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 dark:text-gray-400">Your Answer:</span>
-                    <span className={`font-medium ${
-                      question.isCorrect ? "text-green-600" : "text-red-600"
-                    }`}>
-                      {getOptionLabel(question.selectedAnswer || "Not Answered")}
-                    </span>
-                  </div>
-                  {!question.isCorrect && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600 dark:text-gray-400">Correct Answer:</span>
-                      <span className="font-medium text-green-600">
-                        {getOptionLabel(question.correctAnswer)}
-                      </span>
+                  
+                  {isExpanded && (
+                    <div className="space-y-4">
+                      {/* Answer Summary */}
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className={`p-4 rounded-lg border-2 ${
+                          question.isCorrect 
+                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                            : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                        }`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              Your Answer:
+                            </span>
+                            {question.isCorrect ? (
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-red-600" />
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            {selectedOption?.text || "Not answered"}
+                          </p>
+                        </div>
+                        
+                        <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              Correct Answer:
+                            </span>
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            {correctOption?.text}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Time spent */}
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Clock className="h-4 w-4" />
+                        <span>Time spent: {formatTime(question.timeSpent)}</span>
+                      </div>
+                      
+                      {/* Explanation */}
+                      {question.explanation && (
+                        <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg">
+                          <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                            Explanation:
+                          </h4>
+                          <p className="text-sm text-amber-700 dark:text-amber-300">
+                            {question.explanation}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {Math.round(question.timeSpent)}s
-                    </span>
-                  </div>
                 </div>
-
-                {/* Expanded View */}
-                {expandedQuestions.has(question.id) && (
-                  <div className="mt-6 space-y-4">
-                    {/* Options */}
-                    <div className="space-y-2">
-                      <p className="font-medium text-gray-700 dark:text-gray-300">Options:</p>
-                      {question.options.map((option) => {
-                        const isSelected = question.selectedAnswer === option.id;
-                        const isCorrect = question.correctAnswer === option.id;
-                        
-                        return (
-                          <div
-                            key={option.id}
-                            className={`p-3 rounded-lg border ${
-                              isCorrect
-                                ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                                : isSelected
-                                ? "border-red-500 bg-red-50 dark:bg-red-900/20"
-                                : "border-gray-300 dark:border-gray-600"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">
-                                {getOptionLabel(option.id)}:
-                              </span>
-                              <span>{option.text}</span>
-                              {isCorrect && (
-                                <CheckCircle className="h-4 w-4 text-green-500 ml-auto" />
-                              )}
-                              {isSelected && !isCorrect && (
-                                <XCircle className="h-4 w-4 text-red-500 ml-auto" />
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Explanation */}
-                    {question.explanation && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                        <p className="font-medium text-blue-900 dark:text-blue-300 mb-2">
-                          Explanation:
-                        </p>
-                        <p className="text-gray-700 dark:text-gray-300">
-                          {question.explanation}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Topic */}
-                    {question.topic && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Topic:</span> {question.topic}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
+      </Section>
 
-        {/* Actions */}
-        <div className="mt-6 flex justify-center gap-4">
-          <Link href="/student/quizzes">
-            <Button variant="outline">
+      {/* Action Buttons */}
+      <Section className="mt-6 pb-8">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Link href="/student/quizzes" className="flex-1">
+            <Button className="w-full bg-amber-600 hover:bg-amber-700">
               <BookOpen className="h-4 w-4 mr-2" />
-              Browse More Quizzes
+              Take Another Quiz
             </Button>
           </Link>
-          <Link href="/student/dashboard">
-            <Button>
-              Return to Dashboard
+          <Link href="/student/results" className="flex-1">
+            <Button variant="outline" className="w-full">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              View All Results
             </Button>
           </Link>
         </div>
-      </div>
-    </div>
+      </Section>
+    </PageContainer>
   );
 }

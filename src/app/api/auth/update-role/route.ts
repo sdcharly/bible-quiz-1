@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { user } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       message: `Role updated to ${role}`,
     });
   } catch (error) {
-    console.error("Update role error:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to update role" },
       { status: 500 }

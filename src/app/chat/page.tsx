@@ -1,12 +1,13 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { Button } from "@/components/ui/button";
-import { UserProfile } from "@/components/auth/user-profile";
-import { useSession } from "@/lib/auth-client";
 import { useState, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
+import { Button } from "@/components/ui/button";
+import { UserProfile } from "@/components/auth/user-profile";
+import { useSession } from "@/lib/auth-client";
+
 
 const H1: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = (props) => (
   <h1 className="mt-2 mb-3 text-2xl font-bold" {...props} />

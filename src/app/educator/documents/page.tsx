@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DocumentProcessingStatus } from "@/components/document-processing-status";
-import { 
+import {
   PageHeader,
   PageContainer,
   Section,
@@ -15,7 +16,7 @@ import {
   EmptyState
 } from "@/components/educator-v2";
 import { logger } from "@/lib/logger";
-import { 
+import {
   FileText, 
   Upload, 
   Trash2,

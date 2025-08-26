@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { count, gte } from "drizzle-orm";
 import { db, pgClient } from "@/lib/db";
 import { user, quizzes, quizAttempts, session } from "@/lib/schema";
-import { count, gte } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+
 // Note: WebSocket broadcasting would need a server-side WebSocket implementation
 // For now, we'll return the data for polling or SSE
 

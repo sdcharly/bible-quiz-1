@@ -3,6 +3,7 @@ import postgres from "postgres";
 import * as schema from "./schema";
 import { logger } from "./logger";
 
+
 const connectionString = process.env.POSTGRES_URL as string;
 
 if (!connectionString) {

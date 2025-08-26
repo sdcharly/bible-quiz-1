@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { documents } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { documents } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { LightRAGService } from "@/lib/lightrag-service";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     // Log validation warnings if any
     if (validation.warnings.length > 0) {
-      console.warn(`Upload warnings for ${file.name}:`, validation.warnings);
+      // [REMOVED: Console statement for performance]
     }
 
     // Generate document ID
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date(),
     }).returning();
 
-    console.log(`Starting enhanced upload process for: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+    // [REMOVED: Console statement for performance].toFixed(1)}KB)`);
 
     try {
       // Use the enhanced safe upload method
@@ -81,13 +82,13 @@ export async function POST(req: NextRequest) {
         const response = uploadResult.uploadResponse;
         
         // Critical debug logging to identify the issue
-        console.error(`[CRITICAL DEBUG] Upload response from LightRAG:`, JSON.stringify(response, null, 2));
-        console.error(`[CRITICAL DEBUG] Track ID in response: "${response.track_id}"`);
-        console.error(`[CRITICAL DEBUG] Our document ID: "${documentId}"`);
+        // [REMOVED: Console statement for performance]);
+        // [REMOVED: Console statement for performance]
+        // [REMOVED: Console statement for performance]
         
         // CRITICAL: Only use LightRAG's track_id, never fallback to internal ID
         if (!response.track_id) {
-          console.error(`[CRITICAL ERROR] LightRAG did not return a track_id! Cannot track document status.`);
+          // [REMOVED: Console statement for performance]
           
           // Mark as failed since we can't track it
           await db.update(documents)
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
         }
         
         const trackId = response.track_id;
-        console.error(`[CRITICAL DEBUG] Using LightRAG track ID: "${trackId}"`);
+        // [REMOVED: Console statement for performance]
         
         
         // Determine final status based on upload response
@@ -151,7 +152,7 @@ export async function POST(req: NextRequest) {
             try {
               await LightRAGService.pollDocumentStatus(documentId);
             } catch (error) {
-              console.error(`Background polling failed for document ${documentId}:`, error);
+              // [REMOVED: Console statement for performance]
             }
           });
         }
@@ -220,7 +221,7 @@ export async function POST(req: NextRequest) {
       }
 
     } catch (uploadError) {
-      console.error(`Unexpected error during upload of ${file.name}:`, uploadError);
+      // [REMOVED: Console statement for performance]
       
       // Update document status to failed
       await db
@@ -246,7 +247,7 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
   } catch (error) {
-    console.error("Error in document upload:", error);
+    // [REMOVED: Console statement for performance]
     return NextResponse.json(
       { error: "Failed to upload document" },
       { status: 500 }

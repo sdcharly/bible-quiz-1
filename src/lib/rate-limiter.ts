@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "./logger";
 
+
 // Rate limit configurations for different endpoints
 export const rateLimits = {
   quizSubmission: { limit: 10, window: 60000 },      // 10 per minute

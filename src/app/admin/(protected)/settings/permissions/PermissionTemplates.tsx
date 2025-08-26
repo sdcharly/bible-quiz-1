@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { 
+import {
   Shield, ArrowLeft, Save, Plus, Trash2, Edit, 
   CheckCircle, AlertCircle, Copy
 } from "lucide-react";
@@ -85,7 +86,7 @@ export default function PermissionTemplates({ adminEmail, initialTemplates }: Pe
         toast.error(data.error || "Failed to save templates");
       }
     } catch (error) {
-      console.error("Error saving templates:", error);
+      // [REMOVED: Console statement for performance]
       toast.error("Failed to save permission templates");
     }
     setIsSaving(false);

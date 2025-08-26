@@ -2,6 +2,7 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { NextRequest } from "next/server";
 
+
 // Initialize Redis client - you'll need to add these to your .env
 const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
   ? new Redis({
@@ -148,7 +149,7 @@ export async function rateLimit(
       return result;
     }
   } catch (error) {
-    console.error("Rate limiting error:", error);
+    // [REMOVED: Console statement for performance]
     // On error, allow the request but log it
     return { success: true, remaining: -1 };
   }

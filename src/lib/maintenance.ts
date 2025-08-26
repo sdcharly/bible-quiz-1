@@ -1,6 +1,7 @@
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { adminSettings } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+
 
 // Cache maintenance mode status
 let maintenanceCache: {
@@ -49,7 +50,7 @@ export async function checkMaintenanceMode(): Promise<{
       };
     }
   } catch (error) {
-    console.error("Failed to check maintenance mode:", error);
+    // [REMOVED: Console statement for performance]
   }
 
   // Default to not in maintenance mode

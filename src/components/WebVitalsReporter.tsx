@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { onCLS, onFCP, onLCP, onTTFB, onINP, Metric } from "web-vitals";
 import { track } from "@vercel/analytics";
 
+
 const vitalsUrl = "/api/analytics/vitals";
 
 function sendToAnalytics(metric: Metric) {

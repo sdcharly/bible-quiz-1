@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import QuizzesContent from "./QuizzesContent";
 
+
 export default function StudentQuizzesPage() {
   return (
     <Suspense fallback={

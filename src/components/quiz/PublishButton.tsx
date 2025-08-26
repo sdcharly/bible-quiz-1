@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { CheckCircle, Send, Calendar, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SchedulingModal } from "./SchedulingModal";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
-import { CheckCircle, Send, Calendar, AlertCircle, Loader2 } from "lucide-react";
+import { SchedulingModal } from "./SchedulingModal";
+
 // Tooltip component not available yet
 
 interface PublishButtonProps {
@@ -78,6 +79,10 @@ export function PublishButton({
     setPublishing(true);
     try {
       await onPublish();
+    } catch (error) {
+      // Handle publish error with proper message display
+      const errorMessage = error instanceof Error ? error.message : String(error) || 'Failed to publish quiz';
+      alert(errorMessage);
     } finally {
       setPublishing(false);
     }
@@ -111,7 +116,7 @@ export function PublishButton({
 
       setShowSchedulingModal(false);
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to schedule quiz');
+      alert(error instanceof Error ? error.message : String(error) || 'Failed to schedule quiz');
       throw error;
     } finally {
       setScheduling(false);

@@ -2,6 +2,7 @@ import { createTransport } from 'nodemailer';
 import Mail from 'nodemailer/lib/mailer';
 import { branding } from './branding';
 
+
 // Create reusable transporter
 const createEmailTransporter = (): Mail | null => {
   const host = process.env.SMTP_HOST;
@@ -10,7 +11,7 @@ const createEmailTransporter = (): Mail | null => {
   const pass = process.env.SMTP_PASS;
 
   if (!host || !user || !pass) {
-    console.warn('Email configuration missing. Emails will be logged to console only.');
+    // [REMOVED: Console statement for performance]
     return null;
   }
 
@@ -37,15 +38,15 @@ export async function sendEmail(options: EmailOptions) {
   
   // If no transporter (missing config), log to console
   if (!transporter) {
-    console.log('\n📧 Email (simulated - SMTP not configured):');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('To:', options.to);
-    console.log('Subject:', options.subject);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    // [REMOVED: Console statement for performance]:');
+    // [REMOVED: Console statement for performance]
+    // [REMOVED: Console statement for performance]
+    // [REMOVED: Console statement for performance]
+    // [REMOVED: Console statement for performance]
     if (options.text) {
-      console.log('Content (text):', options.text.substring(0, 200) + '...');
+      // [REMOVED: Console statement for performance]:', options.text.substring(0, 200) + '...');
     }
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    // [REMOVED: Console statement for performance]
     return { success: true, messageId: 'console-only', simulated: true };
   }
 
@@ -58,10 +59,10 @@ export async function sendEmail(options: EmailOptions) {
       html: options.html,
     });
 
-    console.log('✅ Email sent successfully:', info.messageId);
+    // [REMOVED: Console statement for performance]
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ Error sending email:', error);
+    // [REMOVED: Console statement for performance]
     // Don't throw, return success false instead
     return { success: false, error: error instanceof Error ? error.message : 'Failed to send email' };
   }
