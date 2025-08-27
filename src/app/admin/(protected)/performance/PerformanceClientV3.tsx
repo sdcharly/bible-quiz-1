@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { logger } from "@/lib/logger";
 import {
   AdminPageContainer,
   AdminPageHeader,
@@ -60,7 +61,6 @@ import {
 } from "lucide-react";
 import { onCLS, onFCP, onLCP, onTTFB, onINP } from "web-vitals";
 import { useToast } from "@/hooks/use-toast";
-import { logger } from "@/lib/logger";
 import { format } from "date-fns";
 
 // Types

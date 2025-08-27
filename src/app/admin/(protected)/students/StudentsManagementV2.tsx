@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { logger } from "@/lib/logger";
 import {
   AdminPageContainer,
   AdminPageHeader,
@@ -30,7 +31,6 @@ import {
   Edit, UserPlus, Shield, CheckCircle, XCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { logger } from "@/lib/logger";
 
 interface Student {
   id: string;

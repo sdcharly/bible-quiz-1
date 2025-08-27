@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { logger } from "@/lib/logger";
 import {
   AdminPageContainer,
   AdminPageHeader,
@@ -39,7 +40,6 @@ import {
 } from "lucide-react";
 import { track } from "@vercel/analytics";
 import { useToast } from "@/hooks/use-toast";
-import { logger } from "@/lib/logger";
 
 interface AnalyticsData {
   pageViews: {
