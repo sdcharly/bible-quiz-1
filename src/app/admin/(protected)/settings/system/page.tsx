@@ -39,6 +39,7 @@ async function getAdminData() {
       defaultTimezone: "Asia/Kolkata",
       maxFileUploadSize: 10, // MB
       supportedFileTypes: ["pdf", "docx", "txt"],
+      youtubeVideoUrl: "https://www.youtube.com/watch?v=zBnGACs7Ddo",
     },
     quiz_defaults: {
       defaultDuration: 60, // minutes

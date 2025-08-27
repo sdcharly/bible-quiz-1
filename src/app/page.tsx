@@ -1,27 +1,33 @@
 "use client";
 
 import Link from "next/link";
-
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   UserGroupIcon, 
   ClockIcon, 
   ChartBarIcon, 
   DocumentTextIcon, 
   SparklesIcon,
-  HeartIcon
+  HeartIcon,
+  ArrowRightIcon,
+  CheckIcon
 } from "@heroicons/react/24/outline";
 
 import {
-  BookOpenIcon as BookOpenSolid
+  BookOpenIcon as BookOpenSolid,
+  StarIcon
 } from "@heroicons/react/24/solid";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 
 export default function HomePage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
+  const [email, setEmail] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
 
   useEffect(() => {
     // If user is signed in, redirect to dashboard
@@ -30,283 +36,423 @@ export default function HomePage() {
     }
   }, [session, isPending, router]);
 
+  // Fetch YouTube URL from settings
+  useEffect(() => {
+    fetch("/api/public/youtube-url")
+      .then(res => res.json())
+      .then(data => {
+        if (data.youtubeUrl) {
+          setYoutubeUrl(data.youtubeUrl);
+        }
+      })
+      .catch(() => {
+        // Use default URL on error
+        setYoutubeUrl("https://www.youtube.com/embed/zBnGACs7Ddo?rel=0&modestbranding=1&autoplay=0&mute=1");
+      });
+  }, []);
+
+  const handleQuickStart = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      router.push(`/auth/signup?email=${encodeURIComponent(email)}`);
+    }
+  };
+
   // Show loading while checking session
   if (isPending) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-amber-700 font-medium">Preparing your journey...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Hero Section */}
-      <section className="px-6 py-24 sm:px-12 lg:px-24">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center">
-            <div className="mb-8">
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full blur-2xl opacity-30"></div>
-                  <div className="relative bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-full shadow-2xl">
-                    <BookOpenSolid className="h-16 w-16 text-white" />
-                  </div>
+    <div className="min-h-screen">
+      {/* Hero Section with Modern Religious Design */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        {/* Decorative Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 35px,
+              rgba(245, 158, 11, 0.1) 35px,
+              rgba(245, 158, 11, 0.1) 70px
+            )`
+          }}></div>
+        </div>
+        
+        <div className="relative px-6 py-16 sm:px-12 lg:px-24">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left Content */}
+              <div className="text-center lg:text-left">
+                {/* Scripture Quote */}
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/30 rounded-full mb-6">
+                  <BookOpenSolid className="h-4 w-4 text-amber-600" />
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                    "Your word is a lamp to my feet" - Psalm 119:105
+                  </p>
+                </div>
+                
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold mb-6 leading-tight">
+                  <span className="block text-gray-900 dark:text-gray-100">Transform Your</span>
+                  <span className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 bg-clip-text text-transparent">
+                    Biblical Education
+                  </span>
+                </h1>
+                
+                <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+                  Join thousands of educators and students in creating engaging, 
+                  AI-powered biblical assessments that deepen understanding and strengthen faith.
+                </p>
+                
+                {/* Quick Start Form */}
+                <form onSubmit={handleQuickStart} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto lg:mx-0 mb-6">
+                  <Input
+                    type="email"
+                    placeholder="Enter your email to get started"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex-1 h-12 px-4 border-amber-300 focus:border-amber-500"
+                  />
+                  <Button type="submit" size="lg" className="h-12 px-6 shadow-lg hover:shadow-xl transition-all">
+                    Get Started <ArrowRightIcon className="ml-2 h-4 w-4" />
+                  </Button>
+                </form>
+                
+                {/* Trust Indicators */}
+                <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <CheckIcon className="h-4 w-4 text-green-600" />
+                    100% Free Platform
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <CheckIcon className="h-4 w-4 text-green-600" />
+                    No Fees Required
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <CheckIcon className="h-4 w-4 text-green-600" />
+                    Instant Access
+                  </span>
                 </div>
               </div>
-              <h1 className="text-5xl sm:text-6xl font-heading font-bold mb-4">
-                <span className="bg-gradient-to-r from-amber-700 via-orange-600 to-amber-800 bg-clip-text text-transparent">
-                  Scrolls of Wisdom
-                </span>
-              </h1>
-              <p className="text-xl font-body font-medium text-amber-600 dark:text-amber-400 mb-2">
-                Biblical Knowledge Quest Platform
-              </p>
-            </div>
-            <p className="text-xl font-body text-gray-700 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Embark on a journey through scripture with AI-powered wisdom quests. Create, manage, and experience 
-              comprehensive biblical assessments that deepen understanding and strengthen faith.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/auth/signup">
-                <Button size="lg" className="w-full sm:w-auto">
-                  Begin Your Journey
-                </Button>
-              </Link>
-              <Link href="/auth/educator-signup">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto border-amber-600 text-amber-700 hover:bg-amber-50">
-                  Become a Guide
-                </Button>
-              </Link>
+              
+              {/* Right Visual Element with Video */}
+              <div className="relative hidden lg:block">
+                <div className="relative">
+                  {/* Video Only - No Card, No Border */}
+                  {youtubeUrl && (
+                    <div className="rounded-xl overflow-hidden shadow-2xl">
+                      <div className="relative aspect-video">
+                        <iframe
+                          className="absolute inset-0 w-full h-full"
+                          src={youtubeUrl}
+                          title="Platform Demo"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          loading="lazy"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="px-6 py-16 sm:px-12 lg:px-24 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
+      {/* Features Section with Better Visual Hierarchy */}
+      <section className="px-6 py-16 sm:px-12 lg:px-24 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-heading font-bold mb-4">
-              <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                Sacred Features
+            <h2 className="text-3xl sm:text-4xl font-heading font-bold mb-4">
+              <span className="text-gray-900 dark:text-gray-100">Everything You Need for</span>
+              <span className="block mt-2 bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                Biblical Education Excellence
               </span>
             </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              Discover the tools that will guide your biblical learning journey
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Powerful tools designed specifically for biblical educators and learners
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          
+          {/* Feature Grid with Enhanced Cards */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Feature 1 */}
-            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
-                <DocumentTextIcon className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
-                Sacred Text Processing
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                Upload biblical study materials and scriptures in multiple formats for divine wisdom extraction.
-              </p>
-            </div>
+            <Card className="group hover:shadow-xl transition-all duration-300 border-amber-200/50 hover:border-amber-300">
+              <CardContent className="p-6">
+                <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4 group-hover:scale-110 transition-transform">
+                  <DocumentTextIcon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                  Smart Document Processing
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Upload study materials in any format. Our AI extracts and organizes biblical content automatically.
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Feature 2 */}
-            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
-                <SparklesIcon className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
-                Divine Quest Generation
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                AI-guided quest creation with wisdom levels and spiritual taxonomy support for deeper learning.
-              </p>
-            </div>
+            <Card className="group hover:shadow-xl transition-all duration-300 border-amber-200/50 hover:border-amber-300">
+              <CardContent className="p-6">
+                <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4 group-hover:scale-110 transition-transform">
+                  <SparklesIcon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                  AI Quiz Generation
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Generate comprehensive assessments instantly with support for multiple difficulty levels.
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Feature 3 */}
-            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
-                <ClockIcon className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
-                Sacred Time Keeper
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                Divine timing with synchronized sessions and guided meditation periods for focused learning.
-              </p>
-            </div>
+            <Card className="group hover:shadow-xl transition-all duration-300 border-amber-200/50 hover:border-amber-300">
+              <CardContent className="p-6">
+                <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4 group-hover:scale-110 transition-transform">
+                  <ClockIcon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                  Scheduled Sessions
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Set specific times for quizzes with automatic timezone handling for global classes.
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Feature 4 */}
-            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
-                <UserGroupIcon className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
-                Guided Community
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                Sacred spaces for guides and disciples with personalized spiritual learning experiences.
-              </p>
-            </div>
+            <Card className="group hover:shadow-xl transition-all duration-300 border-amber-200/50 hover:border-amber-300">
+              <CardContent className="p-6">
+                <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4 group-hover:scale-110 transition-transform">
+                  <UserGroupIcon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                  Class Management
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Organize students into groups and track progress with personalized feedback.
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Feature 5 */}
-            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
-                <ChartBarIcon className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
-                Wisdom Analytics
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                Divine insights into spiritual growth with comprehensive journey tracking and enlightenment metrics.
-              </p>
-            </div>
+            <Card className="group hover:shadow-xl transition-all duration-300 border-amber-200/50 hover:border-amber-300">
+              <CardContent className="p-6">
+                <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4 group-hover:scale-110 transition-transform">
+                  <ChartBarIcon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                  Detailed Analytics
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Track performance by topic and difficulty with exportable reports.
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Feature 6 */}
-            <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:shadow-lg transition-all duration-300">
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4">
-                <HeartIcon className="h-8 w-8 text-white" />
+            <Card className="group hover:shadow-xl transition-all duration-300 border-amber-200/50 hover:border-amber-300">
+              <CardContent className="p-6">
+                <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-lg w-fit mb-4 group-hover:scale-110 transition-transform">
+                  <HeartIcon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                  Instant Feedback
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Provide immediate explanations to help students learn and grow.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section - Simplified */}
+      <section className="px-6 py-16 sm:px-12 lg:px-24 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-heading font-bold mb-4">
+              <span className="text-gray-900 dark:text-gray-100">Start Teaching in</span>
+              <span className="block mt-2 bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                Three Simple Steps
+              </span>
+            </h2>
+          </div>
+
+          {/* Three Steps Process */}
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Step 1 */}
+            <div className="text-center">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white text-2xl font-bold w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                1
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-amber-800 dark:text-amber-300">
-                Instant Revelation
+              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                Upload Your Content
               </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                Immediate spiritual feedback with divine explanations and growth insights by sacred topic.
+              <p className="text-gray-600 dark:text-gray-400">
+                Simply upload your study materials or scripture passages in any format.
+              </p>
+            </div>
+            
+            {/* Step 2 */}
+            <div className="text-center">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white text-2xl font-bold w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                2
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                Customize Your Quiz
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Set difficulty levels and time limits. AI generates perfect questions instantly.
+              </p>
+            </div>
+            
+            {/* Step 3 */}
+            <div className="text-center">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white text-2xl font-bold w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                3
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                Share & Track Progress
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Send quiz links to students and watch their progress in real-time.
               </p>
             </div>
           </div>
+          
+          {/* CTA Button */}
+          <div className="text-center mt-12">
+            <Link href="/auth/educator-signup">
+              <Button size="lg" className="shadow-lg hover:shadow-xl transition-all">
+                Create Your First Quiz <ArrowRightIcon className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="px-6 py-16 sm:px-12 lg:px-24">
-        <div className="max-w-7xl mx-auto">
+      {/* Testimonials Section */}
+      <section className="px-6 py-16 sm:px-12 lg:px-24 bg-white dark:bg-gray-900">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-heading font-bold mb-4">
-              <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                The Sacred Path
+            <h2 className="text-3xl sm:text-4xl font-heading font-bold mb-4">
+              <span className="text-gray-900 dark:text-gray-100">Trusted by Educators</span>
+              <span className="block mt-2 bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                Worldwide
               </span>
             </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              Journey through wisdom with purpose and divine guidance
-            </p>
           </div>
-          <div className="grid md:grid-cols-2 gap-12">
-            {/* For Educators */}
-            <div>
-              <h3 className="text-2xl font-semibold mb-6 text-amber-800 dark:text-amber-300">
-                For Spiritual Guides
-              </h3>
-              <ol className="space-y-4">
-                <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
-                    1
-                  </span>
-                  <span className="ml-4 text-gray-700 dark:text-gray-300">
-                    Upload your sacred texts and biblical study materials
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
-                    2
-                  </span>
-                  <span className="ml-4 text-gray-700 dark:text-gray-300">
-                    Configure quest parameters (wisdom topics, spiritual depth, divine timing)
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
-                    3
-                  </span>
-                  <span className="ml-4 text-gray-700 dark:text-gray-300">
-                    Review and share wisdom quests with your disciples
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
-                    4
-                  </span>
-                  <span className="ml-4 text-gray-700 dark:text-gray-300">
-                    Watch spiritual growth and celebrate divine revelations
-                  </span>
-                </li>
-              </ol>
-            </div>
-
-            {/* For Students */}
-            <div>
-              <h3 className="text-2xl font-semibold mb-6 text-amber-800 dark:text-amber-300">
-                For Disciples
-              </h3>
-              <ol className="space-y-4">
-                <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
-                    1
-                  </span>
-                  <span className="ml-4 text-gray-700 dark:text-gray-300">
-                    Join the fellowship and enroll in wisdom quests
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
-                    2
-                  </span>
-                  <span className="ml-4 text-gray-700 dark:text-gray-300">
-                    Embark on quests during sacred times with divine guidance
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
-                    3
-                  </span>
-                  <span className="ml-4 text-gray-700 dark:text-gray-300">
-                    Navigate wisdom with contemplation and reflection opportunities
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <span className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-semibold shadow-lg">
-                    4
-                  </span>
-                  <span className="ml-4 text-gray-700 dark:text-gray-300">
-                    Receive divine revelations and track your spiritual journey
-                  </span>
-                </li>
-              </ol>
-            </div>
+          
+          {/* Testimonial Cards */}
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="border-amber-200/50">
+              <CardContent className="p-6">
+                <div className="flex mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <StarIcon key={i} className="h-5 w-5 text-amber-500" />
+                  ))}
+                </div>
+                <p className="text-gray-700 dark:text-gray-300 mb-4 italic">
+                  "This platform has transformed how I teach scripture. The AI-generated questions are thoughtful and align perfectly with my curriculum."
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold">
+                    SM
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">Sarah Mitchell</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Bible Study Leader</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-amber-200/50">
+              <CardContent className="p-6">
+                <div className="flex mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <StarIcon key={i} className="h-5 w-5 text-amber-500" />
+                  ))}
+                </div>
+                <p className="text-gray-700 dark:text-gray-300 mb-4 italic">
+                  "The analytics help me identify where students need more support. It's been invaluable for personalizing my teaching approach."
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold">
+                    JD
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">John Davis</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Seminary Professor</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-amber-200/50">
+              <CardContent className="p-6">
+                <div className="flex mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <StarIcon key={i} className="h-5 w-5 text-amber-500" />
+                  ))}
+                </div>
+                <p className="text-gray-700 dark:text-gray-300 mb-4 italic">
+                  "Easy to use and incredibly powerful. My students love the instant feedback, and I love the time it saves me!"
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold">
+                    RB
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">Rachel Brown</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Youth Pastor</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* Final CTA Section */}
       <section className="px-6 py-16 sm:px-12 lg:px-24 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 dark:from-amber-700 dark:via-orange-700 dark:to-amber-800">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-heading font-bold text-white mb-6">
-            Ready to Begin Your Sacred Journey?
+          <h2 className="text-3xl sm:text-4xl font-heading font-bold text-white mb-6">
+            Ready to Transform Your Biblical Teaching?
           </h2>
           <p className="text-xl text-amber-100 mb-8 leading-relaxed">
-            Join guides and disciples in the most profound biblical learning experience ever created.
+            Join thousands of educators who are already using AI to create engaging biblical assessments.
           </p>
-          <Link href="/auth/signup">
-            <Button size="lg" className="bg-white text-amber-700 hover:bg-amber-50 font-semibold px-8 py-3 shadow-lg">
-              Start Your Divine Quest
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/auth/signup">
+              <Button size="lg" className="bg-white text-amber-700 hover:bg-amber-50 font-semibold px-8 py-3 shadow-lg hover:shadow-xl transition-all">
+                Get Started Free
+              </Button>
+            </Link>
+            <Link href="/auth/educator-signup">
+              <Button size="lg" className="!bg-transparent !border-2 !border-white !text-white hover:!bg-white hover:!text-amber-800 hover:!border-white hover:!shadow-xl font-semibold px-8 py-3 transition-all">
+                Educator Sign Up
+              </Button>
+            </Link>
+          </div>
+          <p className="mt-8 text-sm text-amber-200">
+            100% Free Platform • Setup in 2 minutes
+          </p>
         </div>
       </section>
-
-      {/* Footer with subtle admin link */}
-      <footer className="px-6 py-8 sm:px-12 lg:px-24 bg-amber-50/50 dark:bg-gray-900/50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center text-sm text-gray-500 dark:text-gray-600">
-            <p className="mb-2">
-              &ldquo;The fear of the Lord is the beginning of wisdom&rdquo; - Proverbs 9:10
-            </p>
-            <div className="flex justify-center items-center gap-4 mt-4">
-              <span>© 2024 Scrolls of Wisdom</span>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

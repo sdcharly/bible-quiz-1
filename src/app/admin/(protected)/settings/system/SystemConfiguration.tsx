@@ -36,6 +36,7 @@ interface SystemSettings {
     defaultTimezone: string;
     maxFileUploadSize: number;
     supportedFileTypes: string[];
+    youtubeVideoUrl: string;
   };
   quiz_defaults: {
     defaultDuration: number;
@@ -280,6 +281,20 @@ export default function SystemConfiguration({ adminEmail, initialSettings }: Sys
                     value={settings.system_config.siteDescription}
                     onChange={(e) => updateSetting("system_config", "siteDescription", e.target.value)}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="youtubeVideoUrl">Homepage YouTube Video URL</Label>
+                  <Input
+                    id="youtubeVideoUrl"
+                    type="url"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={settings.system_config.youtubeVideoUrl || ""}
+                    onChange={(e) => updateSetting("system_config", "youtubeVideoUrl", e.target.value)}
+                  />
+                  <p className="text-sm text-gray-500">
+                    YouTube video URL to display on the homepage. Leave empty to hide video.
+                  </p>
                 </div>
 
                 <div className="space-y-4 border-t pt-4">

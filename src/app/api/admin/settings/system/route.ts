@@ -27,6 +27,7 @@ function validateSettingValue(key: string, value: unknown): unknown {
       adminSessionTimeout: z.number().min(300000).max(86400000).optional(),
       maxLoginAttempts: z.number().min(3).max(10).optional(),
       lockoutDuration: z.number().min(300000).max(3600000).optional(), // 5 min to 1 hour
+      youtubeVideoUrl: z.string().url().optional(), // YouTube video URL for homepage
     }).strict(),
     quiz_defaults: z.object({
       timeLimit: z.number().min(60).max(7200).optional(), // 1 min to 2 hours
