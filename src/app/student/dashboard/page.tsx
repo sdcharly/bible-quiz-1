@@ -10,6 +10,12 @@ import { GroupInfo } from "@/components/student/GroupInfo";
 import { useSessionManager } from "@/hooks/useSessionManager";
 import { fetchWithCache } from "@/lib/api-cache";
 import { logger } from "@/lib/logger";
+import { 
+  processSafeQuiz, 
+  processSafeQuizResult,
+  safeArray,
+  safeNumber
+} from "@/lib/safe-data-utils";
 
 
 // Import new student-v2 components
@@ -138,17 +144,27 @@ export default function StudentDashboard() {
           resultsResponse.json()
         ]);
 
-        // Process quiz data - only count non-expired quizzes as available
-        const quizzes = quizzesData.quizzes || [];
-        const activeQuizzes = quizzes.filter((q: Quiz) => !q.isExpired);
+        // Process quiz data safely with null handling
+        const processedQuizzes = safeArray(
+          quizzesData.quizzes || [],
+          processSafeQuiz
+        );
+        const activeQuizzes = processedQuizzes.filter(q => !q.isExpired);
         const available = activeQuizzes.length;
-        const upcoming = activeQuizzes.filter((q: Quiz) => q.isUpcoming).length;
+        const upcoming = activeQuizzes.filter(q => q.isUpcoming).length;
 
-        // Process results data
-        const attempts = resultsData.results || [];
-        const completedAttempts = attempts.filter((a: QuizAttempt) => a.status === 'completed');
-        const totalScore = completedAttempts.reduce((sum: number, attempt: QuizAttempt) => 
-          sum + (attempt.score || 0), 0
+        // Process results data safely with null handling
+        const processedResults = safeArray(
+          resultsData.results || [],
+          (r: any) => ({
+            ...r,
+            score: safeNumber(r.score, 0),
+            status: r.status || 'in_progress'
+          })
+        );
+        const completedAttempts = processedResults.filter(a => a.status === 'completed');
+        const totalScore = completedAttempts.reduce((sum, attempt) => 
+          sum + safeNumber(attempt.score, 0), 0
         );
         const avgScore = completedAttempts.length > 0 
           ? Math.round(totalScore / completedAttempts.length) 

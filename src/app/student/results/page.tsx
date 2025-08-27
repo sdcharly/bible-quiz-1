@@ -5,6 +5,12 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
+import { 
+  processSafeQuizResult, 
+  safeArray,
+  calculateSafeStatistics,
+  type SafeQuizResult 
+} from "@/lib/safe-data-utils";
 import {
   PageContainer,
   PageHeader,
@@ -21,21 +27,9 @@ import {
   Target
 } from "lucide-react";
 
-interface QuizResult {
-  id: string;
-  quizId: string;
-  quizTitle: string;
-  score: number;
-  completedAt: string;
-  totalQuestions: number;
-  correctAnswers: number;
-  status: string;
-  duration?: number;
-}
-
 export default function StudentResultsPage() {
   const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState<QuizResult[]>([]);
+  const [results, setResults] = useState<SafeQuizResult[]>([]);
   const [filter, setFilter] = useState<'all' | 'passed' | 'failed'>('all');
 
   useEffect(() => {
@@ -47,16 +41,27 @@ export default function StudentResultsPage() {
       const response = await fetch('/api/student/results');
       if (response.ok) {
         const data = await response.json();
-        const completedResults = (data.results || [])
-          .filter((r: any) => r.status === 'completed')
-          .sort((a: any, b: any) => 
-            new Date(b.completedAt || b.createdAt).getTime() - 
-            new Date(a.completedAt || a.createdAt).getTime()
-          );
-        setResults(completedResults);
+        
+        // Use safe processing to handle null values properly
+        const processedResults = safeArray(
+          data.results || [], 
+          processSafeQuizResult
+        )
+        .filter(r => r.status === 'completed')
+        .sort((a, b) => {
+          const dateA = new Date(a.completedAt).getTime();
+          const dateB = new Date(b.completedAt).getTime();
+          return dateB - dateA; // Most recent first
+        });
+        
+        setResults(processedResults);
+      } else {
+        logger.error('Failed to fetch results:', response.status);
+        setResults([]); // Set empty array on error
       }
     } catch (error) {
       logger.error('Error fetching results:', error);
+      setResults([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -72,14 +77,8 @@ export default function StudentResultsPage() {
     });
   }, [results, filter]);
 
-  const stats = useMemo(() => ({
-    total: results.length,
-    passed: results.filter(r => r.score >= 70).length,
-    failed: results.filter(r => r.score < 70).length,
-    averageScore: results.length > 0 
-      ? Math.round(results.reduce((sum, r) => sum + r.score, 0) / results.length)
-      : 0
-  }), [results]);
+  // Use safe statistics calculation
+  const stats = useMemo(() => calculateSafeStatistics(results), [results]);
 
   // Filter options with counts
   const filterOptions = useMemo(() => [

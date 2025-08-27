@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
+import { safeNumber, safeString } from "@/lib/safe-data-utils";
 import {
   PageContainer,
   PageHeader,
@@ -80,7 +81,34 @@ export default function QuizResultsPage() {
         setAvailableAt(data.availableAt);
       } else if (response.ok) {
         const data = await response.json();
-        setResult(data);
+        // Apply safe processing to result data
+        const safeResult: QuizResult = {
+          attemptId: safeString(data.attemptId || attemptId),
+          quizTitle: safeString(data.quizTitle, "Untitled Quiz"),
+          score: safeNumber(data.score, 0),
+          grade: safeString(data.grade, "N/A"),
+          gradePoints: safeNumber(data.gradePoints, 0),
+          gradeDescription: safeString(data.gradeDescription, ""),
+          correctAnswers: safeNumber(data.correctAnswers ?? data.totalCorrect, 0),
+          totalQuestions: safeNumber(data.totalQuestions, 0),
+          wrongAnswers: safeNumber(data.wrongAnswers, 0),
+          timeTaken: safeNumber(data.timeTaken ?? data.timeSpent, 0),
+          questions: Array.isArray(data.questions) ? data.questions.map((q: any) => ({
+            id: safeString(q.id),
+            questionText: safeString(q.questionText, "Question text not available"),
+            options: Array.isArray(q.options) ? q.options : [],
+            correctAnswer: safeString(q.correctAnswer),
+            selectedAnswer: safeString(q.selectedAnswer),
+            isCorrect: Boolean(q.isCorrect),
+            explanation: q.explanation ? safeString(q.explanation) : undefined,
+            book: q.book ? safeString(q.book) : undefined,
+            chapter: q.chapter ? safeString(q.chapter) : undefined,
+            topic: q.topic ? safeString(q.topic) : undefined,
+            timeSpent: safeNumber(q.timeSpent, 0),
+            markedForReview: Boolean(q.markedForReview)
+          })) : []
+        };
+        setResult(safeResult);
       } else {
         logger.error("Failed to fetch results");
       }

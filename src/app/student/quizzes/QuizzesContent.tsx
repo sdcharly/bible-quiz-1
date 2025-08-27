@@ -6,6 +6,11 @@ import Link from "next/link";
 
 import { useTimezone } from "@/hooks/useTimezone";
 import { logger } from "@/lib/logger";
+import { 
+  processSafeQuiz, 
+  safeArray,
+  type SafeQuiz
+} from "@/lib/safe-data-utils";
 import {
   PageContainer, 
   PageHeader, 
@@ -19,25 +24,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { BookOpen } from "lucide-react";
 
-interface Quiz {
-  id: string;
-  title: string;
-  description: string;
-  totalQuestions: number;
-  duration: number;
-  startTime: string;
-  timezone: string;
-  status: "draft" | "published" | "completed" | "archived";
-  enrolled: boolean;
-  attempted: boolean;
-  attemptId?: string;
-  score?: number;
-  isExpired?: boolean;
-}
-
 // Cache for quiz data
 const quizCache = {
-  data: null as Quiz[] | null,
+  data: null as SafeQuiz[] | null,
   timestamp: 0,
   TTL: 60000 // 1 minute cache
 };
@@ -46,7 +35,7 @@ export default function QuizzesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [quizzes, setQuizzes] = useState<SafeQuiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -65,12 +54,12 @@ export default function QuizzesContent() {
   }, [formatDate]);
 
   // Performance: Memoize quiz status calculator
-  const getQuizStatus = useCallback((quiz: Quiz) => {
+  const getQuizStatus = useCallback((quiz: SafeQuiz) => {
     if (quiz.isExpired) {
       return { available: false, text: "Expired", expired: true, color: "red" as const };
     }
-    const available = isQuizAvailable(quiz.startTime);
-    const relativeTime = getRelativeTime(quiz.startTime);
+    const available = quiz.startTime ? isQuizAvailable(quiz.startTime) : false;
+    const relativeTime = quiz.startTime ? getRelativeTime(quiz.startTime) : "Not scheduled";
     return { 
       available, 
       text: relativeTime, 
@@ -92,16 +81,13 @@ export default function QuizzesContent() {
       const response = await fetch("/api/student/quizzes");
       if (response.ok) {
         const data = await response.json();
-        // Process quizzes to check if they're expired and sort by startTime descending
-        const processedQuizzes = (data.quizzes || []).filter((quiz: Quiz) => quiz && quiz.id && quiz.title).map((quiz: Quiz) => {
-          const now = new Date();
-          const quizStartTime = quiz.startTime ? new Date(quiz.startTime) : new Date();
-          const quizEndTime = new Date(quizStartTime.getTime() + (quiz.duration || 30) * 60000);
-          return {
-            ...quiz,
-            isExpired: now > quizEndTime
-          };
-        }).sort((a: Quiz, b: Quiz) => {
+        
+        // Process quizzes with safe null handling
+        const processedQuizzes = safeArray(
+          data.quizzes || [],
+          processSafeQuiz
+        ).sort((a, b) => {
+          // Sort by startTime descending (most recent first)
           const aTime = a.startTime ? new Date(a.startTime).getTime() : 0;
           const bTime = b.startTime ? new Date(b.startTime).getTime() : 0;
           return bTime - aTime;
@@ -112,6 +98,9 @@ export default function QuizzesContent() {
         quizCache.timestamp = Date.now();
         
         setQuizzes(processedQuizzes);
+      } else {
+        logger.error('Failed to fetch quizzes:', response.status);
+        setQuizzes([]); // Set empty array on error
       }
     } catch (error) {
       logger.error("Error fetching quizzes:", error);
@@ -281,7 +270,7 @@ export default function QuizzesContent() {
                   description={quiz.description}
                   totalQuestions={quiz.totalQuestions}
                   duration={quiz.duration}
-                  startTimeFormatted={formatQuizTime(quiz.startTime)}
+                  startTimeFormatted={quiz.startTime ? formatQuizTime(quiz.startTime) : "Not scheduled"}
                   statusText={quizStatus.text}
                   statusColor={quizStatus.color}
                   attempted={quiz.attempted}
