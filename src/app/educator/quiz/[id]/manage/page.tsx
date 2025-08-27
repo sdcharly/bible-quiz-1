@@ -70,12 +70,20 @@ interface QuizDetails {
 
 interface EnrolledStudent {
   id: string;
+  studentId: string;
   name: string;
   email: string;
   enrolledAt: string;
-  status: "enrolled" | "in_progress" | "completed";
+  status: "enrolled" | "in_progress" | "completed" | "abandoned";
   score?: number;
   completedAt?: string;
+  // Reassignment fields
+  isReassignment?: boolean;
+  reassignmentReason?: string;
+  reassignedAt?: string;
+  reassignmentCount?: number;
+  enrollmentType?: string;
+  parentEnrollmentId?: string;
 }
 
 interface AvailableStudent {
@@ -106,6 +114,11 @@ export default function QuizManagePage() {
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
   const [availableStudents, setAvailableStudents] = useState<AvailableStudent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [enrollmentSummary, setEnrollmentSummary] = useState<{
+    totalEnrollments: number;
+    uniqueStudents: number;
+    totalReassignments: number;
+  }>({ totalEnrollments: 0, uniqueStudents: 0, totalReassignments: 0 });
   const [showBulkEnroll, setShowBulkEnroll] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
@@ -128,6 +141,7 @@ export default function QuizManagePage() {
   const [reassignmentReason, setReassignmentReason] = useState("Missed original attempt");
   const [reassigning, setReassigning] = useState(false);
   const [loadingReassignment, setLoadingReassignment] = useState(false);
+  const [showReassignments, setShowReassignments] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
@@ -163,6 +177,9 @@ export default function QuizManagePage() {
       if (response.ok) {
         const data = await response.json();
         setEnrolledStudents(data.enrollments || []);
+        if (data.summary) {
+          setEnrollmentSummary(data.summary);
+        }
       }
     } catch (error) {
       logger.error("Error fetching enrolled students:", error);
@@ -424,6 +441,13 @@ export default function QuizManagePage() {
             In Progress
           </span>
         );
+      case "abandoned":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+            <AlertCircle className="h-3 w-3" />
+            Abandoned
+          </span>
+        );
       default:
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
@@ -573,9 +597,14 @@ export default function QuizManagePage() {
             <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Total Enrolled</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Unique Students</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {enrolledStudents.length}
+                    {enrollmentSummary.uniqueStudents}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {enrollmentSummary.totalReassignments > 0 && 
+                      `(+${enrollmentSummary.totalReassignments} reassigned)`
+                    }
                   </p>
                 </div>
                 <Users className="h-8 w-8 text-amber-600 opacity-20" />
@@ -622,14 +651,27 @@ export default function QuizManagePage() {
               title="Enrolled Students"
               icon={Users}
               actions={
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowBulkEnroll(true)}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Assign More
-                </Button>
+                <div className="flex items-center gap-2">
+                  {enrollmentSummary.totalReassignments > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowReassignments(!showReassignments)}
+                      className="text-sm"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      {showReassignments ? "Hide" : "Show"} Reassignments
+                    </Button>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowBulkEnroll(true)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Assign More
+                  </Button>
+                </div>
               }
               noPadding
             >
@@ -647,10 +689,16 @@ export default function QuizManagePage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {enrolledStudents.map((student) => (
+                    {enrolledStudents
+                      .filter(student => showReassignments || !student.isReassignment)
+                      .map((student) => (
                       <div
                         key={student.id}
-                        className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                        className={`flex items-center justify-between p-4 rounded-lg border ${
+                          student.isReassignment 
+                            ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800" 
+                            : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                        }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 bg-amber-100 rounded-full flex items-center justify-center">
@@ -658,21 +706,40 @@ export default function QuizManagePage() {
                               {student.name.charAt(0).toUpperCase()}
                             </span>
                           </div>
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-white">
-                              {student.name}
-                            </p>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                {student.name}
+                              </p>
+                              {student.isReassignment && (
+                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
+                                  <RefreshCw className="h-3 w-3 mr-1" />
+                                  {student.enrollmentType || "Reassigned"}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-sm text-gray-500">{student.email}</p>
+                            {student.isReassignment && student.reassignmentReason && (
+                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                Reason: {student.reassignmentReason}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-right text-sm">
                             <p className="text-gray-500">
-                              Enrolled {formatDateInTimezone(student.enrolledAt, quiz?.timezone || 'Asia/Kolkata', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
+                              {student.isReassignment ? "Reassigned" : "Enrolled"} {formatDateInTimezone(
+                                student.isReassignment && student.reassignedAt ? student.reassignedAt : student.enrolledAt, 
+                                quiz?.timezone || 'Asia/Kolkata', 
+                                {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit'
+                                }
+                              )}
                             </p>
                             {student.completedAt && (
                               <p className="text-gray-500">

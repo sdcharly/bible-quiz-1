@@ -87,3 +87,7 @@ tmp/
 # Phase 1 Backup Archives
 scripts_backup_phase1_complete_*.tar.gz
 docs_backup_phase1_complete_*.tar.gz
+
+# Organized backup and log directories
+backups/
+logs/

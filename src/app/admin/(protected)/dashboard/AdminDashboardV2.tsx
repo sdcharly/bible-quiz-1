@@ -21,7 +21,7 @@ import {
   Shield, Users, GraduationCap, BookOpen, Activity, 
   Clock, AlertTriangle, LogOut, UserCheck, UserX, 
   Eye, Settings, BarChart, UserPlus, Link, Gauge, 
-  Bell, TrendingUp, Calendar, Mail, Phone
+  Bell, TrendingUp, Calendar, Mail, Phone, Stethoscope
 } from "lucide-react";
 import {
   Select,
@@ -797,6 +797,14 @@ export default function AdminDashboardV2({
             >
               <Users className="h-4 w-4 mr-2 text-red-600" />
               View All Groups
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => router.push("/admin/diagnostics")}
+              className="justify-start border-red-200 hover:bg-red-50"
+            >
+              <Stethoscope className="h-4 w-4 mr-2 text-red-600" />
+              Quiz Diagnostics
             </Button>
           </div>
         </AdminSection>

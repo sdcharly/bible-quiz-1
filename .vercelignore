@@ -1,0 +1,29 @@
+# MCP Server directory (not part of the Next.js app)
+vercel/
+
+# Scripts directory
+scripts/
+
+# Documentation
+docs/
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/__tests__/**
+
+# Development files
+*.md
+.env.local
+.env.development
+
+# Git files
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+
+# Mac files
+.DS_Store
