@@ -6,6 +6,7 @@ import { quizzes, enrollments, quizAttempts, educatorStudents } from "@/lib/sche
 import { auth } from "@/lib/auth";
 import { withPerformance } from "@/lib/api-performance";
 import { logger } from "@/lib/logger";
+import { getQuizAvailabilityStatus } from "@/lib/quiz-scheduling";
 
 
 async function getHandler(req: NextRequest) {
@@ -79,26 +80,55 @@ async function getHandler(req: NextRequest) {
         .map(a => [a.quizId, a])
     );
 
-    // Map quiz data with enrollment and attempt status
-    const quizzesWithStatus = educatorQuizzes.filter(quiz => quiz && quiz.id && quiz.title).map(quiz => {
-      const enrollment = enrollmentMap.get(quiz.id);
-      const attempt = attemptMap.get(quiz.id);
-      
-      return {
-        id: quiz.id,
-        title: quiz.title,
-        description: quiz.description,
-        totalQuestions: quiz.totalQuestions,
-        duration: quiz.duration,
-        startTime: quiz.startTime?.toISOString() || null,
-        timezone: quiz.timezone,
-        status: quiz.status,
-        enrolled: !!enrollment,
-        attempted: !!attempt,
-        attemptId: attempt?.id,
-        score: attempt?.score,
-      };
-    });
+    // Map quiz data with enrollment and attempt status, filtering out expired quizzes
+    const quizzesWithStatus = educatorQuizzes
+      .map(quiz => {
+        // Basic validation
+        if (!quiz || !quiz.id || !quiz.title) return null;
+        
+        // Get quiz availability status using centralized function
+        const quizSchedulingInfo = {
+          id: quiz.id,
+          title: quiz.title,
+          startTime: quiz.startTime,
+          timezone: quiz.timezone,
+          duration: quiz.duration || 30,
+          schedulingStatus: quiz.schedulingStatus || 'legacy',
+          timeConfiguration: quiz.timeConfiguration as any,
+          status: quiz.status
+        };
+        
+        const availability = getQuizAvailabilityStatus(quizSchedulingInfo);
+        
+        // Filter out ended quizzes unless the student has already attempted them
+        const attempt = attemptMap.get(quiz.id);
+        if (availability.status === 'ended' && !attempt) {
+          return null;
+        }
+        
+        const enrollment = enrollmentMap.get(quiz.id);
+        
+        return {
+          id: quiz.id,
+          title: quiz.title,
+          description: quiz.description,
+          totalQuestions: quiz.totalQuestions,
+          duration: quiz.duration,
+          startTime: quiz.startTime?.toISOString() || null,
+          timezone: quiz.timezone,
+          status: quiz.status,
+          enrolled: !!enrollment,
+          attempted: !!attempt,
+          attemptId: attempt?.id,
+          score: attempt?.score,
+          isActive: availability.status === 'active',
+          isUpcoming: availability.status === 'upcoming',
+          isExpired: availability.status === 'ended',
+          availabilityMessage: availability.message,
+          availabilityStatus: availability.status
+        };
+      })
+      .filter(quiz => quiz !== null);
 
     const responseTime = Date.now() - startTime;
     logger.debug("Student quizzes fetched", { 

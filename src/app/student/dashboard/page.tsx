@@ -38,6 +38,9 @@ interface Quiz {
   totalQuestions: number;
   duration?: number;
   enrolled?: boolean;
+  isActive?: boolean;
+  isUpcoming?: boolean;
+  isExpired?: boolean;
 }
 
 interface QuizAttempt {
@@ -135,12 +138,11 @@ export default function StudentDashboard() {
           resultsResponse.json()
         ]);
 
-        // Process quiz data
+        // Process quiz data - only count non-expired quizzes as available
         const quizzes = quizzesData.quizzes || [];
-        const available = quizzes.length;
-        const upcoming = quizzes.filter((q: Quiz) => 
-          q.startTime && new Date(q.startTime) > new Date()
-        ).length;
+        const activeQuizzes = quizzes.filter((q: Quiz) => !q.isExpired);
+        const available = activeQuizzes.length;
+        const upcoming = activeQuizzes.filter((q: Quiz) => q.isUpcoming).length;
 
         // Process results data
         const attempts = resultsData.results || [];
@@ -160,8 +162,8 @@ export default function StudentDashboard() {
           upcomingQuizzes: upcoming
         });
 
-        // Set recent quizzes (last 3)
-        setRecentQuizzes(quizzes.slice(0, 3));
+        // Set recent quizzes (last 3 non-expired)
+        setRecentQuizzes(activeQuizzes.slice(0, 3));
       }
     } catch (error) {
       logger.error('Error fetching dashboard data:', error);
