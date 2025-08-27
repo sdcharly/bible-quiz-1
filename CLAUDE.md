@@ -103,6 +103,9 @@ if (isDebugEnabled()) { /* debug mode */ }
 - **UI Sizing**: `/docs/technical/UI_SIZING_STANDARDS.md` - Consistent sizing and spacing standards
 - **URL System**: `/docs/technical/URL_SYSTEM_ARCHITECTURE.md` - Share links and short URLs
 
+### Quiz Management:
+- **Quiz Limit Logic**: `/docs/technical/QUIZ_LIMIT_LOGIC.md` - How quiz limits work and archived quiz handling
+
 ### API Documentation:
 - **LightRAG API Complete**: `/docs/technical/LIGHTRAG_API_COMPLETE.md` - Full API specification with all endpoints
 - **LightRAG API Reference**: `/docs/technical/LIGHTRAG_API_REFERENCE.md` - CRITICAL: Document processing pipeline and status checking

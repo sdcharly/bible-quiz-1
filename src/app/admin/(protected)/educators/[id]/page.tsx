@@ -66,6 +66,7 @@ async function getEducatorDetails(educatorId: string) {
     approvedAt: educator.approvedAt,
     rejectionReason: educator.rejectionReason,
     permissions: (educator.permissions || {}) as Record<string, unknown>,
+    permissionTemplateId: educator.permissionTemplateId,
     createdAt: educator.createdAt,
     phoneNumber: educator.phoneNumber,
     emailVerified: educator.emailVerified,

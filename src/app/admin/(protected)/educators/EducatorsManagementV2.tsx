@@ -29,13 +29,13 @@ import {
   UserX,
   Ban,
   Unlock,
-  Edit,
   ChevronDown,
   ChevronUp,
   Award,
   Search
 } from "lucide-react";
 import { format } from "date-fns";
+import EducatorApprovalDialog from "@/components/admin/EducatorApprovalDialog";
 
 interface Educator {
   id: string;
@@ -75,6 +75,12 @@ export default function EducatorsManagementV2({ educators }: EducatorsManagement
     title: string;
     message: string;
     action: () => Promise<void>;
+  } | null>(null);
+  const [approvalDialog, setApprovalDialog] = useState<{
+    open: boolean;
+    educatorId: string;
+    educatorName: string;
+    educatorEmail: string;
   } | null>(null);
 
   // Stats calculation
@@ -131,38 +137,45 @@ export default function EducatorsManagementV2({ educators }: EducatorsManagement
   }, []);
 
   // Handle approve educator
-  const handleApprove = useCallback(async (educatorId: string) => {
-    setConfirmDialog({
+  const handleApprove = useCallback((educator: Educator) => {
+    setApprovalDialog({
       open: true,
-      title: "Approve Educator",
-      message: "Are you sure you want to approve this educator? They will gain access to the educator panel.",
-      action: async () => {
-        try {
-          const response = await fetch(`/api/admin/educators/${educatorId}/approve`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" }
-          });
-
-          if (response.ok) {
-            toast({
-              title: "Success",
-              description: "Educator approved successfully"
-            });
-            router.refresh();
-          } else {
-            throw new Error("Failed to approve educator");
-          }
-        } catch (error) {
-          toast({
-            title: "Error",
-            description: "Failed to approve educator",
-            variant: "destructive"
-          });
-        }
-        setConfirmDialog(null);
-      }
+      educatorId: educator.id,
+      educatorName: educator.name || "Unknown",
+      educatorEmail: educator.email
     });
-  }, [router, toast]);
+  }, []);
+
+  // Handle approval with template
+  const handleApprovalComplete = useCallback(async (templateId: string) => {
+    if (!approvalDialog) return;
+    
+    try {
+      const response = await fetch(`/api/admin/educators/${approvalDialog.educatorId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Educator approved successfully with permission template"
+        });
+        router.refresh();
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to approve educator");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to approve educator",
+        variant: "destructive"
+      });
+    }
+    setApprovalDialog(null);
+  }, [approvalDialog, router, toast]);
 
   // Handle reject educator
   const handleReject = useCallback(async (educatorId: string) => {
@@ -411,7 +424,7 @@ export default function EducatorsManagementV2({ educators }: EducatorsManagement
                   <Button
                     size="sm"
                     className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={() => handleApprove(educator.id)}
+                    onClick={() => handleApprove(educator)}
                   >
                     <UserCheck className="h-4 w-4 mr-1" />
                     Approve
@@ -451,8 +464,8 @@ export default function EducatorsManagementV2({ educators }: EducatorsManagement
                 variant="outline"
                 onClick={() => router.push(`/admin/educators/${educator.id}`)}
               >
-                <Edit className="h-4 w-4 mr-1" />
-                Edit Permissions
+                <Award className="h-4 w-4 mr-1" />
+                Manage Template
               </Button>
             </div>
           </div>
@@ -556,6 +569,18 @@ export default function EducatorsManagementV2({ educators }: EducatorsManagement
           description={confirmDialog.message}
           onConfirm={confirmDialog.action}
           onOpenChange={() => setConfirmDialog(null)}
+        />
+      )}
+
+      {/* Educator Approval Dialog */}
+      {approvalDialog && (
+        <EducatorApprovalDialog
+          isOpen={approvalDialog.open}
+          onClose={() => setApprovalDialog(null)}
+          educatorId={approvalDialog.educatorId}
+          educatorName={approvalDialog.educatorName}
+          educatorEmail={approvalDialog.educatorEmail}
+          onApprove={handleApprovalComplete}
         />
       )}
     </AdminPageContainer>

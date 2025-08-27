@@ -412,9 +412,28 @@ export default function PerformanceClientV3() {
         trend: 'stable' as const
       };
 
+      // Default application metrics if not available
+      const defaultApplicationMetrics: ApplicationMetrics = {
+        totalUsers: 0,
+        activeUsers: 0,
+        totalQuizzes: 0,
+        activeQuizzes: 0,
+        totalAttempts: 0,
+        completedAttempts: 0,
+        totalDocuments: 0,
+        processedDocuments: 0,
+        activeEducators: 0,
+        activeSessions: 0,
+        avgResponseTime: 0,
+        successRate: 0,
+        errorRate: 0,
+        apiCalls: 0,
+        apiErrors: 0
+      };
+
       const newMetrics: ComprehensiveMetrics = {
         database: dbData || metrics?.database || {} as DatabaseMetrics,
-        application: appData || metrics?.application || {} as ApplicationMetrics,
+        application: appData || metrics?.application || defaultApplicationMetrics,
         vitals: metrics?.vitals || [],
         system: mockSystemMetrics,
         errors: mockErrorMetrics,
@@ -756,7 +775,7 @@ export default function PerformanceClientV3() {
 
       {/* Tab Content */}
       <AdminSection className="mt-6">
-        {activeTab === 'overview' && metrics && (
+        {activeTab === 'overview' && metrics && metrics.application && (
           <div className="space-y-6">
             {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1286,7 +1305,7 @@ export default function PerformanceClientV3() {
           </div>
         )}
 
-        {activeTab === 'application' && metrics && (
+        {activeTab === 'application' && metrics && metrics.application && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <StatCard

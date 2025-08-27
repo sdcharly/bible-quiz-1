@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { inArray, eq, and, gte } from "drizzle-orm";
+import { inArray, eq, and, gte, ne } from "drizzle-orm";
 import * as crypto from "crypto";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
@@ -36,10 +36,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if educator has reached their quiz limit
+    // Check if educator has reached their quiz limit (excluding archived quizzes)
     const currentQuizCount = await db.select({ count: quizzes.id })
       .from(quizzes)
-      .where(eq(quizzes.educatorId, educatorId));
+      .where(and(
+        eq(quizzes.educatorId, educatorId),
+        ne(quizzes.status, "archived")
+      ));
     
     const quizLimitCheck = await checkEducatorLimits(educatorId, 'maxQuizzes', currentQuizCount.length);
     if (!quizLimitCheck.allowed) {

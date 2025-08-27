@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { user, account } from "@/lib/schema";
 import { notifyEducatorSignup } from "@/lib/admin-notifications";
+import { getDefaultPermissionTemplate } from "@/lib/permission-templates";
 import { logger } from "@/lib/logger";
 
 
@@ -28,7 +29,11 @@ export async function POST(req: NextRequest) {
     // Generate a unique user ID
     const userId = crypto.randomUUID();
 
+    // Get the default permission template for new educators
+    const defaultTemplate = await getDefaultPermissionTemplate();
+    
     // Create the user directly in the database with educator role (pending approval)
+    // Automatically assign the default template if it exists
     await db.insert(user).values({
       id: userId,
       name,
@@ -36,6 +41,20 @@ export async function POST(req: NextRequest) {
       role: "educator",
       approvalStatus: "pending", // Set to pending for admin approval
       emailVerified: false,
+      // Automatically assign default template on signup
+      permissionTemplateId: defaultTemplate?.id || null,
+      permissions: defaultTemplate?.permissions || {
+        // Fallback basic permissions if no default template exists
+        canPublishQuiz: false,
+        canAddStudents: false,
+        canEditQuiz: false,
+        canDeleteQuiz: false,
+        canViewAnalytics: false,
+        canExportData: false,
+        maxStudents: 10,
+        maxQuizzes: 3,
+        maxQuestionsPerQuiz: 10,
+      },
       createdAt: new Date(),
       updatedAt: new Date(),
     });

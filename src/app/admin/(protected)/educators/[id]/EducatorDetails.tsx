@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   ArrowLeft, Shield, BookOpen, Users, CheckCircle, XCircle,
-  Edit, Save, Ban, Unlock, MapPin
+  Edit, Save, Ban, Unlock, MapPin, Award
 } from "lucide-react";
 import EducatorApprovalDialog from "@/components/admin/EducatorApprovalDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface EducatorPermissions {
   canPublishQuiz?: boolean;
@@ -51,6 +52,7 @@ interface EducatorInfo {
   approvedAt: Date | null;
   rejectionReason: string | null;
   permissions: EducatorPermissions;
+  permissionTemplateId?: string | null;
   createdAt: Date;
   phoneNumber: string | null;
   emailVerified: boolean | null;
@@ -59,6 +61,15 @@ interface EducatorInfo {
   studentCount: number;
   recentQuizzes?: QuizInfo[];
   students?: StudentInfo[];
+}
+
+interface PermissionTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  permissions: EducatorPermissions;
+  isDefault: boolean;
+  isActive: boolean;
 }
 
 interface EducatorDetailsProps {
@@ -72,28 +83,64 @@ export default function EducatorDetails({ educator: initialEducator }: EducatorD
   const [permissions, setPermissions] = useState(initialEducator.permissions || {});
   const [isSaving, setIsSaving] = useState(false);
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
+  const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(initialEducator.permissionTemplateId || "");
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
-  const handleSavePermissions = async () => {
+  // Fetch available permission templates
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    setIsLoadingTemplates(true);
+    try {
+      const response = await fetch("/api/admin/settings/permissions/templates");
+      if (response.ok) {
+        const data = await response.json();
+        setTemplates(data.templates || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch templates:", error);
+    }
+    setIsLoadingTemplates(false);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!selectedTemplateId) {
+      alert("Please select a template");
+      return;
+    }
+    
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/admin/educators/${educator.id}/permissions`, {
+      const response = await fetch(`/api/admin/educators/${educator.id}/template`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ permissions }),
+        body: JSON.stringify({ templateId: selectedTemplateId }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setEducator(prev => ({ ...prev, permissions }));
+        // Update educator with new template permissions
+        const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+        if (selectedTemplate) {
+          setEducator(prev => ({ 
+            ...prev, 
+            permissionTemplateId: selectedTemplateId,
+            permissions: selectedTemplate.permissions 
+          }));
+          setPermissions(selectedTemplate.permissions);
+        }
         setIsEditing(false);
-        // Show success message (you could add a toast here)
-        alert("Permissions updated successfully");
+        alert("Template assigned successfully");
+        router.refresh();
       } else {
         const data = await response.json();
-        alert(`Failed to update permissions: ${data.error}`);
+        alert(`Failed to assign template: ${data.error}`);
       }
     } catch (error) {
-      alert(`Error updating permissions: ${error}`);
+      alert(`Error assigning template: ${error}`);
     }
     setIsSaving(false);
   };
@@ -261,22 +308,30 @@ export default function EducatorDetails({ educator: initialEducator }: EducatorD
               </CardContent>
             </Card>
 
-            {/* Permissions */}
+            {/* Permission Template */}
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle>Permissions</CardTitle>
+                  <div>
+                    <CardTitle>Permission Template</CardTitle>
+                    <CardDescription>
+                      Assign a template to control educator permissions
+                    </CardDescription>
+                  </div>
                   {!isEditing ? (
                     <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                       <Edit className="h-4 w-4 mr-1" />
-                      Edit
+                      Change Template
                     </Button>
                   ) : (
                     <div className="space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setIsEditing(false);
+                        setSelectedTemplateId(educator.permissionTemplateId || "");
+                      }}>
                         Cancel
                       </Button>
-                      <Button size="sm" onClick={handleSavePermissions} disabled={isSaving}>
+                      <Button size="sm" onClick={handleSaveTemplate} disabled={isSaving}>
                         <Save className="h-4 w-4 mr-1" />
                         Save
                       </Button>
@@ -284,59 +339,96 @@ export default function EducatorDetails({ educator: initialEducator }: EducatorD
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Boolean permissions */}
-                  {[
-                    { key: "canPublishQuiz", label: "Can Publish Quiz" },
-                    { key: "canAddStudents", label: "Can Add Students" },
-                    { key: "canEditQuiz", label: "Can Edit Quiz" },
-                    { key: "canDeleteQuiz", label: "Can Delete Quiz" },
-                    { key: "canViewAnalytics", label: "Can View Analytics" },
-                    { key: "canExportData", label: "Can Export Data" },
-                  ].map((perm) => (
-                    <div key={perm.key} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={perm.key}
-                        checked={Boolean(permissions[perm.key])}
-                        disabled={!isEditing}
-                        onCheckedChange={(checked) => 
-                          setPermissions({ ...permissions, [perm.key]: checked })
-                        }
-                      />
-                      <Label htmlFor={perm.key} className="text-sm">
-                        {perm.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 mt-6">
-                  {/* Numeric permissions */}
-                  {[
-                    { key: "maxStudents", label: "Max Students" },
-                    { key: "maxQuizzes", label: "Max Quizzes" },
-                    { key: "maxQuestionsPerQuiz", label: "Max Questions/Quiz" },
-                  ].map((perm) => (
-                    <div key={perm.key}>
-                      <Label htmlFor={perm.key} className="text-sm">
-                        {perm.label}
-                      </Label>
-                      <Input
-                        id={perm.key}
-                        type="number"
-                        value={Number(permissions[perm.key]) || 0}
-                        disabled={!isEditing}
-                        onChange={(e) => 
-                          setPermissions({ ...permissions, [perm.key]: parseInt(e.target.value) })
-                        }
-                        className="mt-1"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        {permissions[perm.key] === -1 ? "Unlimited" : `Limited to ${permissions[perm.key] || 0}`}
+              <CardContent className="space-y-4">
+                {/* Template Selection */}
+                {isEditing ? (
+                  <div>
+                    <Label htmlFor="template">Select Template</Label>
+                    <Select
+                      value={selectedTemplateId}
+                      onValueChange={setSelectedTemplateId}
+                      disabled={isLoadingTemplates}
+                    >
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Choose a permission template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templates.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            <div className="flex items-center space-x-2">
+                              <Award className="h-4 w-4" />
+                              <span>{template.name}</span>
+                              {template.isDefault && (
+                                <Badge variant="secondary" className="text-xs">Default</Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedTemplateId && templates.find(t => t.id === selectedTemplateId) && (
+                      <p className="text-sm text-gray-500 mt-2">
+                        {templates.find(t => t.id === selectedTemplateId)?.description}
                       </p>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <Award className="h-5 w-5 text-amber-600" />
+                      <span className="font-medium">
+                        {templates.find(t => t.id === educator.permissionTemplateId)?.name || "No template assigned"}
+                      </span>
                     </div>
-                  ))}
+                    {educator.permissionTemplateId && templates.find(t => t.id === educator.permissionTemplateId) && (
+                      <p className="text-sm text-gray-500 mt-2">
+                        {templates.find(t => t.id === educator.permissionTemplateId)?.description}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Current Permissions (Read-only) */}
+                <div className="pt-4 border-t">
+                  <Label className="text-sm font-medium mb-3">Current Permissions</Label>
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    {/* Boolean permissions */}
+                    {[
+                      { key: "canPublishQuiz", label: "Can Publish Quiz" },
+                      { key: "canAddStudents", label: "Can Add Students" },
+                      { key: "canEditQuiz", label: "Can Edit Quiz" },
+                      { key: "canDeleteQuiz", label: "Can Delete Quiz" },
+                      { key: "canViewAnalytics", label: "Can View Analytics" },
+                      { key: "canExportData", label: "Can Export Data" },
+                    ].map((perm) => (
+                      <div key={perm.key} className="flex items-center space-x-2">
+                        {permissions[perm.key] ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-red-500" />
+                        )}
+                        <Label className="text-sm font-normal">
+                          {perm.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 mt-4">
+                    {/* Numeric permissions */}
+                    {[
+                      { key: "maxStudents", label: "Max Students" },
+                      { key: "maxQuizzes", label: "Max Quizzes" },
+                      { key: "maxQuestionsPerQuiz", label: "Max Questions/Quiz" },
+                    ].map((perm) => (
+                      <div key={perm.key}>
+                        <Label className="text-xs text-gray-500">{perm.label}</Label>
+                        <p className="text-sm font-medium">
+                          {permissions[perm.key] === -1 ? "Unlimited" : (permissions[perm.key] || 0).toString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>

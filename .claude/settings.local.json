@@ -14,7 +14,11 @@
       "Read(//tmp/**)",
       "WebSearch",
       "Bash(node:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_click"
     ]
   },
   "enableAllProjectMcpServers": true,
