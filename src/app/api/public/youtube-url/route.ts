@@ -17,7 +17,7 @@ export async function GET() {
     if (setting.length === 0) {
       // Return default YouTube URL if no setting exists
       return NextResponse.json({ 
-        youtubeUrl: "https://www.youtube.com/watch?v=zBnGACs7Ddo" 
+        youtubeUrl: "https://www.youtube.com/embed/zBnGACs7Ddo?rel=0&modestbranding=1&autoplay=0&mute=1" 
       });
     }
 

@@ -45,8 +45,9 @@ export default function HomePage() {
           setYoutubeUrl(data.youtubeUrl);
         }
       })
-      .catch(() => {
-        // Use default URL on error
+      .catch((error) => {
+        // Use default embed URL on error
+        console.error("Failed to fetch YouTube URL:", error);
         setYoutubeUrl("https://www.youtube.com/embed/zBnGACs7Ddo?rel=0&modestbranding=1&autoplay=0&mute=1");
       });
   }, []);
@@ -154,7 +155,6 @@ export default function HomePage() {
                           className="absolute inset-0 w-full h-full"
                           src={youtubeUrl}
                           title="Platform Demo"
-                          frameBorder="0"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
                           loading="lazy"
