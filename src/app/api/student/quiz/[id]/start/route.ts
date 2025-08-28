@@ -244,16 +244,17 @@ export async function POST(
           .where(eq(questions.quizId, quizId));
 
 
-        // Sort questions - map without filtering since we know they exist
-        let sortedQuestions = quizQuestions.map(q => ({
+        // Sort questions - map with correct field names from database
+        // Note: Database returns snake_case but TypeScript expects camelCase
+        let sortedQuestions = quizQuestions.map((q: any) => ({
           id: q.id,
-          questionText: q.questionText,
+          questionText: q.question_text || q.questionText,  // Handle both cases
           options: q.options,
-          orderIndex: q.orderIndex,
+          orderIndex: q.order_index ?? q.orderIndex ?? 0,   // Handle both cases with nullish coalescing
           book: q.book,
           chapter: q.chapter,
           topic: q.topic,
-          bloomsLevel: q.bloomsLevel,
+          bloomsLevel: q.blooms_level || q.bloomsLevel,    // Handle both cases
         }));
 
         // For reassignments, always shuffle regardless of quiz setting
@@ -385,16 +386,17 @@ export async function POST(
       })
       .where(eq(enrollments.id, activeEnrollment.id));
 
-    // Prepare questions - map without filtering since we know they exist
-    let preparedQuestions = quizQuestions.map(q => ({
+    // Prepare questions - map with correct field names from database
+    // Note: Database returns snake_case but TypeScript expects camelCase
+    let preparedQuestions = quizQuestions.map((q: any) => ({
       id: q.id,
-      questionText: q.questionText,
+      questionText: q.question_text || q.questionText,  // Handle both snake_case and camelCase
       options: q.options,
-      orderIndex: q.orderIndex,
+      orderIndex: q.order_index ?? q.orderIndex ?? 0,   // Handle both cases with nullish coalescing
       book: q.book,
       chapter: q.chapter,
       topic: q.topic,
-      bloomsLevel: q.bloomsLevel,
+      bloomsLevel: q.blooms_level || q.bloomsLevel,    // Handle both cases
     }));
     
     // For reassignments, always shuffle regardless of quiz setting
