@@ -243,18 +243,9 @@ export async function POST(
           .from(questions)
           .where(eq(questions.quizId, quizId));
 
-        logger.log("Existing attempt - Quiz questions count:", quizQuestions.length);
-        if (quizQuestions.length > 0) {
-          logger.log("Existing attempt - First question structure:", {
-            hasId: !!quizQuestions[0].id,
-            hasQuestionText: !!quizQuestions[0].questionText,
-            hasOptions: !!quizQuestions[0].options,
-            fields: Object.keys(quizQuestions[0])
-          });
-        }
 
-        // Sort questions - shuffle if enabled, otherwise by orderIndex
-        let sortedQuestions = quizQuestions.filter(q => q && q.id && q.questionText && q.options).map(q => ({
+        // Sort questions - map without filtering since we know they exist
+        let sortedQuestions = quizQuestions.map(q => ({
           id: q.id,
           questionText: q.questionText,
           options: q.options,
@@ -264,8 +255,6 @@ export async function POST(
           topic: q.topic,
           bloomsLevel: q.bloomsLevel,
         }));
-
-        logger.log("Existing attempt - Sorted questions count after filter:", sortedQuestions.length);
 
         // For reassignments, always shuffle regardless of quiz setting
         // Note: quiz variable is already fetched earlier in the function
@@ -396,19 +385,8 @@ export async function POST(
       })
       .where(eq(enrollments.id, activeEnrollment.id));
 
-    // Debug logging to check question structure
-    logger.log("Quiz questions count:", quizQuestions.length);
-    if (quizQuestions.length > 0) {
-      logger.log("First question structure:", {
-        hasId: !!quizQuestions[0].id,
-        hasQuestionText: !!quizQuestions[0].questionText,
-        hasOptions: !!quizQuestions[0].options,
-        fields: Object.keys(quizQuestions[0])
-      });
-    }
-    
-    // Prepare questions - shuffle if enabled or if this is a reassignment
-    let preparedQuestions = quizQuestions.filter(q => q && q.id && q.questionText && q.options).map(q => ({
+    // Prepare questions - map without filtering since we know they exist
+    let preparedQuestions = quizQuestions.map(q => ({
       id: q.id,
       questionText: q.questionText,
       options: q.options,
@@ -418,8 +396,6 @@ export async function POST(
       topic: q.topic,
       bloomsLevel: q.bloomsLevel,
     }));
-
-    logger.log("Prepared questions count after filter:", preparedQuestions.length);
     
     // For reassignments, always shuffle regardless of quiz setting
     const shouldShuffle = quiz.shuffleQuestions || activeEnrollment.isReassignment;
