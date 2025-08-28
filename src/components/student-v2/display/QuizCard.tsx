@@ -3,6 +3,8 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { StatusBadge, StatusIndicator } from "@/components/ui/status-badge";
+import { getStatusConfig } from "@/lib/status-theme";
 import {
   BookOpen, 
   Clock, 
@@ -104,15 +106,22 @@ export function QuizCard({
         {/* Status Badge */}
         {attempted && (
           <div className="mb-4">
-            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800/30">
-              <div className="flex items-center">
-                <CheckCircle className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                  Completed
-                </span>
-              </div>
+            <div className={cn(
+              "flex items-center justify-between p-3 rounded-lg border",
+              getStatusConfig('enrollment', 'completed').colors.bg,
+              getStatusConfig('enrollment', 'completed').colors.border
+            )}>
+              <StatusBadge 
+                type="enrollment" 
+                status="completed" 
+                size="sm"
+                showIcon={true}
+              />
               {score !== undefined && (
-                <span className="text-sm font-semibold text-green-700 dark:text-green-300">
+                <span className={cn(
+                  "text-sm font-semibold",
+                  getStatusConfig('enrollment', 'completed').colors.text
+                )}>
                   Score: {score}%
                 </span>
               )}

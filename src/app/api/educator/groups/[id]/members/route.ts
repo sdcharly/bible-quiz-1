@@ -61,9 +61,9 @@ export async function GET(
         joinedAt: groupMembers.joinedAt,
         role: groupMembers.role,
         isActive: groupMembers.isActive,
-        // Stats
+        // Stats - count unique quizzes only (not counting reassignments)
         totalEnrollments: sql<number>`(
-          SELECT COUNT(*)::int 
+          SELECT COUNT(DISTINCT e.quiz_id)::int 
           FROM ${enrollments} e
           WHERE e.student_id = ${groupMembers.studentId}
         )`.as('totalEnrollments'),

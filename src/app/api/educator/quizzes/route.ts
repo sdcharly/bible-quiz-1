@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, count, desc } from "drizzle-orm";
+import { eq, desc, countDistinct } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { quizzes, enrollments } from "@/lib/schema";
@@ -33,9 +33,9 @@ export async function GET(req: NextRequest) {
     // Get enrollment counts for each quiz
     const quizzesWithStats = await Promise.all(
       educatorQuizzes.map(async (quiz) => {
-        // Count enrolled students
+        // Count unique enrolled students (not counting reassignments as separate students)
         const enrollmentCount = await db
-          .select({ count: count() })
+          .select({ count: countDistinct(enrollments.studentId) })
           .from(enrollments)
           .where(eq(enrollments.quizId, quiz.id));
 

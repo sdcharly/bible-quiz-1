@@ -454,6 +454,19 @@ export async function POST(
     // Cache enrollment status
     await quizCache.cacheEnrollment(studentId, quizId, true);
     
+    // Debug log for reassignment issue
+    logger.force('[CRITICAL_DEBUG] API Response being sent:', {
+      quizId: quizData.id,
+      hasQuestions: !!quizData.questions,
+      questionCount: quizData.questions?.length || 0,
+      firstQuestion: quizData.questions?.[0] ? {
+        id: quizData.questions[0].id,
+        hasText: !!quizData.questions[0].questionText,
+        textLength: quizData.questions[0].questionText?.length || 0
+      } : null,
+      isReassignment: activeEnrollment.isReassignment
+    });
+    
     // Return quiz data without correct answers
     return NextResponse.json({
       quiz: quizData,

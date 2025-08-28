@@ -25,8 +25,9 @@ async function getStudents() {
   // Get enrollment and attempt counts for each student
   const studentsWithStats = await Promise.all(
     students.map(async (student) => {
+      // Count unique quiz enrollments (not counting reassignments as separate enrollments)
       const [enrollmentCount] = await db
-        .select({ count: sql`count(*)` })
+        .select({ count: sql`count(distinct ${enrollments.quizId})` })
         .from(enrollments)
         .where(eq(enrollments.studentId, student.id));
 

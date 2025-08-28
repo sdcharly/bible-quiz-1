@@ -32,6 +32,7 @@ import { PageContainer } from "@/components/educator-v2/layout/PageContainer";
 import { Section } from "@/components/educator-v2/layout/Section";
 import { LoadingState } from "@/components/educator-v2/feedback/LoadingState";
 import { EmptyState } from "@/components/educator-v2/feedback/EmptyState";
+import { StatusBadge, StatusCard } from "@/components/ui/status-badge";
 import { logger } from "@/lib/logger";
 
 interface Quiz {
@@ -128,27 +129,7 @@ export default function EducatorQuizzesPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === 'published') {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-          <CheckCircle className="h-3 w-3" />
-          Published
-        </span>
-      );
-    } else if (status === 'archived') {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-          <Archive className="h-3 w-3" />
-          Archived
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-        <Edit3 className="h-3 w-3" />
-        Draft
-      </span>
-    );
+    return <StatusBadge type="quiz" status={status} size="sm" />;
   };
 
   const filteredQuizzes = quizzes.filter(quiz => {
@@ -282,10 +263,14 @@ export default function EducatorQuizzesPage() {
         ) : (
           <div className="space-y-3">
             {filteredQuizzes.map((quiz) => (
-              <div
+              <StatusCard
                 key={quiz.id}
-                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors border border-amber-100"
+                type="quiz"
+                status={quiz.status}
+                interactive={true}
+                className="p-4"
               >
+                <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-medium text-gray-900 dark:text-white truncate">
@@ -393,7 +378,8 @@ export default function EducatorQuizzesPage() {
                     </>
                   )}
                 </div>
-              </div>
+                </div>
+              </StatusCard>
             ))}
           </div>
         )}

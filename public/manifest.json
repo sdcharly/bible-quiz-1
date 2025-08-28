@@ -1,10 +1,10 @@
 {
-  "name": "SimpleQuiz - Biblical Quiz Platform",
-  "short_name": "SimpleQuiz",
-  "description": "Professional quiz platform for biblical education",
+  "name": "BibleQuiz - Biblical Education Platform",
+  "short_name": "BibleQuiz",
+  "description": "Professional quiz platform for biblical education and spiritual growth",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#fffbeb",
   "theme_color": "#f59e0b",
   "icons": [
     {

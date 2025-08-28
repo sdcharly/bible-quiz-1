@@ -50,9 +50,9 @@ export async function GET(
       );
     }
 
-    // Fetch enrollment statistics
+    // Fetch enrollment statistics - get unique quiz IDs
     const studentEnrollments = await db
-      .select()
+      .select({ quizId: enrollments.quizId })
       .from(enrollments)
       .where(eq(enrollments.studentId, studentId));
 
@@ -127,7 +127,7 @@ export async function GET(
       phoneNumber: studentData.phoneNumber,
       role: studentData.role || "student",
       joinedAt: studentData.enrolledAt || studentData.createdAt,
-      totalEnrollments: studentEnrollments.length,
+      totalEnrollments: new Set(studentEnrollments.map(e => e.quizId)).size, // Count unique quizzes only
       completedQuizzes,
       averageScore,
       totalTimeSpent,

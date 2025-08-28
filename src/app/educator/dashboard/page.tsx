@@ -17,6 +17,8 @@ import {
   LoadingState,
   EmptyState
 } from "@/components/educator-v2";
+import { StatusBadge, StatusCard } from "@/components/ui/status-badge";
+import { getStatusGradient } from "@/lib/status-theme";
 import {
   DocumentTextIcon,
   ChartBarIcon,
@@ -24,7 +26,6 @@ import {
   ClockIcon,
   ArrowUpTrayIcon,
   ChevronRightIcon,
-  CheckCircleIcon,
   EyeIcon,
   Cog6ToothIcon,
   PencilSquareIcon,
@@ -179,27 +180,7 @@ export default function EducatorDashboard() {
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === 'published') {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-          <CheckCircleIcon className="h-3 w-3" />
-          Active
-        </span>
-      );
-    } else if (status === 'archived') {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-          <ArchiveBoxIcon className="h-3 w-3" />
-          Resting
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-        <PencilSquareIcon className="h-3 w-3" />
-        Draft
-      </span>
-    );
+    return <StatusBadge type="quiz" status={status} size="sm" />;
   };
 
   const handleDeleteQuiz = async (quizId: string, quizTitle: string) => {
@@ -577,12 +558,16 @@ export default function EducatorDashboard() {
               }}
             />
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {quizzes.slice(0, 5).map((quiz) => (
-                <div
+                <StatusCard
                   key={quiz.id}
-                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-gray-700 dark:to-gray-600 rounded-lg hover:shadow-md transition-all duration-200 border border-amber-100 dark:border-gray-600 hover:border-amber-300 dark:hover:border-amber-700"
+                  type="quiz"
+                  status={quiz.status}
+                  interactive={true}
+                  className="p-3 sm:p-4"
                 >
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
                   <div className="flex-1 min-w-0 mb-2 sm:mb-0 sm:pr-4">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">
@@ -677,7 +662,8 @@ export default function EducatorDashboard() {
                       </>
                     )}
                   </div>
-                </div>
+                  </div>
+                </StatusCard>
               ))}
               {quizzes.length > 5 ? (
                 <div className="text-center pt-4">

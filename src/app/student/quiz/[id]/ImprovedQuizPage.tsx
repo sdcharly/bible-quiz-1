@@ -223,17 +223,28 @@ export default function ImprovedQuizTakingPage() {
         setLoadingProgress(20);
         setLoadingMessage("Checking for previous session...");
         
-        // Check for existing auto-save data
-        const response = await fetch(`/api/student/quiz/${quizId}/autosave`);
-        if (response.ok && mounted) {
-          const { hasAutoSave, autoSaveData } = await response.json();
-          
-          if (hasAutoSave && autoSaveData) {
-            setRecoveryData(autoSaveData);
-            setShowRecoveryPrompt(true);
-            setLoading(false);
-            return;
+        // Check if user explicitly wants to start fresh
+        const urlParams = new URLSearchParams(window.location.search);
+        const startFresh = urlParams.get('fresh') === 'true';
+        
+        if (!startFresh) {
+          // Check for existing auto-save data
+          const response = await fetch(`/api/student/quiz/${quizId}/autosave`);
+          if (response.ok && mounted) {
+            const { hasAutoSave, autoSaveData } = await response.json();
+            
+            if (hasAutoSave && autoSaveData) {
+              setRecoveryData(autoSaveData);
+              setShowRecoveryPrompt(true);
+              setLoading(false);
+              return;
+            }
           }
+        } else {
+          // Clean up the URL
+          urlParams.delete('fresh');
+          const newUrl = `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`;
+          window.history.replaceState({}, '', newUrl);
         }
         
         setLoadingProgress(50);
@@ -250,6 +261,20 @@ export default function ImprovedQuizTakingPage() {
         
         if (quizResponse.ok) {
           const data = await quizResponse.json();
+          
+          // Debug logging for reassignment issue
+          console.log('[QUIZ_DEBUG] API Response:', {
+            hasQuiz: !!data.quiz,
+            hasQuestions: !!(data.quiz?.questions),
+            questionCount: data.quiz?.questions?.length || 0,
+            firstQuestion: data.quiz?.questions?.[0] ? {
+              id: data.quiz.questions[0].id,
+              hasText: !!data.quiz.questions[0].questionText,
+              text: data.quiz.questions[0].questionText?.substring(0, 50)
+            } : null,
+            isReassignment: data.isReassignment,
+            attemptId: data.attemptId
+          });
           
           setQuiz(data.quiz);
           quizRef.current = data.quiz;
@@ -368,13 +393,54 @@ export default function ImprovedQuizTakingPage() {
     }, 1000);
   }, [recoveryData, toast]);
 
-  const handleStartNew = useCallback(() => {
-    if (recoveryData?.attemptId) {
-      QuizAutoSaveService.clearSavedData(recoveryData.attemptId);
+  const handleStartNew = useCallback(async () => {
+    setLoadingMessage("Clearing previous session...");
+    setLoading(true);
+    
+    try {
+      // 1. Clear ALL localStorage data for any quiz attempts
+      if (typeof window !== 'undefined' && window.localStorage) {
+        // Clear all quiz autosave data
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.startsWith('quiz_autosave_')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      }
+      
+      // 2. Clear session on server - this abandons ALL in-progress attempts
+      await fetch(`/api/student/quiz/${quizId}/clear-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      // 3. If we have a specific attempt, abandon it too
+      if (recoveryData?.attemptId) {
+        await fetch(`/api/student/quiz/${quizId}/abandon`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attemptId: recoveryData.attemptId }),
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to clear session:', error);
     }
+    
+    // 4. Clear all state
     setShowRecoveryPrompt(false);
-    window.location.reload(); // Fresh start
-  }, [recoveryData]);
+    setRecoveryData(null);
+    setAnswers({});
+    setCurrentQuestionIndex(0);
+    setTimeRemaining(0);
+    
+    // 5. Start fresh by reloading with a flag to skip recovery
+    const url = new URL(window.location.href);
+    url.searchParams.set('fresh', 'true');
+    window.location.href = url.toString();
+  }, [recoveryData, quizId]);
 
   // Enhanced submit with retry logic
   const handleSubmit = useCallback(async (isAutoSubmit = false) => {
@@ -433,6 +499,11 @@ export default function ImprovedQuizTakingPage() {
           if (timeoutTimerRef.current) {
             clearTimeout(timeoutTimerRef.current);
             timeoutTimerRef.current = null;
+          }
+          
+          // Clear all session data after successful submission
+          if (attemptIdRef.current) {
+            QuizAutoSaveService.clearSavedData(attemptIdRef.current);
           }
           
           if (isAutoSubmit) {
