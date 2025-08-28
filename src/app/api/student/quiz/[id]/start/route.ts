@@ -189,8 +189,18 @@ export async function POST(
     if (existingAttempt.length > 0) {
       const attempt = existingAttempt[0];
       
+      // If quiz was abandoned, allow starting fresh by creating a new attempt
+      // Don't return early, let it continue to create new attempt logic below
+      if (attempt.status === "abandoned") {
+        logger.info("Previous attempt was abandoned, creating new attempt", {
+          studentId,
+          quizId,
+          previousAttemptId: attempt.id,
+        });
+        // Continue to new attempt creation below
+      }
       // If quiz is completed, don't allow restart
-      if (attempt.status === "completed") {
+      else if (attempt.status === "completed") {
         return NextResponse.json(
           { 
             error: "Quiz already completed",
@@ -200,9 +210,8 @@ export async function POST(
           { status: 403 }
         );
       }
-      
       // If quiz is in progress, resume it
-      if (attempt.status === "in_progress") {
+      else if (attempt.status === "in_progress") {
         // Calculate remaining time
         const elapsedTime = Math.floor((Date.now() - attempt.startTime.getTime()) / 1000);
         const quiz = await db
@@ -238,6 +247,16 @@ export async function POST(
           .from(questions)
           .where(eq(questions.quizId, quizId));
 
+        logger.log("Existing attempt - Quiz questions count:", quizQuestions.length);
+        if (quizQuestions.length > 0) {
+          logger.log("Existing attempt - First question structure:", {
+            hasId: !!quizQuestions[0].id,
+            hasQuestionText: !!quizQuestions[0].questionText,
+            hasOptions: !!quizQuestions[0].options,
+            fields: Object.keys(quizQuestions[0])
+          });
+        }
+
         // Sort questions - shuffle if enabled, otherwise by orderIndex
         let sortedQuestions = quizQuestions.filter(q => q && q.id && q.questionText && q.options).map(q => ({
           id: q.id,
@@ -250,8 +269,10 @@ export async function POST(
           bloomsLevel: q.bloomsLevel,
         }));
 
+        logger.log("Existing attempt - Sorted questions count after filter:", sortedQuestions.length);
+
         // For reassignments, always shuffle regardless of quiz setting
-        const shouldShuffle = quiz[0].shuffleQuestions || activeEnrollment.isReassignment;
+        const shouldShuffle = quiz.shuffleQuestions || activeEnrollment.isReassignment;
         
         if (shouldShuffle) {
           // Use a seed based on attemptId for consistent shuffle per attempt
@@ -262,10 +283,10 @@ export async function POST(
 
         return NextResponse.json({
           quiz: {
-            id: quiz[0].id,
-            title: quiz[0].title,
-            duration: quiz[0].duration,
-            totalQuestions: quiz[0].totalQuestions,
+            id: quiz.id,
+            title: quiz.title,
+            duration: quiz.duration,
+            totalQuestions: quiz.totalQuestions,
             questions: sortedQuestions
           },
           attemptId: attempt.id,
@@ -378,6 +399,17 @@ export async function POST(
       })
       .where(eq(enrollments.id, activeEnrollment.id));
 
+    // Debug logging to check question structure
+    logger.log("Quiz questions count:", quizQuestions.length);
+    if (quizQuestions.length > 0) {
+      logger.log("First question structure:", {
+        hasId: !!quizQuestions[0].id,
+        hasQuestionText: !!quizQuestions[0].questionText,
+        hasOptions: !!quizQuestions[0].options,
+        fields: Object.keys(quizQuestions[0])
+      });
+    }
+    
     // Prepare questions - shuffle if enabled or if this is a reassignment
     let preparedQuestions = quizQuestions.filter(q => q && q.id && q.questionText && q.options).map(q => ({
       id: q.id,
@@ -390,6 +422,8 @@ export async function POST(
       bloomsLevel: q.bloomsLevel,
     }));
 
+    logger.log("Prepared questions count after filter:", preparedQuestions.length);
+    
     // For reassignments, always shuffle regardless of quiz setting
     const shouldShuffle = quiz.shuffleQuestions || activeEnrollment.isReassignment;
     
