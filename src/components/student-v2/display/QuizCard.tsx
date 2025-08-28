@@ -29,6 +29,8 @@ interface QuizCardProps {
   score?: number;
   isExpired: boolean;
   isAvailable: boolean;
+  isReassignment?: boolean;
+  reassignmentReason?: string;
   onEnroll?: () => void;
   onStart?: () => void;
   actionElement?: ReactNode;
@@ -48,6 +50,8 @@ export function QuizCard({
   score,
   isExpired,
   isAvailable,
+  isReassignment = false,
+  reassignmentReason,
   onEnroll,
   onStart,
   actionElement,
@@ -128,6 +132,23 @@ export function QuizCard({
             </div>
           </div>
         )}
+        
+        {/* Reassignment Badge */}
+        {isReassignment && !attempted && (
+          <div className="mb-4">
+            <div className="flex items-center p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                Reassigned Quiz
+              </span>
+              {reassignmentReason && (
+                <span className="text-xs text-blue-600 dark:text-blue-400 ml-2">
+                  ({reassignmentReason})
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Action Section */}
         <div className="mt-auto">
@@ -141,12 +162,12 @@ export function QuizCard({
               View Results
             </Button>
           ) : enrolled ? (
-            isExpired ? (
+            isExpired && !isReassignment ? (
               <Button disabled className="w-full">
                 <AlertCircle className="h-4 w-4 mr-2" />
                 Quiz Expired
               </Button>
-            ) : isAvailable ? (
+            ) : isAvailable || isReassignment ? (
               <Button 
                 onClick={onStart}
                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
@@ -160,7 +181,7 @@ export function QuizCard({
                 Not Yet Available
               </Button>
             )
-          ) : isExpired ? (
+          ) : isExpired && !isReassignment ? (
             <Button disabled variant="outline" className="w-full">
               <AlertCircle className="h-4 w-4 mr-2" />
               Quiz Expired

@@ -92,12 +92,37 @@ function StudentSignUpForm() {
         });
       }
 
-      // Wait a moment for session to be established
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Poll for session establishment with timeout
+      let sessionAttempts = 0;
+      const maxAttempts = 10;
+      let newSession = null;
+      let studentId = null;
       
-      // Get the user's ID from the newly created session
-      const newSession = await authClient.getSession();
-      const studentId = newSession?.data?.user?.id;
+      while (sessionAttempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 300)); // Wait 300ms between attempts
+        newSession = await authClient.getSession();
+        
+        if (newSession?.data?.user?.id) {
+          studentId = newSession.data.user.id;
+          break;
+        }
+        
+        sessionAttempts++;
+      }
+      
+      if (!studentId) {
+        // If we still don't have a session after polling, try one more time with a longer wait
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        newSession = await authClient.getSession();
+        studentId = newSession?.data?.user?.id;
+        
+        if (!studentId) {
+          // Session creation failed, but account was created
+          // Redirect to signin page
+          router.push('/auth/signin');
+          return;
+        }
+      }
       
       // If there's an invitation, accept it
       if (invitationToken && studentId) {

@@ -84,6 +84,9 @@ export async function GET(
       requiresAuth: boolean;
       hasEducatorRelation?: boolean;
       invitationToken?: string;
+      startTime?: string;
+      schedulingStatus?: string;
+      timezone?: string;
     }
     
     const response: QuizShareResponse = {
@@ -94,7 +97,10 @@ export async function GET(
       duration: quiz.duration,
       educatorName: educator?.name || "Educator",
       isEnrolled: false,
-      requiresAuth: !session?.user
+      requiresAuth: !session?.user,
+      startTime: quiz.startTime?.toISOString(),
+      schedulingStatus: quiz.schedulingStatus || undefined,
+      timezone: quiz.timezone || undefined
     };
 
     if (session?.user) {

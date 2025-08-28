@@ -181,65 +181,7 @@ export function MobileQuizInterface({
   );
 }
 
-/**
- * Loading state with better feedback
- */
-export function ImprovedQuizLoader({ 
-  message = "Loading quiz...",
-  subMessage,
-  progress,
-}: {
-  message?: string;
-  subMessage?: string;
-  progress?: number;
-}) {
-  const [dots, setDots] = useState("");
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDots(prev => prev.length >= 3 ? "" : prev + ".");
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-amber-50/50 to-white dark:from-gray-900 dark:to-gray-950">
-      <div className="text-center space-y-4 p-8">
-        <div className="relative">
-          <div className="w-20 h-20 mx-auto">
-            <div className="absolute inset-0 rounded-full border-4 border-amber-200 dark:border-amber-800"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-amber-600 border-t-transparent animate-spin"></div>
-          </div>
-          {progress !== undefined && (
-            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-              <span className="text-sm font-semibold text-amber-600">{progress}%</span>
-            </div>
-          )}
-        </div>
-        
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {message}{dots}
-          </h2>
-          {subMessage && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              {subMessage}
-            </p>
-          )}
-        </div>
-        
-        {progress !== undefined && (
-          <Progress value={progress} className="w-48 mx-auto" />
-        )}
-        
-        <div className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-          <Clock className="h-3 w-3 inline mr-1" />
-          This may take a moment on slower connections
-        </div>
-      </div>
-    </div>
-  );
-}
+// ImprovedQuizLoader removed - use BiblicalPageLoader from @/components/ui/biblical-loader instead
 
 /**
  * Session recovery prompt

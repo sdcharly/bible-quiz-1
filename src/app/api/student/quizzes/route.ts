@@ -73,17 +73,13 @@ async function getHandler(req: NextRequest) {
     ]);
 
     // Create lookup maps for O(1) access
-    // CRITICAL: For multiple enrollments (reassignments), prioritize the active/reassigned one
     const enrollmentMap = new Map();
     for (const enrollment of studentEnrollments) {
       if (!enrollment || !enrollment.quizId) continue;
       
       const existing = enrollmentMap.get(enrollment.quizId);
       // Prioritize reassignments over original enrollments
-      // Also prioritize 'in_progress' over 'enrolled' status
-      if (!existing || 
-          enrollment.isReassignment || 
-          (enrollment.status === 'in_progress' && existing.status === 'enrolled')) {
+      if (!existing || enrollment.isReassignment) {
         enrollmentMap.set(enrollment.quizId, enrollment);
       }
     }
@@ -93,13 +89,19 @@ async function getHandler(req: NextRequest) {
         .map(a => [a.quizId, a])
     );
 
-    // Map quiz data with enrollment and attempt status, filtering out expired quizzes
+    // Map quiz data with enrollment and attempt status
     const quizzesWithStatus = educatorQuizzes
       .map(quiz => {
         // Basic validation
         if (!quiz || !quiz.id || !quiz.title) return null;
         
-        // Get quiz availability status using centralized function
+        const enrollment = enrollmentMap.get(quiz.id);
+        const attempt = attemptMap.get(quiz.id);
+        
+        // Only show enrolled quizzes
+        if (!enrollment) return null;
+        
+        // Get quiz availability status using existing function
         const quizSchedulingInfo = {
           id: quiz.id,
           title: quiz.title,
@@ -113,21 +115,17 @@ async function getHandler(req: NextRequest) {
         
         const availability = getQuizAvailabilityStatus(quizSchedulingInfo);
         
-        const enrollment = enrollmentMap.get(quiz.id);
-        const attempt = attemptMap.get(quiz.id);
-        
-        // For reassigned quizzes, show special indicator
         const isReassignment = enrollment?.isReassignment || false;
         const reassignmentReason = enrollment?.reassignmentReason || null;
         
-        // Filter out ended quizzes UNLESS:
-        // 1. Student has already attempted them OR
+        // CRITICAL FIX: Filter out expired quizzes unless:
+        // 1. Student has COMPLETED them (to show results) OR
         // 2. This is a reassignment (reassignments bypass time constraints)
         if (availability.status === 'ended' && !attempt && !isReassignment) {
           return null;
         }
         
-        // For reassignments, override availability status
+        // For reassignments, override availability to make them always active
         const effectiveAvailability = isReassignment && !attempt
           ? { status: 'active', message: 'Reassigned - Available to take' }
           : availability;
@@ -145,9 +143,9 @@ async function getHandler(req: NextRequest) {
           attempted: !!attempt,
           attemptId: attempt?.id,
           score: attempt?.score,
-          isActive: isReassignment ? !attempt : availability.status === 'active',
-          isUpcoming: isReassignment ? false : availability.status === 'upcoming',
-          isExpired: isReassignment ? false : availability.status === 'ended',
+          isActive: effectiveAvailability.status === 'active',
+          isUpcoming: effectiveAvailability.status === 'upcoming',
+          isExpired: effectiveAvailability.status === 'ended',
           availabilityMessage: effectiveAvailability.message,
           availabilityStatus: effectiveAvailability.status,
           isReassignment,

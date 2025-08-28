@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { ErrorFallback } from "@/components/ui/error-fallback";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -323,7 +324,14 @@ export default function GroupManagePage() {
   }
 
   if (!group) {
-    return null;
+    return (
+      <ErrorFallback
+        title="Group Not Found"
+        message="The group you're looking for doesn't exist or you don't have permission to view it."
+        redirectUrl="/educator/groups"
+        redirectLabel="Back to Groups"
+      />
+    );
   }
 
   return (

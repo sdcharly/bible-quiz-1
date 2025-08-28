@@ -149,9 +149,10 @@ export default function StudentDashboard() {
           quizzesData.quizzes || [],
           processSafeQuiz
         );
-        const activeQuizzes = processedQuizzes.filter(q => !q.isExpired);
-        const available = activeQuizzes.length;
-        const upcoming = activeQuizzes.filter(q => q.isUpcoming).length;
+        // Include reassigned quizzes in active quizzes even if expired
+        const activeQuizzes = processedQuizzes.filter(q => !q.isExpired || q.isReassignment);
+        const available = activeQuizzes.filter(q => !q.attempted).length;
+        const upcoming = activeQuizzes.filter(q => q.isUpcoming && !q.isReassignment).length;
 
         // Process results data safely with null handling
         const processedResults = safeArray(
@@ -178,7 +179,7 @@ export default function StudentDashboard() {
           upcomingQuizzes: upcoming
         });
 
-        // Set recent quizzes (last 3 non-expired)
+        // Set recent quizzes (last 3 non-expired or reassigned)
         setRecentQuizzes(activeQuizzes.slice(0, 3));
       }
     } catch (error) {

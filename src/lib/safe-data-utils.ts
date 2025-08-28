@@ -92,6 +92,11 @@ export interface SafeQuiz {
   isActive: boolean;
   isUpcoming: boolean;
   isExpired: boolean;
+  isReassignment?: boolean;
+  reassignmentReason?: string;
+  availabilityMessage?: string;
+  availabilityStatus?: string;
+  enrollmentStatus?: string;
 }
 
 export function processSafeQuiz(rawQuiz: any): SafeQuiz | null {
@@ -115,7 +120,12 @@ export function processSafeQuiz(rawQuiz: any): SafeQuiz | null {
     score: rawQuiz.score !== undefined ? safeNumber(rawQuiz.score) : undefined,
     isActive: Boolean(rawQuiz.isActive),
     isUpcoming: Boolean(rawQuiz.isUpcoming),
-    isExpired: Boolean(rawQuiz.isExpired)
+    isExpired: Boolean(rawQuiz.isExpired),
+    isReassignment: Boolean(rawQuiz.isReassignment),
+    reassignmentReason: rawQuiz.reassignmentReason ? safeString(rawQuiz.reassignmentReason) : undefined,
+    availabilityMessage: rawQuiz.availabilityMessage ? safeString(rawQuiz.availabilityMessage) : undefined,
+    availabilityStatus: rawQuiz.availabilityStatus ? safeString(rawQuiz.availabilityStatus) : undefined,
+    enrollmentStatus: rawQuiz.enrollmentStatus ? safeString(rawQuiz.enrollmentStatus) : undefined
   };
 }
 

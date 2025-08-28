@@ -28,9 +28,9 @@ import {
 import QuizDiagnostics from "@/lib/monitoring/quiz-diagnostics";
 import {
   MobileQuizInterface,
-  ImprovedQuizLoader,
   SessionRecoveryPrompt,
 } from "@/components/student/MobileQuizInterface";
+import { BiblicalPageLoader } from "@/components/ui/biblical-loader";
 
 interface Question {
   id: string;
@@ -238,10 +238,6 @@ export default function ImprovedQuizTakingPage() {
         // Mark page loaded for diagnostics
         diagnostics.current.markPageLoaded();
         
-        // Update loading progress
-        setLoadingProgress(20);
-        setLoadingMessage("Checking for previous session...");
-        
         // Check if user explicitly wants to start fresh
         const urlParams = new URLSearchParams(window.location.search);
         const startFresh = urlParams.get('fresh') === 'true';
@@ -266,8 +262,7 @@ export default function ImprovedQuizTakingPage() {
           window.history.replaceState({}, '', newUrl);
         }
         
-        setLoadingProgress(50);
-        setLoadingMessage("Loading quiz questions...");
+        setLoadingMessage("Loading quiz...");
         
         // Start quiz normally
         const quizResponse = await fetch(`/api/student/quiz/${quizId}/start`, {
@@ -361,6 +356,15 @@ export default function ImprovedQuizTakingPage() {
         } else if (quizResponse.status === 425) {
           const data = await quizResponse.json();
           handleQuizNotStarted(data);
+        } else if (quizResponse.status === 403) {
+          const data = await quizResponse.json();
+          if (data.error === "Quiz time expired" || data.error === "Quiz has ended") {
+            setLoading(false);
+            alert(data.message || "This quiz has expired and is no longer available.");
+            router.push("/student/quizzes");
+          } else {
+            handleQuizError(data.message || "Access denied");
+          }
         } else {
           const data = await quizResponse.json();
           handleQuizError(data.message || "Failed to load quiz");
@@ -759,13 +763,7 @@ export default function ImprovedQuizTakingPage() {
 
   // Render states
   if (loading) {
-    return (
-      <ImprovedQuizLoader
-        message={loadingMessage}
-        progress={loadingProgress}
-        subMessage={isMobile ? "Optimizing for mobile experience..." : undefined}
-      />
-    );
+    return <BiblicalPageLoader text={loadingMessage} />;
   }
 
   if (showRecoveryPrompt && recoveryData) {

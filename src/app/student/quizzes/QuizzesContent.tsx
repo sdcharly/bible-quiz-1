@@ -55,8 +55,11 @@ export default function QuizzesContent() {
 
   // Performance: Memoize quiz status calculator
   const getQuizStatus = useCallback((quiz: SafeQuiz) => {
-    if (quiz.isExpired) {
+    if (quiz.isExpired && !quiz.isReassignment) {
       return { available: false, text: "Expired", expired: true, color: "red" as const };
+    }
+    if (quiz.isReassignment && !quiz.attempted) {
+      return { available: true, text: "Reassigned - Available", expired: false, color: "green" as const };
     }
     const available = quiz.startTime ? isQuizAvailable(quiz.startTime) : false;
     const relativeTime = quiz.startTime ? getRelativeTime(quiz.startTime) : "Not scheduled";
@@ -124,8 +127,8 @@ export default function QuizzesContent() {
   }, [searchParams, fetchQuizzes]);
 
   // Optimized enrollment handler
-  const handleEnroll = useCallback(async (quizId: string, isExpired: boolean) => {
-    if (isExpired) {
+  const handleEnroll = useCallback(async (quizId: string, isExpired: boolean, isReassignment: boolean = false) => {
+    if (isExpired && !isReassignment) {
       toast({
         title: "Quiz Expired",
         description: "This quiz has expired and is no longer available for enrollment.",
@@ -179,7 +182,7 @@ export default function QuizzesContent() {
       const matchesSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            quiz.description?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesFilter = filterStatus === "all" || 
-                           (filterStatus === "available" && !quiz.attempted && !quiz.isExpired) ||
+                           (filterStatus === "available" && !quiz.attempted && (!quiz.isExpired || quiz.isReassignment)) ||
                            (filterStatus === "completed" && quiz.attempted);
       return matchesSearch && matchesFilter;
     });
@@ -189,7 +192,7 @@ export default function QuizzesContent() {
   const filterCounts = useMemo(() => {
     return {
       all: quizzes.length,
-      available: quizzes.filter(q => !q.attempted && !q.isExpired).length,
+      available: quizzes.filter(q => !q.attempted && (!q.isExpired || q.isReassignment)).length,
       completed: quizzes.filter(q => q.attempted).length
     };
   }, [quizzes]);
@@ -278,7 +281,9 @@ export default function QuizzesContent() {
                   score={quiz.score}
                   isExpired={quiz.isExpired || false}
                   isAvailable={quizStatus.available}
-                  onEnroll={() => handleEnroll(quiz.id, quiz.isExpired || false)}
+                  isReassignment={quiz.isReassignment}
+                  reassignmentReason={quiz.reassignmentReason}
+                  onEnroll={() => handleEnroll(quiz.id, quiz.isExpired || false, quiz.isReassignment || false)}
                   onStart={() => handleStartQuiz(quiz.id)}
                   actionElement={
                     quiz.attempted && quiz.attemptId ? (
