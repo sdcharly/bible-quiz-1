@@ -245,17 +245,25 @@ export async function POST(
 
 
         // Sort questions - map with correct field names from database
-        // Note: Database returns snake_case but TypeScript expects camelCase
-        let sortedQuestions = quizQuestions.map((q: any) => ({
-          id: q.id,
-          questionText: q.question_text || q.questionText,  // Handle both cases
-          options: q.options,
-          orderIndex: q.order_index ?? q.orderIndex ?? 0,   // Handle both cases with nullish coalescing
-          book: q.book,
-          chapter: q.chapter,
-          topic: q.topic,
-          bloomsLevel: q.blooms_level || q.bloomsLevel,    // Handle both cases
-        }));
+        // CRITICAL FIX: Database columns use snake_case, must access them correctly
+        let sortedQuestions = quizQuestions.map((q: any) => {
+          // Access the actual database field names directly
+          return {
+            id: q.id,
+            questionText: q.question_text || q.questionText || '',
+            options: q.options || [],
+            orderIndex: typeof q.order_index === 'number' ? q.order_index : (q.orderIndex || 0),
+            book: q.book || null,
+            chapter: q.chapter || null,
+            topic: q.topic || null,
+            bloomsLevel: q.blooms_level || q.bloomsLevel || null,
+          };
+        });
+        
+        // Ensure we have valid questions
+        if (sortedQuestions.length === 0) {
+          logger.error("No questions found after mapping for existing attempt", { quizId });
+        }
 
         // For reassignments, always shuffle regardless of quiz setting
         // Note: quiz variable is already fetched earlier in the function
@@ -386,18 +394,34 @@ export async function POST(
       })
       .where(eq(enrollments.id, activeEnrollment.id));
 
-    // Prepare questions - map with correct field names from database
-    // Note: Database returns snake_case but TypeScript expects camelCase
-    let preparedQuestions = quizQuestions.map((q: any) => ({
-      id: q.id,
-      questionText: q.question_text || q.questionText,  // Handle both snake_case and camelCase
-      options: q.options,
-      orderIndex: q.order_index ?? q.orderIndex ?? 0,   // Handle both cases with nullish coalescing
-      book: q.book,
-      chapter: q.chapter,
-      topic: q.topic,
-      bloomsLevel: q.blooms_level || q.bloomsLevel,    // Handle both cases
-    }));
+    // Prepare questions - map with correct field names from database  
+    // CRITICAL FIX: Database columns use snake_case, must access them correctly
+    let preparedQuestions = quizQuestions.map((q: any) => {
+      // Access the actual database field names directly
+      return {
+        id: q.id,
+        questionText: q.question_text || q.questionText || '',
+        options: q.options || [],
+        orderIndex: typeof q.order_index === 'number' ? q.order_index : (q.orderIndex || 0),
+        book: q.book || null,
+        chapter: q.chapter || null,
+        topic: q.topic || null,
+        bloomsLevel: q.blooms_level || q.bloomsLevel || null,
+      };
+    });
+    
+    // Validate we have questions
+    if (preparedQuestions.length === 0) {
+      logger.error("CRITICAL: No questions prepared for quiz", {
+        quizId,
+        rawCount: quizQuestions.length,
+        firstRaw: quizQuestions[0] ? Object.keys(quizQuestions[0]) : 'no questions'
+      });
+      return NextResponse.json(
+        { error: "Quiz has no questions available" },
+        { status: 500 }
+      );
+    }
     
     // For reassignments, always shuffle regardless of quiz setting
     const shouldShuffle = quiz.shuffleQuestions || activeEnrollment.isReassignment;
