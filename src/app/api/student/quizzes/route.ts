@@ -48,18 +48,9 @@ async function getHandler(req: NextRequest) {
 
     const educatorIds = studentEducators.filter(se => se && se.educatorId).map(se => se.educatorId);
 
-    // Fetch ALL student enrollments first to know which quizzes to fetch
-    const studentEnrollments = await db
-      .select()
-      .from(enrollments)
-      .where(eq(enrollments.studentId, studentId));
-    
-    // Get unique quiz IDs from enrollments
-    const enrolledQuizIds = [...new Set(studentEnrollments.map(e => e.quizId))];
-    
     // Fetch data in parallel for better performance
-    const [educatorQuizzes, enrolledQuizzes, studentAttempts] = await Promise.all([
-      // Fetch published quizzes from associated educators
+    const [educatorQuizzes, studentEnrollments, studentAttempts] = await Promise.all([
+      // Fetch only published quizzes from associated educators
       db
         .select()
         .from(quizzes)
@@ -69,34 +60,17 @@ async function getHandler(req: NextRequest) {
             inArray(quizzes.educatorId, educatorIds)
           )
         ),
-      // Fetch ALL quizzes the student is enrolled in (including reassignments)
-      enrolledQuizIds.length > 0 
-        ? db
-            .select()
-            .from(quizzes)
-            .where(
-              and(
-                eq(quizzes.status, "published"),
-                inArray(quizzes.id, enrolledQuizIds)
-              )
-            )
-        : Promise.resolve([]),
+      // Fetch student enrollments
+      db
+        .select()
+        .from(enrollments)
+        .where(eq(enrollments.studentId, studentId)),
       // Fetch student attempts
       db
         .select()
         .from(quizAttempts)
         .where(eq(quizAttempts.studentId, studentId))
     ]);
-    
-    // Combine both quiz lists (educator quizzes + enrolled quizzes)
-    const allQuizzes = [...educatorQuizzes];
-    
-    // Add enrolled quizzes that aren't already in the list
-    for (const enrolledQuiz of enrolledQuizzes) {
-      if (!allQuizzes.find(q => q.id === enrolledQuiz.id)) {
-        allQuizzes.push(enrolledQuiz);
-      }
-    }
 
     // Create lookup maps for O(1) access
     // CRITICAL: For multiple enrollments (reassignments), prioritize the active/reassigned one
@@ -120,7 +94,7 @@ async function getHandler(req: NextRequest) {
     );
 
     // Map quiz data with enrollment and attempt status, filtering out expired quizzes
-    const quizzesWithStatus = allQuizzes
+    const quizzesWithStatus = educatorQuizzes
       .map(quiz => {
         // Basic validation
         if (!quiz || !quiz.id || !quiz.title) return null;
