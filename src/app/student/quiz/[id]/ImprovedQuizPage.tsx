@@ -129,7 +129,26 @@ export default function ImprovedQuizTakingPage() {
 
   // Memoize current question
   const currentQuestion = useMemo(() => {
-    if (!quiz || !quiz.questions[currentQuestionIndex]) return null;
+    if (!quiz) {
+      console.log('[QUIZ_DEBUG] No quiz object');
+      return null;
+    }
+    if (!quiz.questions) {
+      console.log('[QUIZ_DEBUG] Quiz has no questions array');
+      return null;
+    }
+    if (!Array.isArray(quiz.questions)) {
+      console.log('[QUIZ_DEBUG] Quiz questions is not an array:', typeof quiz.questions);
+      return null;
+    }
+    if (quiz.questions.length === 0) {
+      console.log('[QUIZ_DEBUG] Quiz questions array is empty');
+      return null;
+    }
+    if (!quiz.questions[currentQuestionIndex]) {
+      console.log('[QUIZ_DEBUG] No question at index:', currentQuestionIndex, 'Total questions:', quiz.questions.length);
+      return null;
+    }
     return quiz.questions[currentQuestionIndex];
   }, [quiz, currentQuestionIndex]);
 
@@ -791,14 +810,37 @@ export default function ImprovedQuizTakingPage() {
   }
 
   if (!quiz || !currentQuestion) {
+    // Log debug info
+    console.log('[QUIZ_DEBUG] Render check failed:', {
+      hasQuiz: !!quiz,
+      hasCurrentQuestion: !!currentQuestion,
+      quizId: quiz?.id,
+      questionsLength: quiz?.questions?.length || 0,
+      currentIndex: currentQuestionIndex
+    });
+    
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Unable to load quiz</p>
-          <Link href="/student/quizzes">
-            <Button className="mt-4">Back to Quizzes</Button>
-          </Link>
+          <p className="text-gray-600 dark:text-gray-400 mb-2">Unable to load quiz</p>
+          <p className="text-sm text-gray-500 mb-4">
+            {!quiz ? 'Quiz data not loaded' : 'Questions not available'}
+          </p>
+          <div className="space-y-2">
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="default"
+              className="w-full"
+            >
+              Try Again
+            </Button>
+            <Link href="/student/quizzes">
+              <Button variant="outline" className="w-full">
+                Back to Quizzes
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
