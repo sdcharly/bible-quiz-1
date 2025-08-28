@@ -214,12 +214,8 @@ export async function POST(
       else if (attempt.status === "in_progress") {
         // Calculate remaining time
         const elapsedTime = Math.floor((Date.now() - attempt.startTime.getTime()) / 1000);
-        const quiz = await db
-          .select()
-          .from(quizzes)
-          .where(eq(quizzes.id, quizId));
-          
-        const remainingTime = Math.max(0, (quiz[0].duration * 60) - elapsedTime);
+        // Use the quiz variable already fetched at the beginning of the function
+        const remainingTime = Math.max(0, (quiz.duration * 60) - elapsedTime);
         
         if (remainingTime <= 0) {
           // Time's up, mark as completed
@@ -272,6 +268,7 @@ export async function POST(
         logger.log("Existing attempt - Sorted questions count after filter:", sortedQuestions.length);
 
         // For reassignments, always shuffle regardless of quiz setting
+        // Note: quiz variable is already fetched earlier in the function
         const shouldShuffle = quiz.shuffleQuestions || activeEnrollment.isReassignment;
         
         if (shouldShuffle) {
