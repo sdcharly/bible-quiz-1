@@ -470,3 +470,5 @@ pool.end();
 - the production domain of this app is https://biblequiz.textr.in
 - Must always check for type errors,Hook dependency issues after you made change in the code. I dont want to fail on deployment.
 - ALWAYS use the database connection patterns documented above - NO GUESSING!
+- the timezone of the all times saved in database is UTC
+- all timings shown to the user is based on the user's timezone which is converted in the app and presented using functions.

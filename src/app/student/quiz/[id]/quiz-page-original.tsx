@@ -44,7 +44,7 @@ interface Answer {
   timeSpent: number;
 }
 
-export default function ImprovedQuizPage() {
+export default function OptimizedQuizTakingPage() {
   const router = useRouter();
   const params = useParams();
   const quizId = params.id as string;
