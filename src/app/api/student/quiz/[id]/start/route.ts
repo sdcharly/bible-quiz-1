@@ -277,60 +277,64 @@ export async function POST(
 
     // Quiz details already fetched above
 
-    // CRITICAL: Check if quiz has a scheduled time first
-    if (!quiz.startTime) {
-      // For deferred scheduling quizzes that haven't been scheduled yet
-      return NextResponse.json(
-        { 
-          error: "Quiz time not set",
-          message: "This quiz has not been scheduled yet. Please check back later or contact your educator.",
-          schedulingStatus: quiz.schedulingStatus || 'unknown'
-        },
-        { status: 425 }
-      );
-    }
-
-    // Check if quiz has started
-    const now = new Date();
-    if (now < quiz.startTime) {
-      // Calculate time until quiz starts
-      const timeUntilStart = quiz.startTime.getTime() - now.getTime();
-      const hoursUntilStart = Math.floor(timeUntilStart / (1000 * 60 * 60));
-      const minutesUntilStart = Math.floor((timeUntilStart % (1000 * 60 * 60)) / (1000 * 60));
-      
-      let timeMessage = '';
-      if (hoursUntilStart > 0) {
-        timeMessage = `in ${hoursUntilStart} hour${hoursUntilStart > 1 ? 's' : ''} and ${minutesUntilStart} minute${minutesUntilStart !== 1 ? 's' : ''}`;
-      } else if (minutesUntilStart > 0) {
-        timeMessage = `in ${minutesUntilStart} minute${minutesUntilStart !== 1 ? 's' : ''}`;
-      } else {
-        timeMessage = 'starting soon';
+    // For reassigned quizzes, skip time constraints
+    // Reassigned students can take the quiz at their convenience
+    if (!activeEnrollment.isReassignment) {
+      // CRITICAL: Check if quiz has a scheduled time first
+      if (!quiz.startTime) {
+        // For deferred scheduling quizzes that haven't been scheduled yet
+        return NextResponse.json(
+          { 
+            error: "Quiz time not set",
+            message: "This quiz has not been scheduled yet. Please check back later or contact your educator.",
+            schedulingStatus: quiz.schedulingStatus || 'unknown'
+          },
+          { status: 425 }
+        );
       }
-      
-      return NextResponse.json(
-        { 
-          error: "Quiz not started",
-          // Don't format the message here - let the frontend handle timezone conversion
-          message: `Quiz not yet started`,
-          startTime: quiz.startTime.toISOString(),
-          timezone: quiz.timezone || 'UTC',
-          timeUntilStart: timeMessage
-        },
-        { status: 425 }
-      );
-    }
 
-    // Check if quiz has ended
-    const endTime = new Date(quiz.startTime.getTime() + quiz.duration * 60 * 1000);
-    if (now > endTime) {
-      return NextResponse.json(
-        { 
-          error: "Quiz has ended",
-          message: "This quiz has already ended and is no longer available.",
-          endTime: endTime.toISOString()
-        },
-        { status: 410 } // 410 Gone
-      );
+      // Check if quiz has started (only for original enrollments)
+      const now = new Date();
+      if (now < quiz.startTime) {
+        // Calculate time until quiz starts
+        const timeUntilStart = quiz.startTime.getTime() - now.getTime();
+        const hoursUntilStart = Math.floor(timeUntilStart / (1000 * 60 * 60));
+        const minutesUntilStart = Math.floor((timeUntilStart % (1000 * 60 * 60)) / (1000 * 60));
+        
+        let timeMessage = '';
+        if (hoursUntilStart > 0) {
+          timeMessage = `in ${hoursUntilStart} hour${hoursUntilStart > 1 ? 's' : ''} and ${minutesUntilStart} minute${minutesUntilStart !== 1 ? 's' : ''}`;
+        } else if (minutesUntilStart > 0) {
+          timeMessage = `in ${minutesUntilStart} minute${minutesUntilStart !== 1 ? 's' : ''}`;
+        } else {
+          timeMessage = 'starting soon';
+        }
+        
+        return NextResponse.json(
+          { 
+            error: "Quiz not started",
+            // Don't format the message here - let the frontend handle timezone conversion
+            message: `Quiz not yet started`,
+            startTime: quiz.startTime.toISOString(),
+            timezone: quiz.timezone || 'UTC',
+            timeUntilStart: timeMessage
+          },
+          { status: 425 }
+        );
+      }
+
+      // Check if quiz has ended (only for original enrollments)
+      const endTime = new Date(quiz.startTime.getTime() + quiz.duration * 60 * 1000);
+      if (now > endTime) {
+        return NextResponse.json(
+          { 
+            error: "Quiz has ended",
+            message: "This quiz has already ended and is no longer available.",
+            endTime: endTime.toISOString()
+          },
+          { status: 410 } // 410 Gone
+        );
+      }
     }
 
     // Fetch quiz questions from database (caching disabled for now due to type issues)
@@ -407,7 +411,7 @@ export async function POST(
       duration: quiz.duration,
       totalQuestions: quiz.totalQuestions,
       questions: preparedQuestions,
-      startTime: quiz.startTime,
+      startTime: quiz.startTime || undefined,
       status: quiz.status
     };
     

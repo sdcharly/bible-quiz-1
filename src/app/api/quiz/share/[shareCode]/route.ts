@@ -59,6 +59,11 @@ export async function GET(
       );
     }
 
+    // Check if user is authenticated
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
     // Get educator info
     const [educator] = await db
       .select({
@@ -67,11 +72,6 @@ export async function GET(
       })
       .from(user)
       .where(eq(user.id, quiz.educatorId));
-
-    // Check if user is authenticated
-    const session = await auth.api.getSession({
-      headers: await headers()
-    });
 
     interface QuizShareResponse {
       id: string;
