@@ -105,6 +105,8 @@ export class QuizAutoSaveService {
    * Save to localStorage for quick recovery
    */
   private saveToLocalStorage(data: AutoSaveData): void {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    
     try {
       const key = `${QuizAutoSaveService.STORAGE_KEY_PREFIX}${this.attemptId}`;
       localStorage.setItem(key, JSON.stringify(data));
@@ -142,6 +144,8 @@ export class QuizAutoSaveService {
    * Load saved quiz data
    */
   static loadSavedData(attemptId: string): AutoSaveData | null {
+    if (typeof window === 'undefined' || !window.localStorage) return null;
+    
     try {
       const key = `${QuizAutoSaveService.STORAGE_KEY_PREFIX}${attemptId}`;
       const data = localStorage.getItem(key);
@@ -170,6 +174,8 @@ export class QuizAutoSaveService {
    * Clear saved data after successful submission
    */
   static clearSavedData(attemptId: string): void {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    
     try {
       const key = `${QuizAutoSaveService.STORAGE_KEY_PREFIX}${attemptId}`;
       localStorage.removeItem(key);
@@ -184,6 +190,8 @@ export class QuizAutoSaveService {
    */
   static getAllSavedAttempts(): AutoSaveData[] {
     const attempts: AutoSaveData[] = [];
+    
+    if (typeof window === 'undefined' || !window.localStorage) return attempts;
     
     try {
       for (let i = 0; i < localStorage.length; i++) {

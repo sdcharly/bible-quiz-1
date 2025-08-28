@@ -36,10 +36,14 @@ class QuizDiagnostics {
   
   constructor() {
     this.startTime = Date.now();
+    
+    // Check if we're in the browser before accessing window/document
+    const isBrowser = typeof window !== 'undefined';
+    
     this.diagnostic = {
-      browser: this.detectBrowser(),
-      device: this.detectDevice(),
-      screenSize: `${window.innerWidth}x${window.innerHeight}`,
+      browser: isBrowser ? this.detectBrowser() : 'SSR',
+      device: isBrowser ? this.detectDevice() : 'desktop',
+      screenSize: isBrowser ? `${window.innerWidth}x${window.innerHeight}` : '0x0',
       pageLoaded: false,
       quizLoaded: false,
       questionsVisible: false,
@@ -50,11 +54,14 @@ class QuizDiagnostics {
       tabSwitches: 0,
     };
     
-    // Only track critical errors
-    this.attachMinimalListeners();
+    // Only track critical errors if in browser
+    if (isBrowser) {
+      this.attachMinimalListeners();
+    }
   }
   
   private detectBrowser(): string {
+    if (typeof navigator === 'undefined') return 'SSR';
     const ua = navigator.userAgent;
     if (ua.includes('Chrome') && !ua.includes('Edg')) return 'Chrome';
     if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
@@ -65,6 +72,7 @@ class QuizDiagnostics {
   }
   
   private detectDevice(): 'mobile' | 'tablet' | 'desktop' {
+    if (typeof window === 'undefined') return 'desktop';
     const width = window.innerWidth;
     const hasTouch = 'ontouchstart' in window;
     
