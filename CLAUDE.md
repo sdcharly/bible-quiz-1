@@ -241,6 +241,27 @@ import { Label } from "@/components/ui/label";
 
 **Audit Report**: See `/docs/technical/SHADCN_COMPONENT_USAGE_AUDIT.md` for current issues that need fixing.
 
+## Quiz Enrollment Status Management (CRITICAL)
+
+**IMPORTANT**: The system uses database-controlled enrollment and attempt statuses. These must be kept in sync.
+
+### Status Rules:
+1. **When quiz is completed**: Update enrollment status to 'completed' 
+2. **When only abandoned attempts exist**: Enrollment should be 'enrolled' (not 'in_progress')
+3. **Available quiz count**: Only shows non-attempted, non-expired quizzes (or reassignments)
+
+### Maintenance Scripts:
+- `/scripts/fix-enrollment-statuses.js` - Fixes inconsistent enrollment statuses
+- `/scripts/cleanup-stale-quiz-attempts.js` - Marks old in-progress attempts as abandoned
+
+### Key Fix Applied:
+The submit endpoint (`/api/student/quiz/[id]/submit/route.ts`) now automatically updates enrollment status to 'completed' when a quiz is submitted.
+
+### Dashboard Available Quiz Logic:
+- **Shows on dashboard**: Completed quizzes (for results) + Active/upcoming + Reassignments
+- **Counts as available**: Only non-attempted quizzes that are actually available to take
+- **Does NOT count**: Completed quizzes (even though they show for viewing results)
+
 ## Database Handling Guidelines (CRITICAL - SAFETY FIRST)
 
 **IMPORTANT**: Always use environment variables for database connections. NEVER hardcode credentials.

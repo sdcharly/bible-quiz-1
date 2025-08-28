@@ -175,7 +175,7 @@ export async function POST(
     }
 
     // Check if student has already attempted this specific enrollment
-    const existingAttempt = await db
+    const existingAttempts = await db
       .select()
       .from(quizAttempts)
       .where(
@@ -184,111 +184,110 @@ export async function POST(
           eq(quizAttempts.studentId, studentId),
           eq(quizAttempts.enrollmentId, activeEnrollment.id)
         )
-      );
+      )
+      .orderBy(desc(quizAttempts.startTime));
 
-    if (existingAttempt.length > 0) {
-      const attempt = existingAttempt[0];
+    // First check if ANY attempt is completed - if so, block retake
+    const completedAttempt = existingAttempts.find(a => a.status === "completed");
+    if (completedAttempt) {
+      logger.info("Blocking quiz retake - already completed", {
+        studentId,
+        quizId,
+        completedAttemptId: completedAttempt.id,
+        score: completedAttempt.score,
+        completedAt: completedAttempt.endTime
+      });
+      return NextResponse.json(
+        { 
+          error: "Quiz already completed",
+          message: "You have already completed this quiz. Each quiz can only be taken once.",
+          attemptId: completedAttempt.id
+        },
+        { status: 403 }
+      );
+    }
+
+    // Now check for in-progress attempts to resume
+    const inProgressAttempt = existingAttempts.find(a => a.status === "in_progress");
+    
+    if (inProgressAttempt) {
+      // If quiz is in progress, resume it
+      // Calculate remaining time
+      const elapsedTime = Math.floor((Date.now() - inProgressAttempt.startTime.getTime()) / 1000);
+      // Use the quiz variable already fetched at the beginning of the function
+      const remainingTime = Math.max(0, (quiz.duration * 60) - elapsedTime);
       
-      // If quiz was abandoned, allow starting fresh by creating a new attempt
-      // Don't return early, let it continue to create new attempt logic below
-      if (attempt.status === "abandoned") {
-        logger.info("Previous attempt was abandoned, creating new attempt", {
-          studentId,
-          quizId,
-          previousAttemptId: attempt.id,
-        });
-        // Continue to new attempt creation below
-      }
-      // If quiz is completed, don't allow restart
-      else if (attempt.status === "completed") {
+      if (remainingTime <= 0) {
+        // Time's up, mark as completed
+        await db
+          .update(quizAttempts)
+          .set({ 
+            status: "completed",
+            endTime: new Date()
+          })
+          .where(eq(quizAttempts.id, inProgressAttempt.id));
+          
         return NextResponse.json(
           { 
-            error: "Quiz already completed",
-            message: "You have already completed this quiz. Each quiz can only be taken once.",
-            attemptId: attempt.id
+            error: "Quiz time expired",
+            message: "Your quiz time has expired. The quiz has been automatically submitted.",
+            attemptId: inProgressAttempt.id
           },
           { status: 403 }
         );
       }
-      // If quiz is in progress, resume it
-      else if (attempt.status === "in_progress") {
-        // Calculate remaining time
-        const elapsedTime = Math.floor((Date.now() - attempt.startTime.getTime()) / 1000);
-        // Use the quiz variable already fetched at the beginning of the function
-        const remainingTime = Math.max(0, (quiz.duration * 60) - elapsedTime);
-        
-        if (remainingTime <= 0) {
-          // Time's up, mark as completed
-          await db
-            .update(quizAttempts)
-            .set({ 
-              status: "completed",
-              endTime: new Date()
-            })
-            .where(eq(quizAttempts.id, attempt.id));
-            
-          return NextResponse.json(
-            { 
-              error: "Quiz time expired",
-              message: "Your quiz time has expired. The quiz has been automatically submitted.",
-              attemptId: attempt.id
-            },
-            { status: 403 }
-          );
-        }
-        
-        // Return existing quiz data with remaining time
-        const quizQuestions = await db
-          .select()
-          .from(questions)
-          .where(eq(questions.quizId, quizId));
+      
+      // Return existing quiz data with remaining time
+      const quizQuestions = await db
+        .select()
+        .from(questions)
+        .where(eq(questions.quizId, quizId));
 
 
-        // Sort questions - map with correct field names from database
-        // CRITICAL FIX: Database columns use snake_case, must access them correctly
-        let sortedQuestions = quizQuestions.map((q: any) => {
-          // Access the actual database field names directly
-          return {
-            id: q.id,
-            questionText: q.question_text || q.questionText || '',
-            options: q.options || [],
-            orderIndex: typeof q.order_index === 'number' ? q.order_index : (q.orderIndex || 0),
-            book: q.book || null,
-            chapter: q.chapter || null,
-            topic: q.topic || null,
-            bloomsLevel: q.blooms_level || q.bloomsLevel || null,
-          };
-        });
-        
-        // Ensure we have valid questions
-        if (sortedQuestions.length === 0) {
-          logger.error("No questions found after mapping for existing attempt", { quizId });
-        }
-
-        // For reassignments, always shuffle regardless of quiz setting
-        // Note: quiz variable is already fetched earlier in the function
-        const shouldShuffle = quiz.shuffleQuestions || activeEnrollment.isReassignment;
-        
-        if (shouldShuffle) {
-          // Use a seed based on attemptId for consistent shuffle per attempt
-          sortedQuestions = shuffleArray(sortedQuestions, attempt.id);
-        } else {
-          sortedQuestions.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-        }
-
-        return NextResponse.json({
-          quiz: {
-            id: quiz.id,
-            title: quiz.title,
-            duration: quiz.duration,
-            totalQuestions: quiz.totalQuestions,
-            questions: sortedQuestions
-          },
-          attemptId: attempt.id,
-          remainingTime,
-          resumed: true
-        });
+      // Sort questions - map with correct field names from database
+      // CRITICAL FIX: Database columns use snake_case, must access them correctly
+      let sortedQuestions = quizQuestions.map((q: any) => {
+        // Access the actual database field names directly
+        return {
+          id: q.id,
+          questionText: q.question_text || q.questionText || '',
+          options: q.options || [],
+          orderIndex: typeof q.order_index === 'number' ? q.order_index : (q.orderIndex || 0),
+          book: q.book || null,
+          chapter: q.chapter || null,
+          topic: q.topic || null,
+          bloomsLevel: q.blooms_level || q.bloomsLevel || null,
+        };
+      });
+      
+      // Ensure we have valid questions
+      if (sortedQuestions.length === 0) {
+        logger.error("No questions found after mapping for existing attempt", { quizId });
       }
+
+      // For reassignments, always shuffle regardless of quiz setting
+      // Note: quiz variable is already fetched earlier in the function
+      const shouldShuffle = quiz.shuffleQuestions || activeEnrollment.isReassignment;
+      
+      if (shouldShuffle) {
+        // Use a seed based on attemptId for consistent shuffle per attempt
+        sortedQuestions = shuffleArray(sortedQuestions, inProgressAttempt.id);
+      } else {
+        sortedQuestions.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      }
+
+      return NextResponse.json({
+        quiz: {
+          id: quiz.id,
+          title: quiz.title,
+          duration: quiz.duration,
+          totalQuestions: quiz.totalQuestions,
+          questions: sortedQuestions
+        },
+        attemptId: inProgressAttempt.id,
+        remainingTime,
+        resumed: true
+      });
     }
 
     // Quiz details already fetched above
@@ -311,6 +310,19 @@ export async function POST(
 
       // Check if quiz has started (only for original enrollments)
       const now = new Date();
+      
+      // Debug logging
+      logger.force('[CRITICAL_DEBUG] Time comparison:', {
+        now: now.toISOString(),
+        nowTimestamp: now.getTime(),
+        quizStartTime: quiz.startTime,
+        quizStartTimeISO: quiz.startTime?.toISOString ? quiz.startTime.toISOString() : 'Invalid Date',
+        quizStartTimeTimestamp: quiz.startTime?.getTime ? quiz.startTime.getTime() : 'Invalid',
+        comparison: now < quiz.startTime,
+        quizId: quizId,
+        isReassignment: activeEnrollment.isReassignment
+      });
+      
       if (now < quiz.startTime) {
         // Calculate time until quiz starts
         const timeUntilStart = quiz.startTime.getTime() - now.getTime();

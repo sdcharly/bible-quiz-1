@@ -3,7 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import * as crypto from "crypto";
 import { db } from "@/lib/db";
-import { quizAttempts, questionResponses, questions, quizzes, user } from "@/lib/schema";
+import { quizAttempts, questionResponses, questions, quizzes, user, enrollments } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { quizCache } from "@/lib/quiz-cache";
@@ -206,6 +206,22 @@ export async function POST(
         updatedAt: new Date(),
       })
       .where(eq(quizAttempts.id, finalAttemptId));
+
+    // Update enrollment status to completed if this attempt has an enrollment
+    if (attemptToUpdate.enrollmentId) {
+      await db
+        .update(enrollments)
+        .set({
+          status: "completed",
+          completedAt: new Date()
+        })
+        .where(eq(enrollments.id, attemptToUpdate.enrollmentId));
+      
+      logger.info("Updated enrollment status to completed", {
+        enrollmentId: attemptToUpdate.enrollmentId,
+        attemptId: finalAttemptId
+      });
+    }
 
     // Save individual question responses
     for (const answer of evaluatedAnswers) {
