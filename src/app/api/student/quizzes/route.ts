@@ -113,17 +113,24 @@ async function getHandler(req: NextRequest) {
         
         const availability = getQuizAvailabilityStatus(quizSchedulingInfo);
         
-        // Filter out ended quizzes unless the student has already attempted them
-        const attempt = attemptMap.get(quiz.id);
-        if (availability.status === 'ended' && !attempt) {
-          return null;
-        }
-        
         const enrollment = enrollmentMap.get(quiz.id);
+        const attempt = attemptMap.get(quiz.id);
         
         // For reassigned quizzes, show special indicator
         const isReassignment = enrollment?.isReassignment || false;
         const reassignmentReason = enrollment?.reassignmentReason || null;
+        
+        // Filter out ended quizzes UNLESS:
+        // 1. Student has already attempted them OR
+        // 2. This is a reassignment (reassignments bypass time constraints)
+        if (availability.status === 'ended' && !attempt && !isReassignment) {
+          return null;
+        }
+        
+        // For reassignments, override availability status
+        const effectiveAvailability = isReassignment && !attempt
+          ? { status: 'active', message: 'Reassigned - Available to take' }
+          : availability;
         
         return {
           id: quiz.id,
@@ -138,11 +145,11 @@ async function getHandler(req: NextRequest) {
           attempted: !!attempt,
           attemptId: attempt?.id,
           score: attempt?.score,
-          isActive: availability.status === 'active',
-          isUpcoming: availability.status === 'upcoming',
-          isExpired: availability.status === 'ended',
-          availabilityMessage: availability.message,
-          availabilityStatus: availability.status,
+          isActive: isReassignment ? !attempt : availability.status === 'active',
+          isUpcoming: isReassignment ? false : availability.status === 'upcoming',
+          isExpired: isReassignment ? false : availability.status === 'ended',
+          availabilityMessage: effectiveAvailability.message,
+          availabilityStatus: effectiveAvailability.status,
           isReassignment,
           reassignmentReason,
           enrollmentStatus: enrollment?.status
