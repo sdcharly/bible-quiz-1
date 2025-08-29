@@ -1,0 +1,133 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+early_access: false
+enable_free_tier: true
+
+# Review Settings
+reviews:
+  profile: "assertive"  # More thorough reviews for production code
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false  # No poems needed for professional reviews
+  review_status: true
+  collapse_walkthrough: true
+  
+  # Path-specific instructions for your project structure
+  path_instructions:
+    - path: "src/components/**"
+      instructions: |
+        - Ensure all components use shadcn/ui components, never raw HTML elements
+        - Verify proper TypeScript types and interfaces
+        - Check for proper React hook dependencies
+        - Ensure components follow the educator-v2 patterns when applicable
+    
+    - path: "src/app/api/**"
+      instructions: |
+        - Verify authentication and authorization checks
+        - Ensure proper error handling with try-catch blocks
+        - Check for SQL injection prevention with parameterized queries
+        - Verify no console.log statements, only logger utility usage
+        - Check for proper database connection handling
+    
+    - path: "src/lib/**"
+      instructions: |
+        - Ensure logger utility is used instead of console statements
+        - Check for performance optimizations
+        - Verify proper error handling
+        - Check for proper TypeScript typing
+    
+    - path: "src/app/(educator)/**"
+      instructions: |
+        - Ensure amber theme colors are used (never blue/purple)
+        - Verify educator-v2 components are used
+        - Check TabNavigation component is used for tabs
+        - Ensure proper loading and empty states
+    
+    - path: "scripts/**"
+      instructions: |
+        - Verify environment variables are loaded with dotenv
+        - Check for proper database connection handling
+        - Ensure destructive operations have confirmation prompts
+        - Verify proper error handling and logging
+
+# Auto Review Settings
+auto_review:
+  enabled: true
+  drafts: false  # Don't review draft PRs
+
+# Chat Settings
+chat:
+  auto_reply: true
+
+# Knowledge Base
+knowledge_base:
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+
+# Tools Configuration
+tools:
+  eslint:
+    enabled: true
+  prettier:
+    enabled: true
+  typescript:
+    enabled: true
+  biome:
+    enabled: false  # Using ESLint/Prettier instead
+  
+# Custom Instructions
+tone_instructions: |
+  You are reviewing code for a Next.js 14 TypeScript project with these critical requirements:
+  
+  Performance:
+  - MUST use logger utility from @/lib/logger instead of console.log/error/warn
+  - Check for proper performance optimizations, especially in timezone operations
+  
+  UI Standards:
+  - MUST use shadcn/ui components, NEVER raw HTML form elements
+  - Educator pages MUST use amber colors and educator-v2 components
+  - MUST use TabNavigation component for tabs in educator panels
+  
+  Security:
+  - Check for SQL injection prevention with parameterized queries
+  - Verify no hardcoded credentials or secrets
+  - Ensure proper authentication checks in API routes
+  - Check for XSS vulnerabilities in user input handling
+  
+  Database:
+  - Verify POSTGRES_URL is used from environment variables
+  - Check for proper connection handling and cleanup
+  - Ensure snake_case is used in raw SQL, camelCase in Drizzle ORM
+  
+  TypeScript:
+  - Ensure proper type definitions, avoid 'any' type
+  - Check for proper React hook dependencies
+  - Verify Next.js App Router patterns are followed
+  
+  LightRAG Integration:
+  - Verify correct usage of track_id vs document_id
+  - Check proper status checking flow for document processing
+
+# Ignored Patterns
+ignored_titles:
+  - "WIP"
+  - "DO NOT REVIEW"
+  - "[skip-review]"
+  - "[skip review]"
+  - "Debug:"
+
+ignored_branches:
+  - "experimental/*"
+  - "temp/*"
+  - "test/*"
+
+# File patterns to ignore
+ignored_paths:
+  - "*.min.js"
+  - "*.min.css"
+  - "node_modules/**"
+  - ".next/**"
+  - "dist/**"
+  - "build/**"
