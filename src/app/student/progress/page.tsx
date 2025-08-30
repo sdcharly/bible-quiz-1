@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { logger } from "@/lib/logger";
+import { fetchWithOptimizedCache } from "@/lib/api-cache";
+import { withErrorBoundary } from "@/components/student/StudentPageWrapper";
 import {
   PageContainer,
   PageHeader,
@@ -47,7 +49,7 @@ interface ProgressStats {
   recentStreak: number;
 }
 
-export default function StudentProgressPage() {
+function StudentProgressPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ProgressStats>({
     totalQuizzes: 0,
@@ -65,19 +67,17 @@ export default function StudentProgressPage() {
 
   const fetchProgressData = async () => {
     try {
-      const [statsResponse, attemptsResponse] = await Promise.all([
-        fetch('/api/student/progress/stats'),
-        fetch('/api/student/results?limit=5')
+      const [statsResult, attemptsResult] = await Promise.all([
+        fetchWithOptimizedCache('/api/student/progress/stats', { ttl: 120 }), // 2 min cache
+        fetchWithOptimizedCache('/api/student/results?limit=5', { ttl: 60 }) // 1 min cache
       ]);
       
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        setStats(statsData);
+      if (statsResult.data) {
+        setStats(statsResult.data);
       }
       
-      if (attemptsResponse.ok) {
-        const attemptsData = await attemptsResponse.json();
-        const completedAttempts = (attemptsData.results || [])
+      if (attemptsResult.data) {
+        const completedAttempts = (attemptsResult.data.results || [])
           .filter((r: any) => r.status === 'completed')
           .slice(0, 5);
         setRecentAttempts(completedAttempts);
@@ -320,3 +320,5 @@ export default function StudentProgressPage() {
     </PageContainer>
   );
 }
+
+export default withErrorBoundary(StudentProgressPage);

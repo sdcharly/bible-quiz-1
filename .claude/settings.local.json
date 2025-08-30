@@ -21,7 +21,8 @@
       "mcp__playwright__browser_click",
       "Bash(git push:*)",
       "mcp__playwright__browser_close",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(chmod:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

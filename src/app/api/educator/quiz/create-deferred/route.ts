@@ -7,7 +7,7 @@ import { quizzes, questions, documents } from "@/lib/schema";
 import { QuestionValidator, QuestionToValidate } from "@/lib/question-validator";
 import { auth } from "@/lib/auth";
 import { checkEducatorPermission, checkEducatorLimits, getPermissionMessage } from "@/lib/permissions";
-import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/feature-flags";
+import { isFeatureEnabled, FEATURES } from "@/lib/feature-flags";
 
 
 /**
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const educatorId = session.user.id;
 
     // Check if deferred time feature is enabled for this educator
-    const isDeferredTimeEnabled = isFeatureEnabled(FEATURE_FLAGS.DEFERRED_TIME, educatorId);
+    const isDeferredTimeEnabled = isFeatureEnabled('DEFERRED_TIME');
     
     // Check if educator is approved and has permission to create quizzes
     const canCreate = await checkEducatorPermission(educatorId, 'canPublishQuiz');

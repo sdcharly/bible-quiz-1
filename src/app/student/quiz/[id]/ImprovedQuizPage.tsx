@@ -15,6 +15,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { useToast } from "@/hooks/use-toast";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 interface Question {
   id: string;
@@ -48,6 +50,7 @@ export default function ImprovedQuizPage() {
   const router = useRouter();
   const params = useParams();
   const quizId = params.id as string;
+  const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -65,6 +68,8 @@ export default function ImprovedQuizPage() {
   const quizRef = useRef<QuizAttempt | null>(null);
   const questionStartTimeRef = useRef(Date.now());
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Memoize current question to avoid recalculation
   const currentQuestion = useMemo(() => {
@@ -78,8 +83,14 @@ export default function ImprovedQuizPage() {
 
     const fetchQuiz = async () => {
       try {
+        // Use AbortController for memory optimization
+        if (isFeatureEnabled('MEMORY_OPTIMIZATION')) {
+          abortControllerRef.current = new AbortController();
+        }
+        
         const response = await fetch(`/api/student/quiz/${quizId}/start`, {
           method: "POST",
+          signal: abortControllerRef.current?.signal,
         });
         
         if (!mounted) return;
@@ -93,7 +104,10 @@ export default function ImprovedQuizPage() {
           setTimeRemaining(remainingTime);
           timeRemainingRef.current = remainingTime;
           if (data.resumed) {
-            alert("Resuming your in-progress quiz");
+            toast({
+              title: "Quiz Resumed",
+              description: "Resuming your in-progress quiz",
+            });
           }
           setLoading(false);
         } else if (response.status === 403) {
@@ -104,21 +118,37 @@ export default function ImprovedQuizPage() {
             setAttemptId(data.attemptId);
             setLoading(false);
           } else {
-            alert(data.message || "Cannot start quiz");
+            toast({
+              title: "Access Denied",
+              description: data.message || "Cannot start quiz",
+              variant: "destructive"
+            });
             router.push("/student/quizzes");
           }
         } else if (response.status === 425) {
           const data = await response.json();
-          alert(data.message || "Quiz not started yet");
+          toast({
+            title: "Quiz Not Available",
+            description: data.message || "Quiz not started yet",
+            variant: "destructive"
+          });
           router.push("/student/quizzes");
         } else {
           const data = await response.json();
-          alert(data.message || "Failed to load quiz");
+          toast({
+            title: "Error",
+            description: data.message || "Failed to load quiz",
+            variant: "destructive"
+          });
           router.push("/student/quizzes");
         }
       } catch (error) {
         logger.error("Error loading quiz:", error);
-        alert("Network error. Please check your connection.");
+        toast({
+          title: "Network Error",
+          description: "Please check your connection and try again.",
+          variant: "destructive"
+        });
         router.push("/student/quizzes");
       }
     };
@@ -127,6 +157,38 @@ export default function ImprovedQuizPage() {
 
     return () => {
       mounted = false;
+      
+      // Enhanced cleanup for memory optimization
+      if (isFeatureEnabled('MEMORY_OPTIMIZATION')) {
+        // Clean up all timers
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+          autoSaveTimeoutRef.current = null;
+        }
+        
+        // Abort any pending API calls
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          abortControllerRef.current = null;
+        }
+        
+        // Clear refs to prevent memory leaks
+        quizRef.current = null;
+        timeRemainingRef.current = 0;
+        
+        logger.debug('Quiz page cleanup completed');
+      } else {
+        // Legacy cleanup - minimal
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      }
     };
   }, [quizId, router]);
 

@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { memo } from "react";
 import { authClient } from "@/lib/auth-client";
 import { isStudent } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { GroupInfo } from "@/components/student/GroupInfo";
 import { useSessionManager } from "@/hooks/useSessionManager";
-import { fetchWithCache } from "@/lib/api-cache";
+import { fetchWithOptimizedCache } from "@/lib/api-cache";
 import { logger } from "@/lib/logger";
+import { withErrorBoundary } from "@/components/student/StudentPageWrapper";
 import { 
   processSafeQuiz, 
   processSafeQuizResult,
@@ -56,7 +58,31 @@ interface QuizAttempt {
   score: number;
 }
 
-export default function StudentDashboard() {
+// Memoized components to prevent unnecessary re-renders
+const MemoizedStatCard = memo(StatCard);
+const MemoizedQuizCard = memo(({ quiz }: { quiz: any }) => (
+  <Link 
+    key={quiz.id} 
+    href={`/student/quiz/${quiz.id}`}
+    className="block p-4 border border-amber-100 dark:border-amber-900/20 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors"
+  >
+    <div className="flex items-center justify-between">
+      <div>
+        <h3 className="font-medium text-gray-900 dark:text-white">
+          {quiz.title}
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          {quiz.totalQuestions} questions • {quiz.duration} minutes
+        </p>
+      </div>
+      <ChevronRight className="h-5 w-5 text-gray-400" />
+    </div>
+  </Link>
+));
+
+MemoizedQuizCard.displayName = 'MemoizedQuizCard';
+
+function StudentDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<{ name?: string; email?: string; role?: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -130,19 +156,18 @@ export default function StudentDashboard() {
     initializeDashboard();
   }, [router]);
   
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
-      // Parallel API calls with caching
-      const [quizzesResponse, resultsResponse] = await Promise.all([
-        fetchWithCache('/api/student/quizzes', {}, 300), // 5 min cache
-        fetchWithCache('/api/student/results', {}, 60)   // 1 min cache
+      // Parallel API calls with optimized caching
+      const [quizzesResult, resultsResult] = await Promise.all([
+        fetchWithOptimizedCache('/api/student/quizzes/optimized?status=all', { ttl: 300 }), // 5 min cache
+        fetchWithOptimizedCache('/api/student/results', { ttl: 60 })   // 1 min cache
       ]);
 
-      if (quizzesResponse.ok && resultsResponse.ok) {
-        const [quizzesData, resultsData] = await Promise.all([
-          quizzesResponse.json(),
-          resultsResponse.json()
-        ]);
+      const quizzesData = quizzesResult.data;
+      const resultsData = resultsResult.data;
+
+      if (quizzesData && resultsData) {
 
         // Process quiz data safely with null handling
         const processedQuizzes = safeArray(
@@ -171,21 +196,35 @@ export default function StudentDashboard() {
           ? Math.round(totalScore / completedAttempts.length) 
           : 0;
 
-        // Set stats
-        setStats({
+        // Batch state updates to prevent unnecessary re-renders
+        const newStats = {
           quizzesTaken: completedAttempts.length,
           averageScore: avgScore,
           quizzesAvailable: available,
           upcomingQuizzes: upcoming
+        };
+
+        // Only update if stats actually changed
+        setStats(prevStats => {
+          if (JSON.stringify(prevStats) !== JSON.stringify(newStats)) {
+            return newStats;
+          }
+          return prevStats;
         });
 
         // Set recent quizzes (last 3 non-expired or reassigned)
-        setRecentQuizzes(activeQuizzes.slice(0, 3));
+        const newRecentQuizzes = activeQuizzes.slice(0, 3);
+        setRecentQuizzes(prevQuizzes => {
+          if (JSON.stringify(prevQuizzes) !== JSON.stringify(newRecentQuizzes)) {
+            return newRecentQuizzes;
+          }
+          return prevQuizzes;
+        });
       }
     } catch (error) {
       logger.error('Error fetching dashboard data:', error);
     }
-  };
+  }, []); // No dependencies - function is stable
 
   if (loading) {
     return <LoadingState fullPage text="Preparing your dashboard..." />;
@@ -210,14 +249,14 @@ export default function StudentDashboard() {
       {/* Stats Grid */}
       <Section transparent noPadding>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
+          <MemoizedStatCard
             label="Quizzes Taken"
             value={stats.quizzesTaken}
             icon={CheckCircle}
             iconColor="text-green-600 dark:text-green-400"
             description={stats.quizzesTaken === 0 ? "Start your first quiz!" : undefined}
           />
-          <StatCard
+          <MemoizedStatCard
             label="Average Score"
             value={`${stats.averageScore}%`}
             icon={Trophy}
@@ -226,13 +265,13 @@ export default function StudentDashboard() {
               direction: "up"
             } : undefined}
           />
-          <StatCard
+          <MemoizedStatCard
             label="Available"
             value={stats.quizzesAvailable}
             icon={BookOpen}
             description="Ready to take"
           />
-          <StatCard
+          <MemoizedStatCard
             label="Upcoming"
             value={stats.upcomingQuizzes}
             icon={Calendar}
@@ -264,23 +303,7 @@ export default function StudentDashboard() {
           {recentQuizzes.length > 0 ? (
             <div className="space-y-3">
               {recentQuizzes.filter((quiz: Quiz) => quiz && quiz.id && quiz.title).map((quiz: Quiz) => (
-                <Link 
-                  key={quiz.id} 
-                  href={`/student/quiz/${quiz.id}`}
-                  className="block p-4 border border-amber-100 dark:border-amber-900/20 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white">
-                        {quiz.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {quiz.totalQuestions} questions • {quiz.duration} minutes
-                      </p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </div>
-                </Link>
+                <MemoizedQuizCard key={quiz.id} quiz={quiz} />
               ))}
             </div>
           ) : (
@@ -388,3 +411,5 @@ export default function StudentDashboard() {
     </PageContainer>
   );
 }
+
+export default withErrorBoundary(StudentDashboard);

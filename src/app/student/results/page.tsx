@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
+import { fetchWithOptimizedCache } from "@/lib/api-cache";
+import { withErrorBoundary } from "@/components/student/StudentPageWrapper";
 import { 
   processSafeQuizResult, 
   safeArray,
@@ -27,20 +29,37 @@ import {
   Target
 } from "lucide-react";
 
-export default function StudentResultsPage() {
+function StudentResultsPage() {
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<SafeQuizResult[]>([]);
   const [filter, setFilter] = useState<'all' | 'passed' | 'failed'>('all');
-
-  useEffect(() => {
-    fetchResults();
+  
+  // Memoized filter handlers to prevent re-renders
+  const handleFilterChange = useCallback((newFilter: 'all' | 'passed' | 'failed') => {
+    setFilter(newFilter);
   }, []);
 
-  const fetchResults = async () => {
+  useEffect(() => {
+    let mounted = true;
+    
+    const loadResults = async () => {
+      if (mounted) {
+        await fetchResults();
+      }
+    };
+    
+    loadResults();
+    
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const fetchResults = useCallback(async () => {
     try {
-      const response = await fetch('/api/student/results');
-      if (response.ok) {
-        const data = await response.json();
+      const result = await fetchWithOptimizedCache('/api/student/results', { ttl: 60 }); // 1 min cache
+      if (result.data) {
+        const data = result.data;
         
         // Use safe processing to handle null values properly
         const processedResults = safeArray(
@@ -56,7 +75,7 @@ export default function StudentResultsPage() {
         
         setResults(processedResults);
       } else {
-        logger.error('Failed to fetch results:', response.status);
+        logger.error('Failed to fetch results');
         setResults([]); // Set empty array on error
       }
     } catch (error) {
@@ -65,7 +84,7 @@ export default function StudentResultsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Memoize filtered results and statistics
   const filteredResults = useMemo(() => {
@@ -152,7 +171,7 @@ export default function StudentResultsPage() {
               <Button
                 key={option.value}
                 variant={filter === option.value ? "default" : "outline"}
-                onClick={() => setFilter(option.value as 'all' | 'passed' | 'failed')}
+                onClick={() => handleFilterChange(option.value as 'all' | 'passed' | 'failed')}
                 className={filter === option.value
                   ? "bg-amber-600 hover:bg-amber-700 text-white border-amber-600"
                   : "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-900/20"
@@ -210,3 +229,5 @@ export default function StudentResultsPage() {
     </PageContainer>
   );
 }
+
+export default withErrorBoundary(StudentResultsPage);

@@ -32,7 +32,7 @@ import {
   BookOpenCheck, Brain, RefreshCw, ArrowLeft, ArrowRight,
   FileText, CheckCircle, Check
 } from "lucide-react";
-import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/feature-flags";
+import { isFeatureEnabled, FEATURES } from "@/lib/feature-flags";
 import { PageHeader, PageContainer, Section, LoadingState } from "@/components/educator-v2";
 import { logger } from "@/lib/logger";
 
@@ -87,7 +87,7 @@ function CreateQuizContent() {
           setEducatorId(data.user.id);
           // Check feature flag after we have the educator ID
           try {
-            const flagEnabled = isFeatureEnabled(FEATURE_FLAGS.DEFERRED_TIME, data.user.id);
+            const flagEnabled = isFeatureEnabled('DEFERRED_TIME');
             setIsDeferredEnabled(flagEnabled);
             // Update config with the feature flag value
             setConfig(prev => ({
@@ -102,7 +102,7 @@ function CreateQuizContent() {
           setEducatorId('');
           // Check if feature flag is enabled globally (100% rollout)
           try {
-            const flagEnabled = isFeatureEnabled(FEATURE_FLAGS.DEFERRED_TIME, '');
+            const flagEnabled = isFeatureEnabled('DEFERRED_TIME');
             setIsDeferredEnabled(flagEnabled);
             setConfig(prev => ({
               ...prev,
@@ -119,7 +119,7 @@ function CreateQuizContent() {
         // If error, still allow but feature flag will default to false
         setEducatorId('');
         try {
-          const flagEnabled = isFeatureEnabled(FEATURE_FLAGS.DEFERRED_TIME, '');
+          const flagEnabled = isFeatureEnabled('DEFERRED_TIME');
           setIsDeferredEnabled(flagEnabled);
           setConfig(prev => ({
             ...prev,

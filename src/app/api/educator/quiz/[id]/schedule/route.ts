@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { quizzes, enrollments } from "@/lib/schema";
 import { auth } from "@/lib/auth";
-import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/feature-flags";
+import { isFeatureEnabled, FEATURES } from "@/lib/feature-flags";
 
 // import { sendQuizReminderEmail } from "@/lib/email-service"; // TODO: Implement this function
 
@@ -37,7 +37,7 @@ export async function POST(
     const educatorId = session.user.id;
 
     // Check if deferred time feature is enabled
-    const isDeferredTimeEnabled = isFeatureEnabled(FEATURE_FLAGS.DEFERRED_TIME, educatorId);
+    const isDeferredTimeEnabled = isFeatureEnabled('DEFERRED_TIME');
     if (!isDeferredTimeEnabled) {
       return NextResponse.json(
         { error: "Deferred scheduling feature is not enabled for your account" },

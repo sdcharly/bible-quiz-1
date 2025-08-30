@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Clock, Calendar, AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/feature-flags";
+import { isFeatureEnabled, FEATURES } from "@/lib/feature-flags";
 
 
 interface SchedulingModeSelectorProps {
@@ -24,7 +24,7 @@ export function SchedulingModeSelector({
 
   useEffect(() => {
     // Check if deferred scheduling is enabled for this educator
-    const enabled = isFeatureEnabled(FEATURE_FLAGS.DEFERRED_TIME, educatorId || null);
+    const enabled = isFeatureEnabled('DEFERRED_TIME');
     setFeatureEnabled(enabled);
     
     // If feature is not enabled, force immediate mode

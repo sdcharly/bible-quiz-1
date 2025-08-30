@@ -81,7 +81,7 @@ export default function QuizzesContent() {
         return;
       }
 
-      const response = await fetch("/api/student/quizzes");
+      const response = await fetch("/api/student/quizzes/optimized?status=all");
       if (response.ok) {
         const data = await response.json();
         
@@ -188,13 +188,17 @@ export default function QuizzesContent() {
     });
   }, [quizzes, searchTerm, filterStatus]);
 
-  // Calculate filter counts
+  // Calculate filter counts with single pass optimization
   const filterCounts = useMemo(() => {
-    return {
-      all: quizzes.length,
-      available: quizzes.filter(q => !q.attempted && (!q.isExpired || q.isReassignment)).length,
-      completed: quizzes.filter(q => q.attempted).length
-    };
+    return quizzes.reduce((counts, quiz) => {
+      counts.all++;
+      if (quiz.attempted) {
+        counts.completed++;
+      } else if (!quiz.isExpired || quiz.isReassignment) {
+        counts.available++;
+      }
+      return counts;
+    }, { all: 0, available: 0, completed: 0 });
   }, [quizzes]);
 
   // Filter options with counts

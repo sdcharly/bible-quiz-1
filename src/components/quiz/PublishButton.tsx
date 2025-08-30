@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { CheckCircle, Send, Calendar, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
-import { FEATURE_FLAGS } from "@/lib/feature-flags";
+import { FEATURES } from "@/lib/feature-flags";
 import { SchedulingModal } from "./SchedulingModal";
 
 // Tooltip component not available yet
@@ -45,7 +45,7 @@ export function PublishButton({
   const [showSchedulingModal, setShowSchedulingModal] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [scheduling, setScheduling] = useState(false);
-  const isDeferredEnabled = useFeatureFlag(FEATURE_FLAGS.DEFERRED_TIME, educatorId);
+  const isDeferredEnabled = useFeatureFlag('DEFERRED_TIME', educatorId);
 
   // Determine if quiz needs scheduling before publishing
   const needsScheduling = isDeferredEnabled && 

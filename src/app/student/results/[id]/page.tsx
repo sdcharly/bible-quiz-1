@@ -73,6 +73,7 @@ export default function QuizResultsPage() {
 
   const fetchResults = async () => {
     try {
+      // Don't cache locked results
       const response = await fetch(`/api/student/results/${attemptId}`);
       if (response.status === 425) {
         const data = await response.json();

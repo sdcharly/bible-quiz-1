@@ -18,7 +18,7 @@ import { SchedulingModeSelector } from "@/components/quiz/SchedulingModeSelector
 import { TimeSchedulingFields } from "@/components/quiz/TimeSchedulingFields";
 import { useTimezone } from "@/hooks/useTimezone";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
-import { FEATURE_FLAGS } from "@/lib/feature-flags";
+import { FEATURES } from "@/lib/feature-flags";
 import { isQuizTimeValid } from "@/lib/timezone";
 
 interface EnhancedQuizConfig {
@@ -52,7 +52,7 @@ export function CreateQuizWithDeferred({
 }) {
   const router = useRouter();
   const { timezone: userTimezone, getCurrentDateTime, toUTC, formatDate } = useTimezone();
-  const isDeferredEnabled = useFeatureFlag(FEATURE_FLAGS.DEFERRED_TIME, educatorId);
+  const isDeferredEnabled = useFeatureFlag('DEFERRED_TIME', educatorId);
   
   const [schedulingMode, setSchedulingMode] = useState<"immediate" | "deferred">("immediate");
   const [config, setConfig] = useState<EnhancedQuizConfig>({

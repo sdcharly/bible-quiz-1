@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, or, isNull, gte, lte, like, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { quizzes, enrollments, quizAttempts, educatorStudents } from "@/lib/schema";
@@ -7,11 +7,42 @@ import { auth } from "@/lib/auth";
 import { withPerformance } from "@/lib/api-performance";
 import { logger } from "@/lib/logger";
 import { getQuizAvailabilityStatus } from "@/lib/quiz-scheduling";
+import { isFeatureEnabled } from "@/lib/feature-flags";
+import { fetchWithOptimizedCache } from "@/lib/api-cache";
 
+/**
+ * Unified Student Quizzes API
+ * Consolidates route.ts, optimized/route.ts, and enhanced/route.ts
+ * Uses feature flags to control optimization level
+ */
+
+interface QueryFilters {
+  status?: 'all' | 'available' | 'completed' | 'upcoming' | 'active';
+  limit?: number;
+  offset?: number;
+  search?: string;
+}
+
+export async function GET(req: NextRequest) {
+  return getHandler(req);
+}
 
 async function getHandler(req: NextRequest) {
   try {
     const startTime = Date.now();
+    
+    // Parse query parameters for filtering
+    const { searchParams } = new URL(req.url);
+    const filters: QueryFilters = {
+      status: (searchParams.get('status') as QueryFilters['status']) || 'all',
+      limit: parseInt(searchParams.get('limit') || '50'),
+      offset: parseInt(searchParams.get('offset') || '0'),
+      search: searchParams.get('search') || undefined
+    };
+    
+    // Validate filters
+    if (filters.limit! > 100) filters.limit = 100; // Cap at 100 for performance
+    
     // Get session
     const session = await auth.api.getSession({
       headers: await headers()
@@ -27,7 +58,7 @@ async function getHandler(req: NextRequest) {
     
     const studentId = session.user.id;
     
-    // First, get all educators this student is associated with
+    // Get student's educators
     const studentEducators = await db
       .select({ educatorId: educatorStudents.educatorId })
       .from(educatorStudents)
@@ -39,150 +70,224 @@ async function getHandler(req: NextRequest) {
       );
 
     if (studentEducators.length === 0) {
-      // Student not associated with any educator yet
+      // Use optimized caching for empty response if enabled
+      const cacheHeaders: Record<string, string> = {};
+      if (isFeatureEnabled('CLASSROOM_CACHE')) {
+        cacheHeaders["Cache-Control"] = "private, max-age=60";
+        cacheHeaders["X-Response-Time"] = String(Date.now() - startTime);
+      }
+      
       return NextResponse.json({
         quizzes: [],
+        total: 0,
+        filters,
         message: "You are not enrolled with any educator yet. Please accept an invitation from an educator first."
-      });
+      }, { headers: Object.keys(cacheHeaders).length > 0 ? cacheHeaders : undefined });
     }
 
-    const educatorIds = studentEducators.filter(se => se && se.educatorId).map(se => se.educatorId);
+    const educatorIds = studentEducators.filter(se => se?.educatorId).map(se => se.educatorId);
 
-    // Fetch data in parallel for better performance
-    const [educatorQuizzes, studentEnrollments, studentAttempts] = await Promise.all([
-      // Fetch only published quizzes from associated educators
-      db
-        .select()
-        .from(quizzes)
-        .where(
-          and(
-            eq(quizzes.status, "published"),
-            inArray(quizzes.educatorId, educatorIds)
-          )
-        ),
-      // Fetch student enrollments
-      db
-        .select()
-        .from(enrollments)
-        .where(eq(enrollments.studentId, studentId)),
-      // Fetch student attempts
-      db
-        .select()
-        .from(quizAttempts)
-        .where(eq(quizAttempts.studentId, studentId))
-    ]);
-
-    // Create lookup maps for O(1) access
-    const enrollmentMap = new Map();
-    for (const enrollment of studentEnrollments) {
-      if (!enrollment || !enrollment.quizId) continue;
-      
-      const existing = enrollmentMap.get(enrollment.quizId);
-      // Prioritize reassignments over original enrollments
-      if (!existing || enrollment.isReassignment) {
-        enrollmentMap.set(enrollment.quizId, enrollment);
-      }
+    // Choose query strategy based on feature flags
+    let quizData;
+    
+    if (isFeatureEnabled('OPTIMIZED_DB_POOL')) {
+      // Use optimized single-query approach
+      quizData = await getOptimizedQuizData(studentId, educatorIds, filters);
+    } else {
+      // Use legacy multi-query approach
+      quizData = await getLegacyQuizData(studentId, educatorIds, filters);
     }
-    const attemptMap = new Map(
-      studentAttempts
-        .filter(a => a && a.status === "completed" && a.quizId)
-        .map(a => [a.quizId, a])
-    );
 
-    // Map quiz data with enrollment and attempt status
-    const quizzesWithStatus = educatorQuizzes
-      .map(quiz => {
-        // Basic validation
-        if (!quiz || !quiz.id || !quiz.title) return null;
-        
-        const enrollment = enrollmentMap.get(quiz.id);
-        const attempt = attemptMap.get(quiz.id);
-        
-        // Only show enrolled quizzes
-        if (!enrollment) return null;
-        
-        // Get quiz availability status using existing function
-        const quizSchedulingInfo = {
-          id: quiz.id,
-          title: quiz.title,
-          startTime: quiz.startTime,
-          timezone: quiz.timezone,
-          duration: quiz.duration || 30,
-          schedulingStatus: quiz.schedulingStatus || 'legacy',
-          timeConfiguration: quiz.timeConfiguration as any,
-          status: quiz.status
-        };
-        
-        const availability = getQuizAvailabilityStatus(quizSchedulingInfo);
-        
-        const isReassignment = enrollment?.isReassignment || false;
-        const reassignmentReason = enrollment?.reassignmentReason || null;
-        
-        // CRITICAL FIX: Filter out expired quizzes unless:
-        // 1. Student has COMPLETED them (to show results) OR
-        // 2. This is a reassignment (reassignments bypass time constraints)
-        if (availability.status === 'ended' && !attempt && !isReassignment) {
-          return null;
-        }
-        
-        // For reassignments, override availability to make them always active
-        const effectiveAvailability = isReassignment && !attempt
-          ? { status: 'active', message: 'Reassigned - Available to take' }
-          : availability;
-        
-        return {
-          id: quiz.id,
-          title: quiz.title,
-          description: quiz.description,
-          totalQuestions: quiz.totalQuestions,
-          duration: quiz.duration,
-          startTime: quiz.startTime?.toISOString() || null,
-          timezone: quiz.timezone,
-          status: quiz.status,
-          enrolled: !!enrollment,
-          attempted: !!attempt,
-          attemptId: attempt?.id,
-          score: attempt?.score,
-          isActive: effectiveAvailability.status === 'active',
-          isUpcoming: effectiveAvailability.status === 'upcoming',
-          isExpired: effectiveAvailability.status === 'ended',
-          availabilityMessage: effectiveAvailability.message,
-          availabilityStatus: effectiveAvailability.status,
-          isReassignment,
-          reassignmentReason,
-          enrollmentStatus: enrollment?.status
-        };
-      })
-      .filter(quiz => quiz !== null);
+    // Apply client-side processing if enhanced features enabled
+    if (isFeatureEnabled('CLASSROOM_CACHE')) {
+      quizData = await processWithEnhancedFeatures(quizData);
+    }
 
-    const responseTime = Date.now() - startTime;
-    logger.debug("Student quizzes fetched", { 
-      count: quizzesWithStatus.length, 
-      responseTime 
-    });
+    const duration = Date.now() - startTime;
+    
+    // Set response headers based on feature flags
+    const responseHeaders: Record<string, string> = {
+      "X-Response-Time": String(duration),
+    };
+    
+    if (isFeatureEnabled('CLASSROOM_CACHE')) {
+      responseHeaders["Cache-Control"] = "private, max-age=300, stale-while-revalidate=60";
+    }
+
+    logger.debug(`Student quizzes query completed in ${duration}ms`);
 
     return NextResponse.json({
-      quizzes: quizzesWithStatus,
-    }, {
-      headers: {
-        "Cache-Control": "private, max-age=10",
-        "X-Response-Time": String(responseTime),
-      }
-    });
+      quizzes: quizData.quizzes,
+      total: quizData.total,
+      filters,
+      responseTime: duration,
+      optimized: isFeatureEnabled('OPTIMIZED_DB_POOL'),
+      cached: isFeatureEnabled('CLASSROOM_CACHE')
+    }, { headers: responseHeaders });
+
   } catch (error) {
-    logger.error("Error fetching quizzes", error);
+    logger.error("Error in student quizzes API:", error);
     return NextResponse.json(
-      { error: "Failed to fetch quizzes" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-// Export with performance optimizations
-export const GET = withPerformance(getHandler as (...args: unknown[]) => Promise<NextResponse>, {
-  cache: true,
-  cacheKey: "student-quizzes",
-  cacheTTL: 10000, // Cache for 10 seconds
-  rateLimit: true,
-  maxRequests: 200, // Allow 200 requests per minute per IP
-});
+/**
+ * Optimized single-query approach (JOIN-based)
+ */
+async function getOptimizedQuizData(studentId: string, educatorIds: string[], filters: QueryFilters) {
+  const now = new Date();
+  
+  // Single optimized query using JOINs
+  const quizQuery = db
+    .select({
+      quiz: quizzes,
+      enrollment: enrollments,
+      attempt: quizAttempts
+    })
+    .from(quizzes)
+    .innerJoin(
+      enrollments,
+      and(
+        eq(enrollments.quizId, quizzes.id),
+        eq(enrollments.studentId, studentId)
+      )
+    )
+    .leftJoin(
+      quizAttempts,
+      and(
+        eq(quizAttempts.quizId, quizzes.id),
+        eq(quizAttempts.studentId, studentId),
+        eq(quizAttempts.status, "completed")
+      )
+    )
+    .where(
+      and(
+        eq(quizzes.status, "published"),
+        inArray(quizzes.educatorId, educatorIds),
+        // Add search filter if provided
+        filters.search ? 
+          or(
+            sql`LOWER(${quizzes.title}) LIKE LOWER(${`%${filters.search}%`})`,
+            sql`LOWER(${quizzes.description}) LIKE LOWER(${`%${filters.search}%`})`
+          ) : undefined
+      )
+    )
+    .limit(filters.limit!)
+    .offset(filters.offset!);
+
+  const results = await quizQuery;
+
+  // Process results in a single pass
+  const processedQuizzes = results
+    .map(({ quiz, enrollment, attempt }) => {
+      // Skip invalid data
+      if (!quiz?.id || !quiz?.title || !enrollment) return null;
+      
+      // Calculate availability
+      const quizSchedulingInfo = {
+        id: quiz.id,
+        title: quiz.title,
+        startTime: quiz.startTime,
+        timezone: quiz.timezone,
+        duration: quiz.duration || 30,
+        schedulingStatus: quiz.schedulingStatus || 'legacy',
+        timeConfiguration: quiz.timeConfiguration as any,
+        status: quiz.status
+      };
+      
+      const availability = getQuizAvailabilityStatus(quizSchedulingInfo);
+      const isReassignment = enrollment.isReassignment || false;
+      
+      return {
+        ...quiz,
+        enrolled: true,
+        attempted: !!attempt,
+        score: attempt?.score || null,
+        isReassignment,
+        ...availability
+      };
+    })
+    .filter(q => q !== null);
+
+  return {
+    quizzes: processedQuizzes,
+    total: processedQuizzes.length
+  };
+}
+
+/**
+ * Legacy multi-query approach (backward compatibility)
+ */
+async function getLegacyQuizData(studentId: string, educatorIds: string[], filters: QueryFilters) {
+  // Fetch data in parallel for better performance
+  const [educatorQuizzes, studentEnrollments, studentAttempts] = await Promise.all([
+    db.select().from(quizzes).where(
+      and(
+        inArray(quizzes.educatorId, educatorIds),
+        eq(quizzes.status, "published")
+      )
+    ),
+    db.select().from(enrollments).where(
+      eq(enrollments.studentId, studentId)
+    ),
+    db.select().from(quizAttempts).where(
+      and(
+        eq(quizAttempts.studentId, studentId),
+        eq(quizAttempts.status, "completed")
+      )
+    )
+  ]);
+
+  // Create lookup maps for efficient processing
+  const enrollmentMap = new Map(studentEnrollments.map(e => [e.quizId, e]));
+  const attemptMap = new Map(studentAttempts.map(a => [a.quizId, a]));
+
+  // Process quizzes
+  const processedQuizzes = educatorQuizzes
+    .filter(quiz => enrollmentMap.has(quiz.id))
+    .map(quiz => {
+      const enrollment = enrollmentMap.get(quiz.id)!;
+      const attempt = attemptMap.get(quiz.id);
+      
+      const quizSchedulingInfo = {
+        id: quiz.id,
+        title: quiz.title,
+        startTime: quiz.startTime,
+        timezone: quiz.timezone,
+        duration: quiz.duration || 30,
+        schedulingStatus: quiz.schedulingStatus || 'legacy',
+        timeConfiguration: quiz.timeConfiguration as any,
+        status: quiz.status
+      };
+      
+      const availability = getQuizAvailabilityStatus(quizSchedulingInfo);
+      
+      return {
+        ...quiz,
+        enrolled: true,
+        attempted: !!attempt,
+        score: attempt?.score || null,
+        isReassignment: enrollment.isReassignment || false,
+        ...availability
+      };
+    });
+
+  return {
+    quizzes: processedQuizzes,
+    total: processedQuizzes.length
+  };
+}
+
+/**
+ * Enhanced processing with classroom-specific features
+ */
+async function processWithEnhancedFeatures(quizData: any) {
+  // Add any enhanced processing here
+  // e.g., pre-compute classroom statistics, add teacher insights, etc.
+  
+  // For now, just return the data as-is
+  return quizData;
+}

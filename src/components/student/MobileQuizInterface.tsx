@@ -69,11 +69,6 @@ export function MobileQuizInterface({
         connection.removeEventListener("change", checkSpeed);
       };
     }
-    
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
   }, []);
 
   const dismissMobileWarning = () => {

@@ -472,3 +472,49 @@ pool.end();
 - ALWAYS use the database connection patterns documented above - NO GUESSING!
 - the timezone of the all times saved in database is UTC
 - all timings shown to the user is based on the user's timezone which is converted in the app and presented using functions.
+
+## 🚨 CRITICAL: Codebase Cleanup Completed (Aug 30, 2025)
+
+### Component Structure After Cleanup:
+- **Student Panel**: Uses BOTH `/components/student/` and `/components/student-v2/` (INTENTIONAL - gradual migration)
+  - `GroupInfo.tsx` and `StudentPageWrapper.tsx` only exist in v1
+  - Other components use v2
+- **Educator Panel**: ONLY uses `/components/educator-v2/` (v1 deleted completely)
+
+### API Structure After Cleanup:
+- **NO duplicate routes** - all "optimized" and "enhanced" versions removed
+- **Single endpoints** per functionality with feature flags for optimization
+- **Database**: Both panels use `@/lib/db` consistently
+
+### Feature Flags - IMPORTANT:
+```typescript
+// CORRECT usage after cleanup:
+import { isFeatureEnabled } from '@/lib/feature-flags';
+isFeatureEnabled('DEFERRED_TIME')  // ✅ String literal, 1 parameter
+
+// WRONG - This was fixed:
+isFeatureEnabled(FEATURES.DEFERRED_TIME, userId)  // ❌ Don't use
+```
+
+### Cache Files - Each Serves Different Purpose:
+- `api-cache.ts` - API response caching (contains optimized implementation)
+- `cache-v2.ts` - Admin performance monitoring with metrics
+- `quiz-cache.ts` - Quiz-specific caching
+- ~~`cache.ts`~~ - DELETED (was unused)
+
+### Files That Were Deleted:
+- `/src/lib/cache.ts` - Unused
+- `/src/components/educator/` - Entire directory
+- `/src/components/student/PageHeader.tsx` - Duplicate
+- `/src/components/student/StatsCard.tsx` - Duplicate
+- `/src/app/api/educator/analytics/optimized/` - Duplicate route
+- `/src/app/educator/analytics/optimized/` - Orphaned page
+- All `/api/student/quizzes/optimized/` and `/enhanced/` routes
+
+### DO NOT:
+- Create separate "optimized" versions of files - merge optimizations into main files
+- Import from `/components/educator/` - it's deleted, use `/educator-v2/`
+- Use `FEATURE_FLAGS.SOME_FLAG` - use string literals instead
+- Try to access `sql.options.idle` in postgres.js - not supported
+
+### Full cleanup report: `/docs/technical/CODEBASE_CLEANUP_REPORT.md`

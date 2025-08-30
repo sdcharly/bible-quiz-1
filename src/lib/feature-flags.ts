@@ -1,209 +1,151 @@
 /**
- * Feature Flags for Quiz Time Deferral Project
- * Phase 0.3: Safety Implementation
- * 
- * This system allows gradual rollout and instant rollback
- * of the quiz time deferral feature.
+ * Feature Flags System
+ * Enables safe rollout of optimizations with kill switches
+ * Environment variables override default values
  */
 
-import { logger } from '@/lib/logger';
-
-// Feature flag names
-export const FEATURE_FLAGS = {
-  DEFERRED_TIME: 'ENABLE_DEFERRED_TIME',
-  DEFERRED_TIME_PERCENTAGE: 'DEFERRED_TIME_ROLLOUT_PERCENTAGE',
-  DEFERRED_TIME_EDUCATOR_IDS: 'DEFERRED_TIME_EDUCATOR_WHITELIST',
+export const FEATURES = {
+  // Database optimizations
+  OPTIMIZED_DB_POOL: false,
+  DB_CONNECTION_MONITORING: false,
+  
+  // Quiz flow optimizations  
+  PROGRESSIVE_AUTOSAVE: false,
+  SUBMISSION_QUEUE: false,
+  QUIZ_PREWARMING: false,
+  DEFERRED_TIME: false,
+  
+  // Caching optimizations
+  CLASSROOM_CACHE: false,
+  REDIS_CACHING: false,
+  BROWSER_CACHE_OPTIMIZATION: false,
+  
+  // Real-time features
+  TEACHER_DASHBOARD: false,
+  WEBSOCKET_UPDATES: false,
+  LIVE_PROGRESS_TRACKING: false,
+  
+  // Performance features
+  MEMORY_OPTIMIZATION: false,
+  BUNDLE_OPTIMIZATION: false,
+  COMPONENT_LAZY_LOADING: false,
+  
+  // Offline/resilience features
+  OFFLINE_SUPPORT: false,
+  SERVICE_WORKER: false,
+  RETRY_MECHANISMS: false,
+  
+  // Monitoring and observability
+  PERFORMANCE_MONITORING: false,
+  ERROR_TRACKING: false,
+  USER_ANALYTICS: false,
+  
+  // Testing and development
+  MOCK_DATA_GENERATION: false,
+  LOAD_TESTING_ENDPOINTS: false,
+  DEBUG_PERFORMANCE: false
 } as const;
 
-// Feature flag configuration
-interface FeatureFlagConfig {
-  enabled: boolean;
-  rolloutPercentage: number;
-  whitelistedUserIds: string[];
-  blacklistedUserIds: string[];
-  metadata?: Record<string, unknown>;
-}
-
-// Default configuration
-const DEFAULT_FLAGS: Record<string, FeatureFlagConfig> = {
-  [FEATURE_FLAGS.DEFERRED_TIME]: {
-    enabled: false,
-    rolloutPercentage: 0,
-    whitelistedUserIds: [],
-    blacklistedUserIds: [],
-    metadata: {
-      description: 'Allows quiz time to be set during publish instead of creation',
-      phase: 'Phase 0',
-      startDate: '2024-01-01',
-      owner: 'Quiz Team',
-    },
-  },
-};
+export type FeatureFlag = keyof typeof FEATURES;
 
 /**
- * Get feature flag configuration from environment
+ * Check if a feature is enabled
+ * Priority: Environment Variable > Default Value
  */
-function getConfigFromEnv(): Partial<Record<string, FeatureFlagConfig>> {
-  const config: Partial<Record<string, FeatureFlagConfig>> = {};
+export function isFeatureEnabled(feature: FeatureFlag): boolean {
+  // Check for environment variable override
+  const envKey = `NEXT_PUBLIC_FF_${feature}`;
+  const envOverride = process.env[envKey];
   
-  // Safely check environment variables
-  try {
-    // For now, always enable deferred time feature since it's set to 100% rollout
-    // This avoids SSR/client-side hydration issues
-    const deferredTimeConfig = {
-      ...DEFAULT_FLAGS[FEATURE_FLAGS.DEFERRED_TIME],
-      enabled: true,
-      rolloutPercentage: 100
-    };
-    
-    config[FEATURE_FLAGS.DEFERRED_TIME] = deferredTimeConfig;
-  } catch (error) {
-    // If there's any error, return default config
-    logger.log('Error setting feature flags:', error);
+  if (envOverride !== undefined) {
+    return envOverride.toLowerCase() === 'true';
   }
   
-  return config;
-}
-
-/**
- * Check if a feature is enabled for a specific user
- */
-export function isFeatureEnabled(
-  flagName: string,
-  userId?: string | null
-): boolean {
-  // Get configuration
-  const envConfig = getConfigFromEnv();
-  const config = envConfig[flagName] || DEFAULT_FLAGS[flagName];
-  
-  if (!config) {
-    logger.warn(`Unknown feature flag: ${flagName}`);
-    return false;
-  }
-  
-  // Check if globally disabled
-  if (!config.enabled) {
-    return false;
-  }
-  
-  // If no user context, only check global flag
-  if (!userId) {
-    return config.enabled;
-  }
-  
-  // Check blacklist first (highest priority)
-  if (config.blacklistedUserIds.includes(userId)) {
-    logger.log(`Feature ${flagName} disabled for blacklisted user ${userId}`);
-    return false;
-  }
-  
-  // Check whitelist (second priority)
-  if (config.whitelistedUserIds.includes(userId)) {
-    logger.log(`Feature ${flagName} enabled for whitelisted user ${userId}`);
-    return true;
-  }
-  
-  // Check percentage rollout
-  if (config.rolloutPercentage > 0 && config.rolloutPercentage < 100) {
-    // Use consistent hashing based on userId for stable assignment
-    const hash = userId.split('').reduce((acc, char) => {
-      return ((acc << 5) - acc) + char.charCodeAt(0);
-    }, 0);
-    
-    const userPercentage = Math.abs(hash) % 100;
-    const isEnabled = userPercentage < config.rolloutPercentage;
-    
-    logger.log(
-      `Feature ${flagName} ${isEnabled ? 'enabled' : 'disabled'} ` +
-      `for user ${userId} (${userPercentage} < ${config.rolloutPercentage})`
-    );
-    
-    return isEnabled;
-  }
-  
-  // Default to enabled if flag is on and no other conditions apply
-  return config.enabled;
-}
-
-/**
- * React hook for feature flags
- */
-export function useFeatureFlag(flagName: string, userId?: string | null): boolean {
-  // In production, you might want to use React state and update dynamically
-  // For now, this is a simple wrapper
-  return isFeatureEnabled(flagName, userId);
-}
-
-/**
- * Server-side feature flag check
- */
-export async function checkFeatureFlag(
-  flagName: string,
-  userId?: string
-): Promise<boolean> {
-  // In production, this could check a database or external service
-  // For now, use the same logic as client
-  return isFeatureEnabled(flagName, userId);
-}
-
-/**
- * Get all feature flags for debugging
- */
-export function getAllFeatureFlags(): Record<string, FeatureFlagConfig> {
-  const envConfig = getConfigFromEnv();
-  return {
-    ...DEFAULT_FLAGS,
-    ...envConfig,
-  } as Record<string, FeatureFlagConfig>;
-}
-
-/**
- * Feature flag middleware for API routes
- */
-export function requireFeatureFlag(flagName: string) {
-  return async (req: Request, userId?: string) => {
-    const isEnabled = await checkFeatureFlag(flagName, userId);
-    
-    if (!isEnabled) {
-      logger.warn(`Access denied: Feature ${flagName} is not enabled for user ${userId}`);
-      return new Response(
-        JSON.stringify({
-          error: 'Feature not available',
-          message: 'This feature is currently not available for your account',
-        }),
-        {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+  // Check for runtime override (for testing)
+  if (typeof window !== 'undefined' && window.__featureFlags) {
+    const runtimeOverride = window.__featureFlags[feature];
+    if (runtimeOverride !== undefined) {
+      return runtimeOverride;
     }
-    
-    return null; // Continue with request
-  };
-}
-
-/**
- * Emergency kill switch
- */
-export function disableAllFeatures(): void {
-  logger.force('EMERGENCY: All feature flags disabled');
+  }
   
-  // In production, this would update a database or cache
-  // For now, we'll set an environment variable that needs to be checked
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('FEATURE_FLAGS_DISABLED', 'true');
-  }
+  // Fall back to default value
+  return FEATURES[feature];
 }
 
 /**
- * Check if features are disabled via kill switch
+ * Get all enabled features
  */
-export function areFeaturesForcedOff(): boolean {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('FEATURE_FLAGS_DISABLED') === 'true';
-  }
-  return false;
+export function getEnabledFeatures(): FeatureFlag[] {
+  return Object.keys(FEATURES).filter(feature => 
+    isFeatureEnabled(feature as FeatureFlag)
+  ) as FeatureFlag[];
 }
 
-// Export types
-export type { FeatureFlagConfig };
+/**
+ * Get feature flags status for debugging
+ */
+export function getFeatureFlagsStatus(): Record<FeatureFlag, boolean> {
+  const status = {} as Record<FeatureFlag, boolean>;
+  
+  Object.keys(FEATURES).forEach(feature => {
+    status[feature as FeatureFlag] = isFeatureEnabled(feature as FeatureFlag);
+  });
+  
+  return status;
+}
+
+/**
+ * Conditional execution based on feature flag
+ */
+export function withFeatureFlag<T>(
+  feature: FeatureFlag, 
+  enabledCode: () => T, 
+  fallbackCode: () => T
+): T {
+  if (isFeatureEnabled(feature)) {
+    try {
+      return enabledCode();
+    } catch (error) {
+      console.error(`Feature ${feature} failed, falling back:`, error);
+      return fallbackCode();
+    }
+  }
+  
+  return fallbackCode();
+}
+
+/**
+ * Async conditional execution with automatic fallback
+ */
+export async function withFeatureFlagAsync<T>(
+  feature: FeatureFlag,
+  enabledCode: () => Promise<T>,
+  fallbackCode: () => Promise<T>
+): Promise<T> {
+  if (isFeatureEnabled(feature)) {
+    try {
+      return await enabledCode();
+    } catch (error) {
+      console.error(`Async feature ${feature} failed, falling back:`, error);
+      return await fallbackCode();
+    }
+  }
+  
+  return await fallbackCode();
+}
+
+// Global type declarations for TypeScript
+declare global {
+  interface Window {
+    __featureFlags?: Partial<Record<FeatureFlag, boolean>>;
+  }
+}
+
+// Development helper: Log enabled features on startup
+if (process.env.NODE_ENV === 'development') {
+  const enabled = getEnabledFeatures();
+  if (enabled.length > 0) {
+    console.log('[FeatureFlags] Enabled features:', enabled);
+  }
+}
