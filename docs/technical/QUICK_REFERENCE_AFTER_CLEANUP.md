@@ -16,13 +16,13 @@
 ### API Routes
 ```bash
 # Student APIs
-/api/student/quizzes/route.ts     # ✅ Unified endpoint
-# /api/student/quizzes/optimized  # ❌ DELETED
-# /api/student/quizzes/enhanced   # ❌ DELETED
+/api/student/quizzes/route.ts     # ✅ Unified endpoint (handles all optimizations)
+# /api/student/quizzes/optimized  # ❌ DELETED - Merged into main route
+# /api/student/quizzes/enhanced   # ❌ DELETED - Merged into main route
 
 # Educator APIs
-/api/educator/analytics/route.ts   # ✅ Main analytics
-# /api/educator/analytics/optimized # ❌ DELETED
+/api/educator/analytics/route.ts   # ✅ Main analytics (with optimizations)
+# /api/educator/analytics/optimized # ❌ DELETED - Merged into main route
 ```
 
 ### Cache Files

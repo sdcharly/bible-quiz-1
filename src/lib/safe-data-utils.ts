@@ -80,6 +80,7 @@ export interface SafeQuiz {
   id: string;
   title: string;
   description?: string;
+  educatorName?: string;
   totalQuestions: number;
   duration: number;
   startTime: string | null;
@@ -109,6 +110,7 @@ export function processSafeQuiz(rawQuiz: any): SafeQuiz | null {
     id: safeString(rawQuiz.id),
     title: safeString(rawQuiz.title, 'Untitled Quiz'),
     description: rawQuiz.description ? safeString(rawQuiz.description) : undefined,
+    educatorName: rawQuiz.educatorName ? safeString(rawQuiz.educatorName) : undefined,
     totalQuestions: safeNumber(rawQuiz.totalQuestions, 0),
     duration: safeNumber(rawQuiz.duration, 30), // Default 30 minutes
     startTime: rawQuiz.startTime ? safeString(rawQuiz.startTime) : null,

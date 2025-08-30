@@ -35,7 +35,7 @@ test.describe('Database Connection Pool Optimization', () => {
   });
 
   test('optimized endpoint uses new connection pool', async ({ page }) => {
-    const response = await page.request.get('/api/student/quizzes/optimized');
+    const response = await page.request.get('/api/student/quizzes');
     
     // Should work with optimized pool (may require auth, but should not error on pool)
     expect(response.status()).toBeLessThan(500); // Not a server error

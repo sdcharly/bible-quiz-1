@@ -15,9 +15,9 @@ Complete optimization of the student panel codebase with zero downtime, maintain
 - [ ] **Compare**: Benchmark against original endpoints
 - [ ] **Document**: Performance metrics comparison
 - [ ] **Files**:
-  - `/src/app/api/student/quizzes/optimized/route.ts`
-  - `/src/lib/api-cache-optimized.ts`
-  - `/src/app/student/dashboard/page-optimized.tsx`
+  - `/src/app/api/student/quizzes/route.ts` (unified endpoint)
+  - `/src/lib/api-cache.ts` (contains optimizations)
+  - `/src/app/student/dashboard/page.tsx` (main dashboard)
 - **Impact**: Validate 50-75% performance improvement
 - **Risk**: Low (parallel testing)
 - **Time**: 2 hours

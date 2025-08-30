@@ -173,7 +173,7 @@ async function testQuizList() {
   
   for (const filter of filters) {
     console.log(`\n  Testing: ${filter.label}`);
-    const response = await measureApiCall(`/api/student/quizzes/optimized${filter.query}`);
+    const response = await measureApiCall(`/api/student/quizzes${filter.query}`);
     results.quizList.optimized.filters[filter.label] = response;
     
     console.log(`    Time: ${response.apiTime.toFixed(0)}ms`);

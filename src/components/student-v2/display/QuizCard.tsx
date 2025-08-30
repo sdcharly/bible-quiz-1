@@ -19,6 +19,7 @@ import {
 interface QuizCardProps {
   title: string;
   description?: string;
+  educatorName?: string;
   totalQuestions: number;
   duration: number;
   startTimeFormatted: string;
@@ -40,6 +41,7 @@ interface QuizCardProps {
 export function QuizCard({
   title,
   description,
+  educatorName,
   totalQuestions,
   duration,
   startTimeFormatted,
@@ -75,9 +77,14 @@ export function QuizCard({
       <div className="p-6">
         {/* Header */}
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2 mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2 mb-1">
             {title}
           </h3>
+          {educatorName && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-2">
+              by {educatorName}
+            </p>
+          )}
           {description && (
             <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
               {description}

@@ -117,8 +117,8 @@ function StudentResultsPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Quiz Results"
-        subtitle="View your quiz performance history"
+        title="All Quiz Results"
+        subtitle="Your complete quiz history including past educators"
         breadcrumbs={[
           { label: "Results" }
         ]}

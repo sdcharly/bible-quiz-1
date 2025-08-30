@@ -507,9 +507,10 @@ isFeatureEnabled(FEATURES.DEFERRED_TIME, userId)  // ❌ Don't use
 - `/src/components/educator/` - Entire directory
 - `/src/components/student/PageHeader.tsx` - Duplicate
 - `/src/components/student/StatsCard.tsx` - Duplicate
-- `/src/app/api/educator/analytics/optimized/` - Duplicate route
+- `/src/app/api/educator/analytics/optimized/` - Merged into main analytics route
 - `/src/app/educator/analytics/optimized/` - Orphaned page
-- All `/api/student/quizzes/optimized/` and `/enhanced/` routes
+- `/src/app/api/student/quizzes/optimized/` - Merged into main quizzes route
+- `/src/app/api/student/quizzes/enhanced/` - Merged into main quizzes route
 
 ### DO NOT:
 - Create separate "optimized" versions of files - merge optimizations into main files

@@ -1,5 +1,7 @@
 # Day 1 Performance Test Report - Student Panel Optimization
 
+> **Note**: This is a historical document. The optimized endpoints mentioned here have been merged into the main endpoints. All `/api/student/quizzes/optimized` references now use `/api/student/quizzes` with internal optimizations.
+
 **Date**: 2025-08-30  
 **Test Environment**: Development (localhost:3000)  
 **Browser**: Chrome (via Playwright)  

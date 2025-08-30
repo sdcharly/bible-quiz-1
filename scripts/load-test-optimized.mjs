@@ -14,7 +14,7 @@ const TEST_DURATION_MS = 30000; // 30 seconds
 
 // Test endpoints
 const ENDPOINTS = [
-  '/api/student/quizzes/optimized?status=all',
+  '/api/student/quizzes?status=all',
   '/api/student/results',
   '/api/student/groups',
   '/api/student/progress/stats'

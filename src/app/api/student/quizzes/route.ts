@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq, and, inArray, or, isNull, gte, lte, like, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { quizzes, enrollments, quizAttempts, educatorStudents } from "@/lib/schema";
+import { quizzes, enrollments, quizAttempts, educatorStudents, user } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 import { withPerformance } from "@/lib/api-performance";
 import { logger } from "@/lib/logger";
@@ -145,7 +145,8 @@ async function getOptimizedQuizData(studentId: string, educatorIds: string[], fi
     .select({
       quiz: quizzes,
       enrollment: enrollments,
-      attempt: quizAttempts
+      attempt: quizAttempts,
+      educator: user
     })
     .from(quizzes)
     .innerJoin(
@@ -162,6 +163,10 @@ async function getOptimizedQuizData(studentId: string, educatorIds: string[], fi
         eq(quizAttempts.studentId, studentId),
         eq(quizAttempts.status, "completed")
       )
+    )
+    .leftJoin(
+      user,
+      eq(user.id, quizzes.educatorId)
     )
     .where(
       and(
@@ -182,7 +187,7 @@ async function getOptimizedQuizData(studentId: string, educatorIds: string[], fi
 
   // Process results in a single pass
   const processedQuizzes = results
-    .map(({ quiz, enrollment, attempt }) => {
+    .map(({ quiz, enrollment, attempt, educator }) => {
       // Skip invalid data
       if (!quiz?.id || !quiz?.title || !enrollment) return null;
       
@@ -205,8 +210,10 @@ async function getOptimizedQuizData(studentId: string, educatorIds: string[], fi
         ...quiz,
         enrolled: true,
         attempted: !!attempt,
+        attemptId: attempt?.id || null,
         score: attempt?.score || null,
         isReassignment,
+        educatorName: educator?.name || "Unknown Educator",
         ...availability
       };
     })
@@ -223,7 +230,7 @@ async function getOptimizedQuizData(studentId: string, educatorIds: string[], fi
  */
 async function getLegacyQuizData(studentId: string, educatorIds: string[], filters: QueryFilters) {
   // Fetch data in parallel for better performance
-  const [educatorQuizzes, studentEnrollments, studentAttempts] = await Promise.all([
+  const [educatorQuizzes, studentEnrollments, studentAttempts, educators] = await Promise.all([
     db.select().from(quizzes).where(
       and(
         inArray(quizzes.educatorId, educatorIds),
@@ -238,12 +245,16 @@ async function getLegacyQuizData(studentId: string, educatorIds: string[], filte
         eq(quizAttempts.studentId, studentId),
         eq(quizAttempts.status, "completed")
       )
+    ),
+    db.select({ id: user.id, name: user.name }).from(user).where(
+      inArray(user.id, educatorIds)
     )
   ]);
 
   // Create lookup maps for efficient processing
   const enrollmentMap = new Map(studentEnrollments.map(e => [e.quizId, e]));
   const attemptMap = new Map(studentAttempts.map(a => [a.quizId, a]));
+  const educatorMap = new Map(educators.map(e => [e.id, e.name]));
 
   // Process quizzes
   const processedQuizzes = educatorQuizzes
@@ -269,8 +280,10 @@ async function getLegacyQuizData(studentId: string, educatorIds: string[], filte
         ...quiz,
         enrolled: true,
         attempted: !!attempt,
+        attemptId: attempt?.id || null,
         score: attempt?.score || null,
         isReassignment: enrollment.isReassignment || false,
+        educatorName: educatorMap.get(quiz.educatorId) || "Unknown Educator",
         ...availability
       };
     });

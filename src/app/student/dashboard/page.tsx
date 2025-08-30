@@ -160,7 +160,7 @@ function StudentDashboard() {
     try {
       // Parallel API calls with optimized caching
       const [quizzesResult, resultsResult] = await Promise.all([
-        fetchWithOptimizedCache('/api/student/quizzes/optimized?status=all', { ttl: 300 }), // 5 min cache
+        fetchWithOptimizedCache('/api/student/quizzes?status=all', { ttl: 300 }), // 5 min cache
         fetchWithOptimizedCache('/api/student/results', { ttl: 60 })   // 1 min cache
       ]);
 

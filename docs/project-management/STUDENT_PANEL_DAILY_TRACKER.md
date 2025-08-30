@@ -23,8 +23,8 @@
     -H "Cookie: [session-cookie]" \
     -w "\nTime: %{time_total}s\n"
   
-  # Test optimized endpoint
-  curl -X GET "http://localhost:3000/api/student/quizzes/optimized?status=all" \
+  # Test unified endpoint with filters
+  curl -X GET "http://localhost:3000/api/student/quizzes?status=all" \
     -H "Cookie: [session-cookie]" \
     -w "\nTime: %{time_total}s\n"
   ```
@@ -36,11 +36,11 @@
   ```javascript
   // Test cases to run:
   const testCases = [
-    '/api/student/quizzes/optimized?status=available',
-    '/api/student/quizzes/optimized?status=completed',
-    '/api/student/quizzes/optimized?status=upcoming',
-    '/api/student/quizzes/optimized?search=bible',
-    '/api/student/quizzes/optimized?limit=5&offset=0',
+    '/api/student/quizzes?status=available',
+    '/api/student/quizzes?status=completed',
+    '/api/student/quizzes?status=upcoming',
+    '/api/student/quizzes?search=bible',
+    '/api/student/quizzes?limit=5&offset=0',
   ];
   ```
 
@@ -62,7 +62,7 @@
       sizes: []
     },
     optimized: {
-      endpoint: '/api/student/quizzes/optimized',
+      endpoint: '/api/student/quizzes',
       times: [],
       sizes: []
     }
@@ -184,7 +184,7 @@
   - Check all filter combinations
 
 - [ ] **10:00 - 11:00**: Deploy API Endpoint
-  - Deploy `/api/student/quizzes/optimized`
+  - Deploy `/api/student/quizzes` with optimizations
   - Keep original endpoint active
   - Both endpoints running in parallel
 
@@ -195,8 +195,7 @@
     process.env.OPTIMIZED_API_PERCENTAGE > Math.random() * 100;
   
   const endpoint = useOptimizedEndpoint 
-    ? '/api/student/quizzes/optimized'
-    : '/api/student/quizzes';
+    '/api/student/quizzes' // Unified endpoint;
   ```
 
 #### Afternoon Session (1:00 PM - 5:00 PM)
@@ -242,7 +241,7 @@
   // In QuizzesContent.tsx
   // Change endpoint
   const response = await fetch(
-    "/api/student/quizzes/optimized?status=all"
+    "/api/student/quizzes?status=all"
   );
   ```
 
@@ -319,9 +318,8 @@ OPTIMIZED_CACHE_ENABLED=false
 
 #### API Endpoint Rollback
 ```javascript
-// In client code, revert endpoint
-const endpoint = '/api/student/quizzes'; // original
-// Instead of '/api/student/quizzes/optimized'
+// In client code, use unified endpoint
+const endpoint = '/api/student/quizzes'; // handles all optimizations
 ```
 
 #### Full Rollback

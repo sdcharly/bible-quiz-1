@@ -13,7 +13,7 @@ export const FEATURES = {
   PROGRESSIVE_AUTOSAVE: false,
   SUBMISSION_QUEUE: false,
   QUIZ_PREWARMING: false,
-  DEFERRED_TIME: false,
+  DEFERRED_TIME: true,
   
   // Caching optimizations
   CLASSROOM_CACHE: false,

@@ -5,8 +5,8 @@ This guide documents the performance optimizations made to the student panel to 
 
 ## Changes Made
 
-### 1. Optimized Caching Library (`api-cache-optimized.ts`)
-**Location**: `/src/lib/api-cache-optimized.ts`
+### 1. Optimized Caching Library (`api-cache.ts`)
+**Location**: `/src/lib/api-cache.ts` (contains all optimizations)
 
 #### Key Improvements:
 - **50% memory reduction** by eliminating unnecessary Response object creation
@@ -31,8 +31,8 @@ const result = await fetchWithOptimizedCache(url);
 // result.data is the actual data, no Response object created
 ```
 
-### 2. Server-Side Filtering API (`/api/student/quizzes/optimized`)
-**Location**: `//src/app/api/student/quizzes/optimized/route.ts`
+### 2. Server-Side Filtering API (`/api/student/quizzes`)
+**Location**: `/src/app/api/student/quizzes/route.ts` (unified endpoint)
 
 #### Key Improvements:
 - **Server-side filtering** reduces payload by 60-80%
@@ -49,14 +49,14 @@ const result = await fetchWithOptimizedCache(url);
 #### Example Usage:
 ```typescript
 // Get only available quizzes
-/api/student/quizzes/optimized?status=available&limit=10
+/api/student/quizzes?status=available&limit=10
 
 // Search for specific quiz
-/api/student/quizzes/optimized?search=Genesis&status=all
+/api/student/quizzes?search=Genesis&status=all
 ```
 
-### 3. Optimized Dashboard (`page-optimized.tsx`)
-**Location**: `/src/app/student/dashboard/page-optimized.tsx`
+### 3. Optimized Dashboard (`page.tsx`)
+**Location**: `/src/app/student/dashboard/page.tsx` (main dashboard with optimizations)
 
 #### Key Improvements:
 - **Direct data access** without Response parsing
@@ -98,7 +98,7 @@ Update QuizzesContent.tsx to use optimized endpoint:
 const response = await fetch("/api/student/quizzes");
 
 // After
-const response = await fetch("/api/student/quizzes/optimized?status=all");
+const response = await fetch("/api/student/quizzes?status=all");
 ```
 
 ## Performance Metrics

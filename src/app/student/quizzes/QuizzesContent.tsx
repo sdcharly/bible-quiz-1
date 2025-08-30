@@ -81,7 +81,7 @@ export default function QuizzesContent() {
         return;
       }
 
-      const response = await fetch("/api/student/quizzes/optimized?status=all");
+      const response = await fetch("/api/student/quizzes?status=all");
       if (response.ok) {
         const data = await response.json();
         
@@ -219,8 +219,8 @@ export default function QuizzesContent() {
   return (
     <PageContainer maxWidth="full">
       <PageHeader
-        title="My Quizzes"
-        subtitle="Browse and take biblical knowledge quizzes"
+        title="Available Quizzes"
+        subtitle="Quizzes from your current educators"
         breadcrumbs={[
           { label: "Quizzes" }
         ]}
@@ -275,6 +275,7 @@ export default function QuizzesContent() {
                   key={quiz.id}
                   title={quiz.title}
                   description={quiz.description}
+                  educatorName={quiz.educatorName}
                   totalQuestions={quiz.totalQuestions}
                   duration={quiz.duration}
                   startTimeFormatted={quiz.startTime ? formatQuizTime(quiz.startTime) : "Not scheduled"}

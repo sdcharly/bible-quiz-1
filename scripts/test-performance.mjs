@@ -20,7 +20,7 @@ const results = {
     errors: []
   },
   optimized: {
-    endpoint: '/api/student/quizzes/optimized',
+    endpoint: '/api/student/quizzes',
     times: [],
     sizes: [],
     errors: []
@@ -91,7 +91,7 @@ async function testBasicEndpoints() {
   
   // Test optimized endpoint
   console.log('\nTesting optimized endpoint...');
-  const optimizedResult = await makeRequest('/api/student/quizzes/optimized', '?status=all');
+  const optimizedResult = await makeRequest('/api/student/quizzes', '?status=all');
   
   if (optimizedResult.success) {
     results.optimized.times.push(optimizedResult.time);
@@ -130,7 +130,7 @@ async function testFilterParameters() {
   
   for (const filter of filters) {
     console.log(`\nTesting: ${filter.desc}`);
-    const result = await makeRequest('/api/student/quizzes/optimized', filter.param);
+    const result = await makeRequest('/api/student/quizzes', filter.param);
     
     if (result.success) {
       console.log(`✅ Success: ${result.time.toFixed(2)}ms, ${result.data.quizzes?.length || 0} quizzes`);
@@ -169,7 +169,7 @@ async function testLoad() {
   };
   
   const originalLoad = await runLoadTest('/api/student/quizzes', 'Original');
-  const optimizedLoad = await runLoadTest('/api/student/quizzes/optimized', 'Optimized');
+  const optimizedLoad = await runLoadTest('/api/student/quizzes', 'Optimized');
   
   const improvement = ((originalLoad.avgTime - optimizedLoad.avgTime) / originalLoad.avgTime * 100).toFixed(1);
   console.log(`\n📈 Load test improvement: ${improvement}% faster`);
@@ -181,12 +181,12 @@ async function testCacheBehavior() {
   console.log('==========================');
   
   console.log('\nFirst request (cache miss expected)...');
-  const firstRequest = await makeRequest('/api/student/quizzes/optimized', '?status=all&test=cache');
+  const firstRequest = await makeRequest('/api/student/quizzes', '?status=all&test=cache');
   console.log(`Time: ${firstRequest.time.toFixed(2)}ms`);
   console.log(`Cache: ${firstRequest.headers['x-cache'] || 'Not set'}`);
   
   console.log('\nSecond request (cache hit expected)...');
-  const secondRequest = await makeRequest('/api/student/quizzes/optimized', '?status=all&test=cache');
+  const secondRequest = await makeRequest('/api/student/quizzes', '?status=all&test=cache');
   console.log(`Time: ${secondRequest.time.toFixed(2)}ms`);
   console.log(`Cache: ${secondRequest.headers['x-cache'] || 'Not set'}`);
   
@@ -200,7 +200,7 @@ async function testCacheBehavior() {
   // Test ETag
   console.log('\nTesting ETag support...');
   if (firstRequest.headers['etag']) {
-    const etagRequest = await fetch(`${BASE_URL}/api/student/quizzes/optimized?status=all`, {
+    const etagRequest = await fetch(`${BASE_URL}/api/student/quizzes?status=all`, {
       headers: {
         'Cookie': SESSION_COOKIE,
         'If-None-Match': firstRequest.headers['etag']
