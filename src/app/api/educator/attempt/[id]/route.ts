@@ -52,13 +52,20 @@ export async function GET(
       .from(quizzes)
       .where(eq(quizzes.id, attempt.quizId));
 
-    // Verify educator owns this quiz (for production)
-    // if (session?.user && quiz.educatorId !== session.user.id) {
-    //   return NextResponse.json(
-    //     { error: "Unauthorized" },
-    //     { status: 403 }
-    //   );
-    // }
+    // CRITICAL: Verify educator owns this quiz
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+    
+    if (quiz.educatorId !== session.user.id) {
+      return NextResponse.json(
+        { error: "Unauthorized - You don't own this quiz" },
+        { status: 403 }
+      );
+    }
 
     // Fetch all questions for this quiz
     const quizQuestions = await db

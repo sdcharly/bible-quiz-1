@@ -19,6 +19,20 @@ export async function POST(
     const quizId = params.id;
     const { studentIds, enrollAll, sendNotifications = false } = await req.json();
 
+    // Get session and verify educator
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+
+    const authenticatedEducatorId = session.user.id;
+
     // Check if quiz exists and is published
     const quiz = await db
       .select()
@@ -30,6 +44,14 @@ export async function POST(
       return NextResponse.json(
         { error: "Quiz not found" },
         { status: 404 }
+      );
+    }
+
+    // CRITICAL: Verify educator owns this quiz
+    if (quiz[0].educatorId !== authenticatedEducatorId) {
+      return NextResponse.json(
+        { error: "Unauthorized - You don't own this quiz" },
+        { status: 403 }
       );
     }
 
@@ -57,30 +79,30 @@ export async function POST(
       );
     }
 
-    const educatorId = quiz[0].educatorId;
+    // Use authenticatedEducatorId to ensure we only enroll students belonging to the logged-in educator
     let studentsToEnroll: string[] = [];
 
     if (enrollAll) {
-      // Get all active students under this educator
+      // Get all active students under THIS AUTHENTICATED educator (not quiz owner)
       const allStudents = await db
         .select({ studentId: educatorStudents.studentId })
         .from(educatorStudents)
         .where(
           and(
-            eq(educatorStudents.educatorId, educatorId),
+            eq(educatorStudents.educatorId, authenticatedEducatorId),
             eq(educatorStudents.status, "active")
           )
         );
       
       studentsToEnroll = allStudents.map(s => s.studentId);
     } else if (studentIds && Array.isArray(studentIds)) {
-      // Verify that all provided student IDs belong to this educator
+      // Verify that all provided student IDs belong to THIS AUTHENTICATED educator
       const validStudents = await db
         .select({ studentId: educatorStudents.studentId })
         .from(educatorStudents)
         .where(
           and(
-            eq(educatorStudents.educatorId, educatorId),
+            eq(educatorStudents.educatorId, authenticatedEducatorId),
             inArray(educatorStudents.studentId, studentIds)
           )
         );

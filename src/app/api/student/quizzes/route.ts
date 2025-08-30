@@ -86,6 +86,9 @@ async function getHandler(req: NextRequest) {
     }
 
     const educatorIds = studentEducators.filter(se => se?.educatorId).map(se => se.educatorId);
+    
+    // CRITICAL SECURITY: Only show quizzes from educators the student belongs to
+    // This prevents cross-educator data leakage
 
     // Choose query strategy based on feature flags
     let quizData;
@@ -141,6 +144,10 @@ async function getOptimizedQuizData(studentId: string, educatorIds: string[], fi
   const now = new Date();
   
   // Single optimized query using JOINs
+  // CRITICAL: Only fetch quizzes where:
+  // 1. Quiz is published
+  // 2. Quiz belongs to one of the student's educators
+  // 3. Student is enrolled in the quiz
   const quizQuery = db
     .select({
       quiz: quizzes,
@@ -171,7 +178,7 @@ async function getOptimizedQuizData(studentId: string, educatorIds: string[], fi
     .where(
       and(
         eq(quizzes.status, "published"),
-        inArray(quizzes.educatorId, educatorIds),
+        inArray(quizzes.educatorId, educatorIds), // CRITICAL: Only from student's educators
         // Add search filter if provided
         filters.search ? 
           or(
@@ -256,9 +263,14 @@ async function getLegacyQuizData(studentId: string, educatorIds: string[], filte
   const attemptMap = new Map(studentAttempts.map(a => [a.quizId, a]));
   const educatorMap = new Map(educators.map(e => [e.id, e.name]));
 
-  // Process quizzes
+  // Process quizzes - CRITICAL: Double-check educator ownership
   const processedQuizzes = educatorQuizzes
-    .filter(quiz => enrollmentMap.has(quiz.id))
+    .filter(quiz => {
+      // Only include if:
+      // 1. Student is enrolled
+      // 2. Quiz belongs to one of student's educators (redundant check for safety)
+      return enrollmentMap.has(quiz.id) && educatorIds.includes(quiz.educatorId);
+    })
     .map(quiz => {
       const enrollment = enrollmentMap.get(quiz.id)!;
       const attempt = attemptMap.get(quiz.id);

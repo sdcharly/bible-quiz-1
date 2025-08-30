@@ -19,8 +19,15 @@ export async function GET(
       headers: await headers()
     });
 
-    // For testing, allow without session
-    const educatorId = session?.user?.id || "default-educator-id";
+    // Require authenticated educator
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+    
+    const educatorId = session.user.id;
 
     // Fetch student details
     const [studentData] = await db
@@ -50,13 +57,27 @@ export async function GET(
       );
     }
 
-    // Fetch enrollment statistics - get unique quiz IDs
+    // CRITICAL: Only fetch enrollments for THIS educator's quizzes
+    const educatorQuizzes = await db
+      .select({ id: quizzes.id })
+      .from(quizzes)
+      .where(eq(quizzes.educatorId, educatorId));
+    
+    const educatorQuizIds = educatorQuizzes.map(q => q.id);
+    
+    // Fetch enrollment statistics - only for this educator's quizzes
     const studentEnrollments = await db
       .select({ quizId: enrollments.quizId })
       .from(enrollments)
-      .where(eq(enrollments.studentId, studentId));
+      .innerJoin(quizzes, eq(enrollments.quizId, quizzes.id))
+      .where(
+        and(
+          eq(enrollments.studentId, studentId),
+          eq(quizzes.educatorId, educatorId) // CRITICAL: Only this educator's quizzes
+        )
+      );
 
-    // Fetch quiz attempts
+    // CRITICAL: Only fetch quiz attempts for THIS educator's quizzes
     const attempts = await db
       .select({
         attemptId: quizAttempts.id,
@@ -74,7 +95,8 @@ export async function GET(
       .where(
         and(
           eq(quizAttempts.studentId, studentId),
-          eq(quizAttempts.status, "completed")
+          eq(quizAttempts.status, "completed"),
+          eq(quizzes.educatorId, educatorId) // CRITICAL: Only show attempts from this educator's quizzes
         )
       )
       .orderBy(desc(quizAttempts.endTime))

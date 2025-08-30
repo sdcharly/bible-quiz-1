@@ -68,6 +68,7 @@ export default function EducatorDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<{ name?: string; email?: string; role?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [performanceLoading, setPerformanceLoading] = useState(true);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [stats, setStats] = useState({
     totalQuizzes: 0,
@@ -98,12 +99,19 @@ export default function EducatorDashboard() {
       }
       
       setUser(userWithRole);
-      await Promise.all([
-        fetchQuizzes(),
-        fetchStats(),
-        fetchPerformanceData()
-      ]);
+      
+      // Load critical data first
       setLoading(false);
+      
+      // Start loading data in parallel but don't wait
+      Promise.all([
+        fetchQuizzes(),
+        fetchStats()
+      ]);
+      
+      // Load performance data separately with its own loading state
+      setPerformanceLoading(true);
+      fetchPerformanceData().finally(() => setPerformanceLoading(false));
     };
     
     checkAuth();
@@ -301,29 +309,52 @@ export default function EducatorDashboard() {
               </div>
             </CardHeader>
             <CardContent className="pt-2">
-              <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
-                <div className="text-center">
-                  <div className={`text-xl sm:text-3xl font-bold ${getScoreColor(performanceData.averageScore)}`}>
-                    {performanceData.averageScore.toFixed(1)}%
+              {performanceLoading ? (
+                <div className="animate-pulse">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="text-center">
+                      <div className="h-8 sm:h-10 bg-amber-200 rounded mx-auto w-16"></div>
+                      <div className="h-3 bg-gray-200 rounded mt-2 mx-auto w-12"></div>
+                    </div>
+                    <div className="text-center">
+                      <div className="h-8 sm:h-10 bg-amber-200 rounded mx-auto w-16"></div>
+                      <div className="h-3 bg-gray-200 rounded mt-2 mx-auto w-20"></div>
+                    </div>
+                    <div className="text-center">
+                      <div className="h-8 sm:h-10 bg-amber-200 rounded mx-auto w-16"></div>
+                      <div className="h-3 bg-gray-200 rounded mt-2 mx-auto w-16"></div>
+                    </div>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Score</p>
+                  <div className="h-24 bg-gray-100 rounded"></div>
+                  <div className="h-3 bg-gray-200 rounded mt-2 mx-auto w-32"></div>
                 </div>
-                <div className="text-center">
-                  <div className="text-xl sm:text-3xl font-bold text-amber-600">
-                    {performanceData.passRate.toFixed(0)}%
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="text-center">
+                      <div className={`text-xl sm:text-3xl font-bold ${getScoreColor(performanceData.averageScore)}`}>
+                        {performanceData.averageScore.toFixed(1)}%
+                      </div>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Score</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl sm:text-3xl font-bold text-amber-600">
+                        {performanceData.passRate.toFixed(0)}%
+                      </div>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Enlightenment</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl sm:text-3xl font-bold text-amber-600">
+                        {performanceData.completionRate.toFixed(0)}%
+                      </div>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Completion</p>
+                    </div>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Enlightenment</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl sm:text-3xl font-bold text-amber-600">
-                    {performanceData.completionRate.toFixed(0)}%
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Completion</p>
-                </div>
-              </div>
+                </>
+              )}
               
               {/* Activity Chart or Getting Started Content */}
-              {performanceData.recentActivity && performanceData.recentActivity.length > 0 ? (
+              {!performanceLoading && performanceData.recentActivity && performanceData.recentActivity.length > 0 ? (
                 <>
                   <div className="h-24 flex items-end gap-1">
                     {performanceData.recentActivity.filter(day => day && day.attempts != null).map((day, index) => {

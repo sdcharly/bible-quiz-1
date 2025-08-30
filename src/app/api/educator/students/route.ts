@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq, and, count, desc, countDistinct } from "drizzle-orm";
+import * as crypto from "crypto";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { educatorStudents, user, enrollments, quizAttempts } from "@/lib/schema";
+import { educatorStudents, user, enrollments, quizAttempts, quizzes } from "@/lib/schema";
 import { auth } from "@/lib/auth";
 
 
@@ -39,23 +40,31 @@ export async function GET(req: NextRequest) {
       .where(eq(educatorStudents.educatorId, educatorId))
       .orderBy(desc(educatorStudents.enrolledAt));
 
-    // Get statistics for each student
+    // Get statistics for each student - ONLY for this educator's quizzes
     const studentsWithStats = await Promise.all(
       students.map(async (student) => {
-        // Count unique quiz enrollments (not counting reassignments as separate enrollments)
+        // CRITICAL: Only count enrollments in THIS educator's quizzes
         const enrollmentCount = await db
           .select({ count: countDistinct(enrollments.quizId) })
           .from(enrollments)
-          .where(eq(enrollments.studentId, student.studentId));
+          .innerJoin(quizzes, eq(enrollments.quizId, quizzes.id))
+          .where(
+            and(
+              eq(enrollments.studentId, student.studentId),
+              eq(quizzes.educatorId, educatorId) // Only this educator's quizzes
+            )
+          );
 
-        // Count completed quizzes
+        // CRITICAL: Only count completed quizzes from THIS educator
         const completedCount = await db
           .select({ count: count() })
           .from(quizAttempts)
+          .innerJoin(quizzes, eq(quizAttempts.quizId, quizzes.id))
           .where(
             and(
               eq(quizAttempts.studentId, student.studentId),
-              eq(quizAttempts.status, "completed")
+              eq(quizAttempts.status, "completed"),
+              eq(quizzes.educatorId, educatorId) // Only this educator's quizzes
             )
           );
 

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import * as crypto from "crypto";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { enrollments, user, quizzes } from "@/lib/schema";
+import { enrollments, user, quizzes, educatorStudents } from "@/lib/schema";
 import { getQuizAvailabilityStatus } from "@/lib/quiz-scheduling";
+import { auth } from "@/lib/auth";
 
 
 export async function POST(
@@ -14,6 +16,20 @@ export async function POST(
     const params = await context.params;
     const quizId = params.id;
     const { studentEmail } = await req.json();
+
+    // Get session and verify educator
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+
+    const educatorId = session.user.id;
 
     if (!studentEmail) {
       return NextResponse.json(
@@ -33,6 +49,14 @@ export async function POST(
       return NextResponse.json(
         { error: "Quiz not found" },
         { status: 404 }
+      );
+    }
+
+    // CRITICAL: Verify educator owns this quiz
+    if (quiz[0].educatorId !== educatorId) {
+      return NextResponse.json(
+        { error: "Unauthorized - You don't own this quiz" },
+        { status: 403 }
       );
     }
 
@@ -75,6 +99,26 @@ export async function POST(
     }
 
     const studentId = student[0].id;
+
+    // CRITICAL: Verify student belongs to this educator
+    const relationship = await db
+      .select()
+      .from(educatorStudents)
+      .where(
+        and(
+          eq(educatorStudents.educatorId, educatorId),
+          eq(educatorStudents.studentId, studentId),
+          eq(educatorStudents.status, "active")
+        )
+      )
+      .limit(1);
+
+    if (!relationship.length) {
+      return NextResponse.json(
+        { error: "Student is not associated with your educator account. Please add them as your student first." },
+        { status: 403 }
+      );
+    }
 
     // Check if student is already enrolled
     const existingEnrollment = await db

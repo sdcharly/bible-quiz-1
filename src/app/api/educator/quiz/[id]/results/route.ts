@@ -33,8 +33,20 @@ export async function GET(
       );
     }
 
-    // Verify educator owns this quiz
-    // For testing, we'll allow access without session verification
+    // CRITICAL: Verify educator owns this quiz
+    if (!session?.user || session.user.role !== 'educator') {
+      return NextResponse.json(
+        { error: "Unauthorized - Educator access required" },
+        { status: 401 }
+      );
+    }
+    
+    if (quiz.educatorId !== session.user.id) {
+      return NextResponse.json(
+        { error: "Unauthorized - You don't own this quiz" },
+        { status: 403 }
+      );
+    }
     
     // Fetch all attempts for this quiz
     const attempts = await db
