@@ -72,13 +72,13 @@ export async function DELETE(
     } else {
       // No valid doc ID found
       lightragDocumentId = undefined;
-      console.error(`[WARNING] No valid LightRAG document ID (doc-xxx) found for deletion`);
+      logger.warn(`No valid LightRAG document ID (doc-xxx) found for deletion`);
     }
     
-    console.error(`[CRITICAL] Deletion IDs - permanentDocId: ${permanentDocId}, lightragDocId: ${lightragDocId}, trackId: ${trackId}`);
-    console.error(`[CRITICAL] Using for deletion: ${lightragDocumentId}`);
+    logger.debug(`Deletion IDs - permanentDocId: ${permanentDocId}, lightragDocId: ${lightragDocId}, trackId: ${trackId}`);
+    logger.debug(`Using for deletion: ${lightragDocumentId}`);
     
-    console.log("Document deletion attempt:", {
+    logger.info("Document deletion attempt:", {
       localDocumentId: params.id,
       lightragDocumentId: lightragDocumentId,
       documentStatus: document.status,
@@ -93,12 +93,12 @@ export async function DELETE(
     if (lightragDocumentId && lightragDocumentId.startsWith('doc-') && 
         (document.status === "processed" || document.status === "processing")) {
       try {
-        console.log(`Attempting safe deletion of LightRAG document: ${lightragDocumentId}`);
+        logger.info(`Attempting safe deletion of LightRAG document: ${lightragDocumentId}`);
         
         // Use the enhanced safe deletion method
         lightragResult = await LightRAGService.safeDeleteDocument(String(lightragDocumentId));
         
-        console.log(`LightRAG deletion result for ${lightragDocumentId}:`, lightragResult);
+        logger.info(`LightRAG deletion result for ${lightragDocumentId}:`, lightragResult);
 
         // Handle different deletion outcomes
         if (!lightragResult.success) {
@@ -125,7 +125,7 @@ export async function DELETE(
         }
 
       } catch (error) {
-        console.error(`Error in safe LightRAG deletion for ${lightragDocumentId}:`, error);
+        logger.error(`Error in safe LightRAG deletion for ${lightragDocumentId}:`, error);
         deletionWarnings.push(`LightRAG deletion error: ${error instanceof Error ? error.message : 'Unknown error'}`);
         
         // For network errors, we might want to prevent local deletion
@@ -139,11 +139,11 @@ export async function DELETE(
       }
     } else if (document.status === "processed" && !lightragDocumentId) {
       deletionWarnings.push("Document marked as processed but has no valid LightRAG ID (doc-xxx) - local deletion only");
-      console.error(`[WARNING] Cannot delete from LightRAG: No valid document ID starting with 'doc-'`);
+      logger.warn(`Cannot delete from LightRAG: No valid document ID starting with 'doc-'`);
     } else if (document.status === "failed") {
-      console.log("Document failed processing, safe to delete locally");
+      logger.info("Document failed processing, safe to delete locally");
     } else if (document.status === "pending") {
-      console.log("Document never processed, safe to delete locally");
+      logger.info("Document never processed, safe to delete locally");
     }
 
     // Check for active quizzes using this document
@@ -160,7 +160,7 @@ export async function DELETE(
         deletionWarnings.push(`Document is being used in ${affectedQuizzes.length} quiz(es)`);
       }
     } catch (quizCheckError) {
-      console.warn("Could not check for quiz dependencies:", quizCheckError);
+      logger.warn("Could not check for quiz dependencies:", quizCheckError);
       deletionWarnings.push("Could not verify quiz dependencies");
     }
 
@@ -185,7 +185,7 @@ export async function DELETE(
       })
       .where(eq(documents.id, params.id));
 
-    console.log(`Successfully marked document ${params.id} as deleted`);
+    logger.info(`Successfully marked document ${params.id} as deleted`);
 
     // Determine the appropriate message based on dependencies
     let message = "Document marked as deleted";
@@ -213,7 +213,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error("Error deleting document:", error);
+    logger.error("Error deleting document:", error);
     return NextResponse.json(
       { error: "Failed to delete document" },
       { status: 500 }

@@ -8,6 +8,7 @@ import {
   questionResponses 
 } from "@/lib/schema";
 import { eq, and, gte, sql, inArray } from "drizzle-orm";
+import { logger } from "@/lib/logger";
 
 export interface AnalyticsData {
   overall: {
@@ -29,12 +30,19 @@ export interface AnalyticsData {
 }
 
 export async function fetchEducatorData(educatorId: string) {
-  const [educatorQuizzes, students] = await Promise.all([
-    db.select().from(quizzes).where(eq(quizzes.educatorId, educatorId)),
-    db.select().from(educatorStudents).where(eq(educatorStudents.educatorId, educatorId))
-  ]);
-  
-  return { educatorQuizzes, students };
+  try {
+    logger.debug(`Fetching educator data for: ${educatorId}`);
+    const [educatorQuizzes, students] = await Promise.all([
+      db.select().from(quizzes).where(eq(quizzes.educatorId, educatorId)),
+      db.select().from(educatorStudents).where(eq(educatorStudents.educatorId, educatorId))
+    ]);
+    
+    logger.debug(`Found ${educatorQuizzes.length} quizzes and ${students.length} students`);
+    return { educatorQuizzes, students };
+  } catch (error) {
+    logger.error('Error in fetchEducatorData:', error);
+    throw error;
+  }
 }
 
 export async function fetchQuizStatistics(quizIds: string[], dateFilter: Date) {
@@ -90,43 +98,59 @@ export async function fetchStudentStatistics(studentIds: string[], quizIds: stri
 export async function fetchTopicPerformance(quizIds: string[], dateFilter: Date) {
   if (quizIds.length === 0) return [];
   
-  return db.select({
-    topic: questions.topic,
-    totalQuestions: sql<number>`count(*)`,
-    correctAnswers: sql<number>`sum(case when ${questionResponses.isCorrect} then 1 else 0 end)`,
-    attempts: sql<number>`count(distinct ${questionResponses.attemptId})`
-  })
-  .from(questionResponses)
-  .innerJoin(questions, eq(questionResponses.questionId, questions.id))
-  .innerJoin(quizAttempts, eq(questionResponses.attemptId, quizAttempts.id))
-  .where(and(
-    inArray(quizAttempts.quizId, quizIds),
-    gte(quizAttempts.endTime, dateFilter),
-    eq(quizAttempts.status, "completed")
-  ))
-  .groupBy(questions.topic);
+  try {
+    logger.debug(`Fetching topic performance for ${quizIds.length} quizzes`);
+    const result = await db.select({
+      topic: questions.topic,
+      totalQuestions: sql<number>`count(*)`,
+      correctAnswers: sql<number>`sum(case when ${questionResponses.isCorrect} then 1 else 0 end)`,
+      attempts: sql<number>`count(distinct ${questionResponses.attemptId})`
+    })
+    .from(questionResponses)
+    .innerJoin(questions, eq(questionResponses.questionId, questions.id))
+    .innerJoin(quizAttempts, eq(questionResponses.attemptId, quizAttempts.id))
+    .where(and(
+      inArray(quizAttempts.quizId, quizIds),
+      gte(quizAttempts.endTime, dateFilter),
+      eq(quizAttempts.status, "completed")
+    ))
+    .groupBy(questions.topic);
+    
+    logger.debug(`Topic performance query returned ${result.length} rows`);
+    return result;
+  } catch (error) {
+    logger.error('Error in fetchTopicPerformance:', error);
+    throw error;
+  }
 }
 
 export async function fetchDifficultyPerformance(quizIds: string[], dateFilter: Date) {
   if (quizIds.length === 0) return [];
   
-  const results = await db.select({
-    bloomsLevel: questions.bloomsLevel,
-    totalQuestions: sql<number>`count(*)`,
-    correctAnswers: sql<number>`sum(case when ${questionResponses.isCorrect} then 1 else 0 end)`,
-    attempts: sql<number>`count(distinct ${questionResponses.attemptId})`
-  })
-  .from(questionResponses)
-  .innerJoin(questions, eq(questionResponses.questionId, questions.id))
-  .innerJoin(quizAttempts, eq(questionResponses.attemptId, quizAttempts.id))
-  .where(and(
-    inArray(quizAttempts.quizId, quizIds),
-    gte(quizAttempts.endTime, dateFilter),
-    eq(quizAttempts.status, "completed")
-  ))
-  .groupBy(questions.bloomsLevel);
-  
-  return mapBloomsToDifficulty(results);
+  try {
+    logger.debug(`Fetching difficulty performance for ${quizIds.length} quizzes`);
+    const results = await db.select({
+      bloomsLevel: questions.bloomsLevel,
+      totalQuestions: sql<number>`count(*)`,
+      correctAnswers: sql<number>`sum(case when ${questionResponses.isCorrect} then 1 else 0 end)`,
+      attempts: sql<number>`count(distinct ${questionResponses.attemptId})`
+    })
+    .from(questionResponses)
+    .innerJoin(questions, eq(questionResponses.questionId, questions.id))
+    .innerJoin(quizAttempts, eq(questionResponses.attemptId, quizAttempts.id))
+    .where(and(
+      inArray(quizAttempts.quizId, quizIds),
+      gte(quizAttempts.endTime, dateFilter),
+      eq(quizAttempts.status, "completed")
+    ))
+    .groupBy(questions.bloomsLevel);
+    
+    logger.debug(`Difficulty performance query returned ${results.length} rows`);
+    return mapBloomsToDifficulty(results);
+  } catch (error) {
+    logger.error('Error in fetchDifficultyPerformance:', error);
+    throw error;
+  }
 }
 
 function mapBloomsToDifficulty(results: any[]) {
