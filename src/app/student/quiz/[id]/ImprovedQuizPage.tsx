@@ -70,6 +70,7 @@ export default function ImprovedQuizPage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef<boolean>(true);
 
   // Memoize current question to avoid recalculation
   const currentQuestion = useMemo(() => {
@@ -79,21 +80,20 @@ export default function ImprovedQuizPage() {
 
   // Fetch quiz data
   useEffect(() => {
+    isMountedRef.current = true;
     let mounted = true;
 
     const fetchQuiz = async () => {
       try {
-        // Use AbortController for memory optimization
-        if (isFeatureEnabled('MEMORY_OPTIMIZATION')) {
-          abortControllerRef.current = new AbortController();
-        }
+        // Always use AbortController for proper cleanup
+        abortControllerRef.current = new AbortController();
         
         const response = await fetch(`/api/student/quiz/${quizId}/start`, {
           method: "POST",
-          signal: abortControllerRef.current?.signal,
+          signal: abortControllerRef.current.signal,
         });
         
-        if (!mounted) return;
+        if (!mounted || !isMountedRef.current) return;
         
         if (response.ok) {
           const data = await response.json();
@@ -142,7 +142,16 @@ export default function ImprovedQuizPage() {
           });
           router.push("/student/quizzes");
         }
-      } catch (error) {
+      } catch (error: any) {
+        // Check if the error is due to an abort (user navigated away)
+        if (error?.name === 'AbortError' || error instanceof DOMException) {
+          // Silently return - this is expected when component unmounts
+          return;
+        }
+        
+        // Only show error and navigate if component is still mounted
+        if (!isMountedRef.current) return;
+        
         logger.error("Error loading quiz:", error);
         toast({
           title: "Network Error",
@@ -157,40 +166,32 @@ export default function ImprovedQuizPage() {
 
     return () => {
       mounted = false;
+      isMountedRef.current = false;
       
-      // Enhanced cleanup for memory optimization
-      if (isFeatureEnabled('MEMORY_OPTIMIZATION')) {
-        // Clean up all timers
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-        
-        if (autoSaveTimeoutRef.current) {
-          clearTimeout(autoSaveTimeoutRef.current);
-          autoSaveTimeoutRef.current = null;
-        }
-        
-        // Abort any pending API calls
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-          abortControllerRef.current = null;
-        }
-        
-        // Clear refs to prevent memory leaks
-        quizRef.current = null;
-        timeRemainingRef.current = 0;
-        
-        logger.debug('Quiz page cleanup completed');
-      } else {
-        // Legacy cleanup - minimal
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
+      // Clean up all timers
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
       }
+      
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+      
+      // Always abort any pending API calls on cleanup
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      
+      // Clear refs to prevent memory leaks
+      quizRef.current = null;
+      timeRemainingRef.current = 0;
+      
+      logger.debug('Quiz page cleanup completed');
     };
-  }, [quizId, router]);
+  }, [quizId, router, toast]);
 
   // Timer effect
   useEffect(() => {
@@ -302,6 +303,9 @@ export default function ImprovedQuizPage() {
     }
 
     setSubmitting(true);
+    
+    // Create a new AbortController for this submission
+    const submitController = new AbortController();
 
     try {
       const response = await fetch(`/api/student/quiz/${quizId}/submit`, {
@@ -314,7 +318,11 @@ export default function ImprovedQuizPage() {
           answers: Object.values(answers),
           timeSpent: (quiz.duration * 60) - timeRemaining,
         }),
+        signal: submitController.signal,
       });
+
+      // Check if component is still mounted before proceeding
+      if (!isMountedRef.current) return;
 
       if (response.ok) {
         const data = await response.json();
@@ -323,21 +331,33 @@ export default function ImprovedQuizPage() {
           clearInterval(timerRef.current);
         }
         
-        if (isAutoSubmit) {
+        if (isAutoSubmit && isMountedRef.current) {
           alert("Time's up! Your quiz has been automatically submitted.");
         }
         
-        router.push(`/student/results/${data.attemptId}`);
+        if (isMountedRef.current) {
+          router.push(`/student/results/${data.attemptId}`);
+        }
       } else {
         const errorData = await response.json();
         if (errorData.error === "Quiz already submitted") {
-          alert(errorData.message);
-          router.push(`/student/results/${errorData.attemptId}`);
+          if (isMountedRef.current) {
+            alert(errorData.message);
+            router.push(`/student/results/${errorData.attemptId}`);
+          }
         } else {
           throw new Error(errorData.error || "Submission failed");
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Check if the error is due to an abort
+      if (error?.name === 'AbortError' || error instanceof DOMException) {
+        return;
+      }
+      
+      // Only show error if component is still mounted
+      if (!isMountedRef.current) return;
+      
       logger.error("Submit error:", error);
       alert("Failed to submit quiz. Please try again.");
       setSubmitting(false);

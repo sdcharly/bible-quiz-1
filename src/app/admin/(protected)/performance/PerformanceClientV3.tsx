@@ -135,11 +135,11 @@ interface IndexStatus {
 }
 
 interface DatabaseMetrics {
-  activeConnections: number;
+  activeConnections: number | null;
   totalConnections: number;
-  idleConnections: number;
+  idleConnections: number | null;
   poolSize: number;
-  waitingRequests: number;
+  waitingRequests: number | null;
   largestTables: Array<{ name: string; size: string; rows: number }>;
   indexCount: number;
   indexSize: string;
@@ -260,7 +260,7 @@ export default function PerformanceClientV3() {
     // Database scoring
     if (metrics.database) {
       const db = metrics.database;
-      if (db.activeConnections > db.poolSize * 0.8) {
+      if (db.activeConnections !== null && db.activeConnections > db.poolSize * 0.8) {
         dbScore -= 20;
         recommendations.push("Database connection pool is nearly exhausted");
       }
@@ -868,9 +868,11 @@ export default function PerformanceClientV3() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <StatCard
                 label="Active Connections"
-                value={`${metrics.database.activeConnections}/${metrics.database.poolSize || 20}`}
+                value={metrics.database.activeConnections !== null 
+                  ? `${metrics.database.activeConnections}/${metrics.database.poolSize || 20}`
+                  : "N/A"}
                 icon={Database}
-                variant={metrics.database.activeConnections < (metrics.database.poolSize || 20) * 0.8 ? "success" : "warning"}
+                variant={metrics.database.activeConnections !== null && metrics.database.activeConnections < (metrics.database.poolSize || 20) * 0.8 ? "success" : "default"}
               />
               <StatCard
                 label="Cache Hit Ratio"

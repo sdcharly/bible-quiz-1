@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 
+// Force Node.js runtime for process.* access
+export const runtime = 'nodejs';
+
 /**
  * General metrics endpoint
  * Returns overall system health and performance metrics
@@ -24,7 +27,13 @@ export async function GET(req: NextRequest) {
       // Add more metrics as needed
     };
 
-    return NextResponse.json(metrics);
+    return NextResponse.json(metrics, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to fetch metrics' },

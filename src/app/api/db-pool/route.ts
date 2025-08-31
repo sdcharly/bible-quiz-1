@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(health);
         
       case 'stats':
-        const stats = getPoolStats();
+        const stats = await getPoolStats();
         return NextResponse.json(stats);
         
       default:

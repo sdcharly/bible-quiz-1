@@ -1,17 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { quizAttempts } from "@/lib/schema";
-import { desc, gte, sql } from "drizzle-orm";
+import { desc, gte, count } from "drizzle-orm";
 
 /**
  * Quiz start metrics endpoint
  * Tracks how long it takes students to start quizzes
  */
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   try {
+    // Simple header-based guard; replace with your auth as needed
+    const expected = process.env.METRICS_API_KEY;
+    const provided = req.headers.get("x-metrics-key");
+    if (expected && provided !== expected) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Get recent quiz starts (last hour)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    
+
+    // Get the true count of quiz starts in the last hour (no limit)
+    const [hourlyCount] = await db
+      .select({ count: count() })
+      .from(quizAttempts)
+      .where(gte(quizAttempts.startTime, oneHourAgo));
+
+    // Get limited recent starts for the response payload
     const recentStarts = await db
       .select({
         attemptId: quizAttempts.id,
@@ -33,11 +51,13 @@ export async function GET(req: NextRequest) {
         // In production, you'd calculate actual duration from logs
         duration: Math.random() * 3000 + 500 // Simulated for now
       })),
-      hourlyRate: recentStarts.length,
+      hourlyRate: hourlyCount?.count || 0,  // Use the true count from the separate query
       timestamp: new Date().toISOString()
     };
 
-    return NextResponse.json(stats);
+    return NextResponse.json(stats, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    });
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to fetch quiz start metrics' },

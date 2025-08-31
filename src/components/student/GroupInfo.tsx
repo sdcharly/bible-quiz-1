@@ -44,6 +44,13 @@ interface GroupQuiz {
 const CACHE_KEY = 'student-groups-data';
 let fetchPromise: Promise<any> | null = null;
 
+// Helper to create fetch promise atomically
+const createFetchPromise = () => {
+  return fetchWithOptimizedCache('/api/student/groups', {
+    ttl: 300, // Cache for 5 minutes
+  }).then(result => result.data);
+};
+
 export function GroupInfo() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupQuizzes, setGroupQuizzes] = useState<GroupQuiz[]>([]);
@@ -55,22 +62,14 @@ export function GroupInfo() {
 
   const fetchGroups = async () => {
     try {
-      // Prevent duplicate requests using singleton promise
-      if (fetchPromise) {
-        logger.debug('Using existing groups fetch promise');
-        const data = await fetchPromise;
-        setGroups(data.groups || []);
-        setGroupQuizzes(data.recentGroupQuizzes || []);
-        setLoading(false);
-        return;
-      }
-
-      // Create singleton promise for deduplication
-      fetchPromise = fetchWithOptimizedCache('/api/student/groups', {
-        ttl: 300, // Cache for 5 minutes
-      }).then(result => result.data);
-
-      const data = await fetchPromise;
+      // Atomic check-and-set: assign promise if not exists, then await
+      const promise = fetchPromise ??= createFetchPromise();
+      
+      logger.debug('Fetching groups data', { 
+        isNewFetch: promise === fetchPromise 
+      });
+      
+      const data = await promise;
       
       logger.debug('Groups data fetched', {
         cached: data.cached,
@@ -84,12 +83,16 @@ export function GroupInfo() {
       logger.error("Error fetching groups:", error);
       setGroups([]);
       setGroupQuizzes([]);
+      // Reset promise on error to allow retry
+      fetchPromise = null;
     } finally {
       setLoading(false);
-      // Clear promise after completion
-      setTimeout(() => {
-        fetchPromise = null;
-      }, 100);
+      // Clear promise after successful completion to allow refresh
+      if (fetchPromise) {
+        setTimeout(() => {
+          fetchPromise = null;
+        }, 100);
+      }
     }
   };
 

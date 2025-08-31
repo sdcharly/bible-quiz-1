@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import isEqual from "lodash.isequal";
 import { getAdminSession } from "@/lib/admin-auth";
 import { Cache } from "@/lib/cache-v2";
 import { redisClient } from "@/lib/redis";
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
         success: true,
         test: {
           set: { success: true, latency: setLatency },
-          get: { success: retrieved !== null, latency: getLatency, match: JSON.stringify(retrieved) === JSON.stringify(testValue) },
+          get: { success: retrieved !== null, latency: getLatency, match: isEqual(retrieved, testValue) },
           delete: { success: true, latency: delLatency },
           totalLatency: setLatency + getLatency + delLatency,
         },

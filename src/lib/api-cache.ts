@@ -125,6 +125,58 @@ class OptimizedApiCache {
       this.pendingRequests.delete(key);
     });
   }
+
+  /**
+   * Get all cache entries (public accessor for stats)
+   */
+  getEntries(): Array<[string, CacheEntry]> {
+    return Array.from(this.cache.entries());
+  }
+
+  /**
+   * Get cache statistics without accessing private properties
+   */
+  getStats() {
+    const entries = this.getEntries();
+    const now = Date.now();
+    
+    if (entries.length === 0) {
+      return {
+        size: 0,
+        totalBytes: 0,
+        oldestEntry: 0,
+        averageAge: 0
+      };
+    }
+    
+    // Calculate total bytes by summing individual entry sizes
+    let totalBytes = 0;
+    let oldestTimestamp = now;
+    let totalAge = 0;
+    
+    for (const [key, entry] of entries) {
+      // Estimate size: key length + serialized data length
+      // Using a lightweight estimation instead of full serialization
+      const keySize = Buffer.byteLength(key, 'utf8');
+      const dataSize = entry.data ? Buffer.byteLength(JSON.stringify(entry.data), 'utf8') : 0;
+      const metadataSize = 100; // Approximate size for timestamp, ttl, headers
+      
+      totalBytes += keySize + dataSize + metadataSize;
+      
+      // Track oldest entry
+      oldestTimestamp = Math.min(oldestTimestamp, entry.timestamp);
+      
+      // Sum ages for average calculation
+      totalAge += (now - entry.timestamp);
+    }
+    
+    return {
+      size: entries.length,
+      totalBytes,
+      oldestEntry: oldestTimestamp,
+      averageAge: totalAge / entries.length
+    };
+  }
 }
 
 const optimizedCache = new OptimizedApiCache();
@@ -278,20 +330,10 @@ export async function prefetchUrls(urls: string[], ttl: number = 60): Promise<vo
 }
 
 /**
- * Get cache statistics
+ * Get cache statistics using public API
  */
 export function getCacheStats() {
-  const entries = Array.from(optimizedCache['cache'].entries());
-  const now = Date.now();
-  
-  return {
-    size: entries.length,
-    totalBytes: JSON.stringify(entries).length,
-    oldestEntry: entries.reduce((oldest, [_, entry]) => 
-      Math.min(oldest, entry.timestamp), now),
-    averageAge: entries.reduce((sum, [_, entry]) => 
-      sum + (now - entry.timestamp), 0) / entries.length || 0
-  };
+  return optimizedCache.getStats();
 }
 
 /**

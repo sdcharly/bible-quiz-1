@@ -48,11 +48,13 @@ export async function GET(req: NextRequest) {
       } catch (e) {
         stats.gcExecuted = false;
         stats.freedBytes = 0;
+        stats.freedMB = 0;
       }
     } else if (shouldRunGC) {
       // GC was requested but not available
       stats.gcExecuted = false;
       stats.freedBytes = 0;
+      stats.freedMB = 0;
       stats.gcNote = "GC requested but not available (requires --expose-gc flag)";
     }
 

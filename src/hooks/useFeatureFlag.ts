@@ -7,8 +7,12 @@ import { isFeatureEnabled, FeatureFlag } from "@/lib/feature-flags";
 /**
  * React hook for checking feature flags
  * Phase 3.4: Feature flag integration for UI components
+ * 
+ * @param flagName - The feature flag to check
+ * @param _userId - @deprecated This parameter is not used and will be removed in a future version
  */
-export function useFeatureFlag(flagName: FeatureFlag, userId?: string | null): boolean {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function useFeatureFlag(flagName: FeatureFlag, _userId?: string | null): boolean {
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
@@ -23,5 +27,3 @@ export function useFeatureFlag(flagName: FeatureFlag, userId?: string | null): b
 
   return enabled;
 }
-
-export default useFeatureFlag;

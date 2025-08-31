@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -34,30 +34,21 @@ function StudentResultsPage() {
   const [results, setResults] = useState<SafeQuizResult[]>([]);
   const [filter, setFilter] = useState<'all' | 'passed' | 'failed'>('all');
   
+  // Use ref to track mounted state
+  const isMountedRef = useRef(true);
+  
   // Memoized filter handlers to prevent re-renders
   const handleFilterChange = useCallback((newFilter: 'all' | 'passed' | 'failed') => {
     setFilter(newFilter);
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    
-    const loadResults = async () => {
-      if (mounted) {
-        await fetchResults();
-      }
-    };
-    
-    loadResults();
-    
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   const fetchResults = useCallback(async () => {
     try {
       const result = await fetchWithOptimizedCache('/api/student/results', { ttl: 60 }); // 1 min cache
+      
+      // Check if component is still mounted before updating state
+      if (!isMountedRef.current) return;
+      
       if (result.data) {
         const data = result.data;
         
@@ -73,18 +64,42 @@ function StudentResultsPage() {
           return dateB - dateA; // Most recent first
         });
         
-        setResults(processedResults);
+        // Check mounted state before setState
+        if (isMountedRef.current) {
+          setResults(processedResults);
+        }
       } else {
         logger.error('Failed to fetch results');
-        setResults([]); // Set empty array on error
+        // Check mounted state before setState
+        if (isMountedRef.current) {
+          setResults([]); // Set empty array on error
+        }
       }
     } catch (error) {
       logger.error('Error fetching results:', error);
-      setResults([]); // Set empty array on error
+      // Check mounted state before setState
+      if (isMountedRef.current) {
+        setResults([]); // Set empty array on error
+      }
     } finally {
-      setLoading(false);
+      // Check mounted state before setState
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
+
+  useEffect(() => {
+    // Set mounted to true on mount
+    isMountedRef.current = true;
+    
+    fetchResults();
+    
+    // Cleanup function to set mounted to false
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [fetchResults]);
 
   // Memoize filtered results and statistics
   const filteredResults = useMemo(() => {

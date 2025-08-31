@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, inArray, or, isNull, gte, lte, like, sql } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { quizzes, enrollments, quizAttempts, educatorStudents, user } from "@/lib/schema";
@@ -33,15 +33,34 @@ async function getHandler(req: NextRequest) {
     
     // Parse query parameters for filtering
     const { searchParams } = new URL(req.url);
+    
+    // Parse and validate limit with proper error handling
+    const limitParam = searchParams.get('limit');
+    let parsedLimit = limitParam ? parseInt(limitParam, 10) : 50;
+    
+    // Validate that limit is a finite positive integer
+    if (!Number.isInteger(parsedLimit) || parsedLimit <= 0 || !Number.isFinite(parsedLimit)) {
+      parsedLimit = 50; // Fallback to safe default
+    }
+    
+    // Apply min and max constraints
+    parsedLimit = Math.min(Math.max(parsedLimit, 1), 100); // Min 1, Max 100
+    
+    // Parse and validate offset
+    const offsetParam = searchParams.get('offset');
+    let parsedOffset = offsetParam ? parseInt(offsetParam, 10) : 0;
+    
+    // Validate offset
+    if (!Number.isInteger(parsedOffset) || parsedOffset < 0 || !Number.isFinite(parsedOffset)) {
+      parsedOffset = 0; // Fallback to safe default
+    }
+    
     const filters: QueryFilters = {
       status: (searchParams.get('status') as QueryFilters['status']) || 'all',
-      limit: parseInt(searchParams.get('limit') || '50'),
-      offset: parseInt(searchParams.get('offset') || '0'),
+      limit: parsedLimit,
+      offset: parsedOffset,
       search: searchParams.get('search') || undefined
     };
-    
-    // Validate filters
-    if (filters.limit! > 100) filters.limit = 100; // Cap at 100 for performance
     
     // Get session
     const session = await auth.api.getSession({
@@ -179,12 +198,10 @@ async function getOptimizedQuizData(studentId: string, educatorIds: string[], fi
       and(
         eq(quizzes.status, "published"),
         inArray(quizzes.educatorId, educatorIds), // CRITICAL: Only from student's educators
-        // Add search filter if provided
+        // Add search filter if provided - using full-text search for performance
         filters.search ? 
-          or(
-            sql`LOWER(${quizzes.title}) LIKE LOWER(${`%${filters.search}%`})`,
-            sql`LOWER(${quizzes.description}) LIKE LOWER(${`%${filters.search}%`})`
-          ) : undefined
+          sql`search_vector @@ plainto_tsquery('english', ${filters.search})`
+          : undefined
       )
     )
     .limit(filters.limit!)
@@ -221,6 +238,7 @@ async function getOptimizedQuizData(studentId: string, educatorIds: string[], fi
         score: attempt?.score || null,
         isReassignment,
         educatorName: educator?.name || "Unknown Educator",
+        isExpired: availability.status === 'ended',
         ...availability
       };
     })
@@ -296,6 +314,7 @@ async function getLegacyQuizData(studentId: string, educatorIds: string[], filte
         score: attempt?.score || null,
         isReassignment: enrollment.isReassignment || false,
         educatorName: educatorMap.get(quiz.educatorId) || "Unknown Educator",
+        isExpired: availability.status === 'ended',
         ...availability
       };
     });

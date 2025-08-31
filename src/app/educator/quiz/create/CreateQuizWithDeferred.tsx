@@ -52,7 +52,7 @@ export function CreateQuizWithDeferred({
 }) {
   const router = useRouter();
   const { timezone: userTimezone, getCurrentDateTime, toUTC, formatDate } = useTimezone();
-  const isDeferredEnabled = useFeatureFlag('DEFERRED_TIME', educatorId);
+  const isDeferredEnabled = useFeatureFlag('DEFERRED_TIME');
   
   const [schedulingMode, setSchedulingMode] = useState<"immediate" | "deferred">("immediate");
   const [config, setConfig] = useState<EnhancedQuizConfig>({

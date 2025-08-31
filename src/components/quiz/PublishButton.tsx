@@ -45,7 +45,7 @@ export function PublishButton({
   const [showSchedulingModal, setShowSchedulingModal] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [scheduling, setScheduling] = useState(false);
-  const isDeferredEnabled = useFeatureFlag('DEFERRED_TIME', educatorId);
+  const isDeferredEnabled = useFeatureFlag('DEFERRED_TIME');
 
   // Determine if quiz needs scheduling before publishing
   const needsScheduling = isDeferredEnabled && 

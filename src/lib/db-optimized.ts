@@ -21,6 +21,48 @@ interface PoolConfig {
 }
 
 /**
+ * Memoized snake_case to camelCase converter
+ * Caches transformations to avoid repeated regex operations on hot path
+ */
+const columnNameCache = new Map<string, string>();
+
+function snakeToCamelCase(column: string): string {
+  // Check cache first
+  const cached = columnNameCache.get(column);
+  if (cached !== undefined) {
+    return cached;
+  }
+  
+  // Compute transformation
+  const transformed = column.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  
+  // Store in cache for future use
+  columnNameCache.set(column, transformed);
+  
+  return transformed;
+}
+
+// Pre-populate cache with common column names from our schema
+// This avoids computation even on first access for known columns
+const commonColumns = [
+  'id', 'created_at', 'updated_at', 'deleted_at',
+  'user_id', 'educator_id', 'student_id', 'quiz_id', 
+  'group_id', 'attempt_id', 'document_id', 'enrollment_id',
+  'display_name', 'file_path', 'file_type', 'file_size',
+  'upload_date', 'processed_data', 'lightrag_document_id',
+  'start_time', 'end_time', 'submit_time', 'time_limit',
+  'share_code', 'short_code', 'share_url', 'short_url',
+  'is_active', 'is_published', 'is_archived', 'is_verified',
+  'passing_score', 'total_questions', 'completed_count',
+  'track_id', 'processing_status', 'error_message'
+];
+
+// Initialize cache with common columns
+for (const column of commonColumns) {
+  snakeToCamelCase(column);
+}
+
+/**
  * Get pool configuration based on feature flag and environment
  */
 function getPoolConfig(): PoolConfig {
@@ -89,8 +131,8 @@ function createOptimizedConnection() {
     // Transform for better error handling
     transform: {
       column: (column) => {
-        // Convert snake_case to camelCase automatically
-        return column.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+        // Use memoized converter for performance on hot path
+        return snakeToCamelCase(column);
       },
       value: (value) => {
         // Handle common data transformations
@@ -110,11 +152,14 @@ function createOptimizedConnection() {
     }, 30000); // Every 30 seconds
   }
 
+  // Store the sql client for proper cleanup
+  sqlClient = sql;
   return drizzle(sql);
 }
 
-// Create the optimized database instance
+// Store both the drizzle instance and the underlying sql client
 let optimizedDb: ReturnType<typeof createOptimizedConnection> | null = null;
+let sqlClient: ReturnType<typeof postgres> | null = null;
 
 /**
  * Get database instance with feature flag fallback
@@ -175,8 +220,11 @@ export async function refreshConnectionPool() {
     logger.warn('Refreshing database connection pool');
     
     try {
-      // End current connections gracefully
-      await (optimizedDb as any).destroy?.();
+      // End current connections gracefully using postgres.js end() method
+      if (sqlClient) {
+        await sqlClient.end();
+        sqlClient = null;
+      }
       optimizedDb = null;
       
       // Recreate pool
@@ -212,9 +260,9 @@ export function getPoolStats() {
       available: true,
       stats: {
         maxConnections: isFeatureEnabled('OPTIMIZED_DB_POOL') ? 50 : 10,
-        activeConnections: 0, // Not available via postgres.js API
-        idleConnections: 0,   // Not available via postgres.js API  
-        queueSize: 0,         // Not available via postgres.js API
+        activeConnections: null, // Not available via postgres.js API
+        idleConnections: null,   // Not available via postgres.js API  
+        queueSize: null,         // Not available via postgres.js API
       },
       timestamp: new Date().toISOString()
     };
@@ -225,6 +273,25 @@ export function getPoolStats() {
       available: false,
       error: error instanceof Error ? error.message : 'Unknown error'
     };
+  }
+}
+
+/**
+ * Gracefully close database connections
+ * Use this for application shutdown
+ */
+export async function closeDatabase() {
+  try {
+    if (sqlClient) {
+      logger.log('Closing database connection pool...');
+      await sqlClient.end();
+      sqlClient = null;
+      optimizedDb = null;
+      logger.log('Database connection pool closed successfully');
+    }
+  } catch (error) {
+    logger.error('Error closing database connections:', error);
+    throw error;
   }
 }
 

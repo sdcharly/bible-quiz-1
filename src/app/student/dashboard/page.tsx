@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { memo } from "react";
+import isEqual from "lodash.isequal";
 import { authClient } from "@/lib/auth-client";
 import { isStudent } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,7 @@ interface QuizAttempt {
 
 // Memoized components to prevent unnecessary re-renders
 const MemoizedStatCard = memo(StatCard);
-const MemoizedQuizCard = memo(({ quiz }: { quiz: any }) => (
+const MemoizedQuizCard = memo(({ quiz }: { quiz: Quiz }) => (
   <Link 
     key={quiz.id} 
     href={`/student/quiz/${quiz.id}`}
@@ -72,7 +73,7 @@ const MemoizedQuizCard = memo(({ quiz }: { quiz: any }) => (
           {quiz.title}
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          {quiz.totalQuestions} questions • {quiz.duration} minutes
+          {quiz.totalQuestions} questions • {quiz.duration || 0} minutes
         </p>
       </div>
       <ChevronRight className="h-5 w-5 text-gray-400" />
@@ -206,7 +207,7 @@ function StudentDashboard() {
 
         // Only update if stats actually changed
         setStats(prevStats => {
-          if (JSON.stringify(prevStats) !== JSON.stringify(newStats)) {
+          if (!isEqual(prevStats, newStats)) {
             return newStats;
           }
           return prevStats;
@@ -215,7 +216,7 @@ function StudentDashboard() {
         // Set recent quizzes (last 3 non-expired or reassigned)
         const newRecentQuizzes = activeQuizzes.slice(0, 3);
         setRecentQuizzes(prevQuizzes => {
-          if (JSON.stringify(prevQuizzes) !== JSON.stringify(newRecentQuizzes)) {
+          if (!isEqual(prevQuizzes, newRecentQuizzes)) {
             return newRecentQuizzes;
           }
           return prevQuizzes;
