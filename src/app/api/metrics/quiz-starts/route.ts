@@ -17,7 +17,16 @@ export async function GET(req: NextRequest) {
     const expected = process.env.METRICS_API_KEY;
     const provided = req.headers.get("x-metrics-key");
     if (expected && provided !== expected) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" }, 
+        { 
+          status: 401,
+          headers: {
+            "Cache-Control": "no-store",
+            "Vary": "x-metrics-key"
+          }
+        }
+      );
     }
 
     // Get recent quiz starts (last hour)
@@ -28,6 +37,12 @@ export async function GET(req: NextRequest) {
       .select({ count: count() })
       .from(quizAttempts)
       .where(gte(quizAttempts.startTime, oneHourAgo));
+    
+    // Convert BigInt to Number for JSON serialization
+    // Use Number() for counts that fit in JS number range, or toString() for very large values
+    const safeHourlyCount = hourlyCount?.count != null 
+      ? Number(hourlyCount.count) 
+      : 0;
 
     // Get limited recent starts for the response payload
     const recentStarts = await db
@@ -51,7 +66,7 @@ export async function GET(req: NextRequest) {
         // In production, you'd calculate actual duration from logs
         duration: Math.random() * 3000 + 500 // Simulated for now
       })),
-      hourlyRate: hourlyCount?.count || 0,  // Use the true count from the separate query
+      hourlyRate: safeHourlyCount,  // Use the converted safe count value
       timestamp: new Date().toISOString()
     };
 

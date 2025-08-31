@@ -7,6 +7,23 @@
 
 import { logger } from "@/lib/logger";
 
+/**
+ * Cross-platform UTF-8 byte length calculation
+ * Works in both Node.js and browser environments
+ */
+function byteLengthUtf8(str: string): number {
+  if (typeof TextEncoder !== 'undefined') {
+    // Browser environment
+    return new TextEncoder().encode(str).length;
+  } else if (typeof Buffer !== 'undefined') {
+    // Node.js environment
+    return Buffer.byteLength(str, 'utf8');
+  } else {
+    // Fallback: rough estimation (not accurate for non-ASCII)
+    return str.length * 2;
+  }
+}
+
 interface CacheEntry<T = any> {
   data: T;
   timestamp: number;
@@ -157,8 +174,8 @@ class OptimizedApiCache {
     for (const [key, entry] of entries) {
       // Estimate size: key length + serialized data length
       // Using a lightweight estimation instead of full serialization
-      const keySize = Buffer.byteLength(key, 'utf8');
-      const dataSize = entry.data ? Buffer.byteLength(JSON.stringify(entry.data), 'utf8') : 0;
+      const keySize = byteLengthUtf8(key);
+      const dataSize = byteLengthUtf8(JSON.stringify(entry.data || ''));
       const metadataSize = 100; // Approximate size for timestamp, ttl, headers
       
       totalBytes += keySize + dataSize + metadataSize;

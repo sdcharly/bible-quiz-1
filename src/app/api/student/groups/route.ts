@@ -123,7 +123,7 @@ export async function GET(req: NextRequest) {
         headers: {
           'ETag': etag,
           'Cache-Control': `private, max-age=${CACHE_TTL}, stale-while-revalidate=${CACHE_REVALIDATE}`,
-          'Last-Modified': new Date().toUTCString(),
+          // Don't set Last-Modified for 304 responses to avoid cache churn
           'Vary': 'Accept-Encoding, Authorization',
           'X-Response-Time': String(Date.now() - startTime),
         }

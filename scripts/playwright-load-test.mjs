@@ -6,6 +6,15 @@
 
 import { chromium } from 'playwright';
 
+// Fail fast if Playwright is not installed
+try {
+  await import('playwright');
+} catch (error) {
+  console.error('\x1b[31mPlaywright not installed!\x1b[0m');
+  console.log('Run: npm install -D playwright');
+  process.exit(1);
+}
+
 const BASE_URL = 'http://localhost:3001';
 const CONCURRENT_USERS = 10; // Reduced for browser testing
 const TEST_DURATION_MS = 30000; // 30 seconds
@@ -299,15 +308,6 @@ async function main() {
     const duration = Date.now() - startTime;
     printResults(duration);
   }
-}
-
-// Check if Playwright is installed
-try {
-  await import('playwright');
-} catch (error) {
-  console.error(`${colors.red}Playwright not installed!${colors.reset}`);
-  console.log('Run: npm install -D playwright');
-  process.exit(1);
 }
 
 // Run the test

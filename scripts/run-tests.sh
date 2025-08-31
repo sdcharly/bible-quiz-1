@@ -73,11 +73,39 @@ echo "Testing metrics collection..."
 METRICS_ENDPOINTS=("memory" "active-users" "cache")
 
 for endpoint in "${METRICS_ENDPOINTS[@]}"; do
-    RESPONSE=$(curl -s "http://localhost:3000/api/metrics/$endpoint")
-    if echo "$RESPONSE" | grep -q "timestamp"; then
-        echo "✅ Metrics endpoint: $endpoint"
+    # Capture both response body and HTTP status code
+    RESPONSE=$(curl -sS -w "\n__HTTP_STATUS__%{http_code}" "http://localhost:3000/api/metrics/$endpoint" 2>/dev/null)
+    
+    # Extract HTTP status code and response body
+    HTTP_STATUS=$(echo "$RESPONSE" | tail -n1 | sed 's/__HTTP_STATUS__//')
+    BODY=$(echo "$RESPONSE" | sed '$d')
+    
+    # Check HTTP status code
+    if [ "$HTTP_STATUS" != "200" ]; then
+        echo "❌ Metrics endpoint failed: $endpoint (HTTP $HTTP_STATUS)"
+        continue
+    fi
+    
+    # Validate JSON and check for timestamp field using jq
+    if command -v jq &> /dev/null; then
+        # Use jq to parse JSON and check for timestamp field
+        if echo "$BODY" | jq -e '.timestamp' > /dev/null 2>&1; then
+            echo "✅ Metrics endpoint: $endpoint (HTTP 200, valid JSON with timestamp)"
+        else
+            # Check if JSON is valid but missing timestamp
+            if echo "$BODY" | jq -e '.' > /dev/null 2>&1; then
+                echo "❌ Metrics endpoint failed: $endpoint (valid JSON but missing timestamp field)"
+            else
+                echo "❌ Metrics endpoint failed: $endpoint (invalid JSON response)"
+            fi
+        fi
     else
-        echo "❌ Metrics endpoint failed: $endpoint"
+        # Fallback if jq is not installed
+        if echo "$BODY" | grep -q "timestamp"; then
+            echo "✅ Metrics endpoint: $endpoint (HTTP 200, contains timestamp)"
+        else
+            echo "❌ Metrics endpoint failed: $endpoint (HTTP 200 but no timestamp found)"
+        fi
     fi
 done
 

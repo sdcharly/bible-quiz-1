@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getEnabledFeatures, getFeatureFlagsStatus, FEATURES, type FeatureFlag } from "@/lib/feature-flags";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { createHmac } from "crypto";
 
 /**
  * Feature Flags Management API
@@ -11,6 +12,73 @@ import { headers } from "next/headers";
  * IMPORTANT: POST changes are temporary and only affect the current process.
  * For production use, feature flags should be set via environment variables.
  */
+
+// Define non-sensitive features that can be controlled via cookies (for A/B testing, UI preferences)
+const CLIENT_CONTROLLABLE_FLAGS: FeatureFlag[] = [
+  'BROWSER_CACHE_OPTIMIZATION',
+  'COMPONENT_LAZY_LOADING',
+  'DEBUG_PERFORMANCE' // Only in dev
+];
+
+// Secret for signing cookies (should be in env vars in production)
+const COOKIE_SECRET = process.env.FEATURE_FLAG_SECRET || 'dev-secret-change-in-production';
+
+/**
+ * Sign a value for cookie integrity verification
+ */
+function signValue(value: string): string {
+  const hmac = createHmac('sha256', COOKIE_SECRET);
+  hmac.update(value);
+  return `${value}.${hmac.digest('hex')}`;
+}
+
+/**
+ * Verify and extract signed value
+ */
+function verifySignedValue(signedValue: string): string | null {
+  const parts = signedValue.split('.');
+  if (parts.length !== 2) return null;
+  
+  const [value, signature] = parts;
+  const hmac = createHmac('sha256', COOKIE_SECRET);
+  hmac.update(value);
+  const expectedSignature = hmac.digest('hex');
+  
+  // Constant-time comparison to prevent timing attacks
+  if (signature.length !== expectedSignature.length) return null;
+  
+  let match = true;
+  for (let i = 0; i < signature.length; i++) {
+    if (signature[i] !== expectedSignature[i]) match = false;
+  }
+  
+  return match ? value : null;
+}
+
+/**
+ * Get client-controllable flags from verified cookies
+ */
+function getClientFlags(req: NextRequest): FeatureFlag[] {
+  const enabledFlags: FeatureFlag[] = [];
+  
+  for (const flag of CLIENT_CONTROLLABLE_FLAGS) {
+    // Skip non-controllable flags in production
+    if (flag === 'DEBUG_PERFORMANCE' && process.env.NODE_ENV === 'production') {
+      continue;
+    }
+    
+    const cookie = req.cookies.get(`ff_${flag}`);
+    if (!cookie?.value) continue;
+    
+    // Verify signed cookie
+    const verifiedValue = verifySignedValue(cookie.value);
+    if (verifiedValue === '1') {
+      enabledFlags.push(flag);
+    }
+  }
+  
+  return enabledFlags;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,9 +99,9 @@ export async function GET(req: NextRequest) {
     // Get feature flags status
     const status = getFeatureFlagsStatus();
     const enabled = getEnabledFeatures();
-    const sessionEnabled = Object.keys(FEATURES).filter(
-      (k) => req.cookies.get(`ff_${k}`)?.value === '1'
-    );
+    
+    // Only get client-controllable flags from verified cookies
+    const sessionEnabled = getClientFlags(req);
 
     // Admin users get full details
     if (session.user.role === 'admin') {
@@ -120,13 +188,28 @@ export async function POST(req: NextRequest) {
       timestamp: new Date().toISOString()
     });
 
-    // Set cookie for session persistence
-    res.cookies.set(`ff_${feature}`, enabled ? '1' : '0', {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60, // 1 hour
-    });
+    // Only set signed cookie for client-controllable flags
+    if (CLIENT_CONTROLLABLE_FLAGS.includes(feature as FeatureFlag)) {
+      const signedValue = signValue(enabled ? '1' : '0');
+      
+      // Configure cookie expiry from environment with sensible default
+      // Default to 5 minutes (300 seconds) for temporary feature flags
+      const maxAge = process.env.FEATURE_FLAG_COOKIE_MAX_AGE 
+        ? parseInt(process.env.FEATURE_FLAG_COOKIE_MAX_AGE, 10)
+        : 300; // 5 minutes default for temporary flags
+      
+      // Determine if we should use secure cookie (HTTPS/production)
+      // Use type assertion to handle Next.js NODE_ENV typing
+      const isProduction = (process.env.NODE_ENV as string) === 'production';
+      
+      res.cookies.set(`ff_${feature}`, signedValue, {
+        httpOnly: true,
+        secure: isProduction, // Secure flag in production only
+        sameSite: 'strict',
+        path: '/',
+        maxAge: maxAge,
+      });
+    }
 
     return res;
   } catch (error) {

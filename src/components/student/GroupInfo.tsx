@@ -89,8 +89,13 @@ export function GroupInfo() {
       setLoading(false);
       // Clear promise after successful completion to allow refresh
       if (fetchPromise) {
+        // Capture the current promise to avoid race conditions
+        const currentPromise = fetchPromise;
         setTimeout(() => {
-          fetchPromise = null;
+          // Only clear if it's still the same promise
+          if (fetchPromise === currentPromise) {
+            fetchPromise = null;
+          }
         }, 100);
       }
     }
