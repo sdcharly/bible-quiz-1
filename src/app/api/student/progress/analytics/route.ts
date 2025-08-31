@@ -4,60 +4,24 @@ import { db } from "@/lib/db";
 import { quizAttempts, questionResponses, questions, quizzes, enrollments } from "@/lib/schema";
 import { eq, and, desc, gte, sql, inArray } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+import type {
+  PerformanceMetrics,
+  BloomsTaxonomyAnalysis,
+  DifficultyAnalysis,
+  LearningCurveData,
+  KnowledgeRetention,
+  SkillGap,
+  TimeEfficiency,
+  Consistency,
+  QuestionTypePerformance,
+  Analytics,
+  AnalyticsResponse
+} from "@/types/analytics";
 
 /**
  * Advanced Student Progress Analytics API
  * Provides comprehensive educational insights using internationally accepted metrics
  */
-
-interface PerformanceMetrics {
-  mean: number;
-  median: number;
-  stdDev: number;
-  percentile: number;
-  trend: 'improving' | 'stable' | 'declining';
-}
-
-interface BloomsTaxonomyAnalysis {
-  level: string;
-  totalQuestions: number;
-  correctAnswers: number;
-  accuracy: number;
-  timeEfficiency: number; // seconds per question
-  mastery: 'expert' | 'proficient' | 'developing' | 'beginner';
-}
-
-interface DifficultyAnalysis {
-  level: string;
-  totalQuestions: number;
-  correctAnswers: number;
-  accuracy: number;
-  averageTime: number;
-  improvement: number; // percentage improvement over time
-}
-
-interface LearningCurveData {
-  attemptNumber: number;
-  score: number;
-  timeSpent: number;
-  efficiency: number; // score per minute
-  date: string;
-}
-
-interface KnowledgeRetention {
-  initialScore: number;
-  retentionRate: number; // percentage retained after time
-  forgettingCurve: number[]; // decay over days
-  optimalReviewTime: number; // days until next review
-}
-
-interface SkillGap {
-  skill: string;
-  currentLevel: number;
-  targetLevel: number;
-  gap: number;
-  recommendedFocus: string;
-}
 
 export async function GET(req: NextRequest) {
   try {
@@ -95,10 +59,11 @@ export async function GET(req: NextRequest) {
       .orderBy(desc(quizAttempts.endTime));
 
     if (attempts.length === 0) {
-      return NextResponse.json({
-        message: "No completed quizzes yet",
-        analytics: null
-      });
+      const response: AnalyticsResponse = {
+        analytics: null,
+        message: "No completed quizzes yet"
+      };
+      return NextResponse.json(response);
     }
 
     // Fetch all question responses with question metadata
@@ -149,7 +114,7 @@ export async function GET(req: NextRequest) {
     // 10. Percentile Ranking (mock - would need all students' data)
     const percentileRank = calculatePercentileRank(performanceMetrics.mean);
 
-    const analytics = {
+    const analytics: Analytics = {
       performanceMetrics,
       bloomsTaxonomy: bloomsAnalysis,
       difficultyLevels: difficultyAnalysis,
@@ -175,14 +140,16 @@ export async function GET(req: NextRequest) {
       )
     };
 
-    return NextResponse.json({ analytics });
+    const response: AnalyticsResponse = { analytics };
+    return NextResponse.json(response);
 
   } catch (error) {
     logger.error("Error fetching advanced analytics:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch analytics" },
-      { status: 500 }
-    );
+    const response: AnalyticsResponse = {
+      analytics: null,
+      error: "Failed to fetch analytics"
+    };
+    return NextResponse.json(response, { status: 500 });
   }
 }
 
@@ -332,7 +299,7 @@ function calculateKnowledgeRetention(attempts: any[], responses: any[]): Knowled
   };
 }
 
-function calculateTimeEfficiency(attempts: any[], responses: any[]) {
+function calculateTimeEfficiency(attempts: any[], responses: any[]): TimeEfficiency {
   const totalTime = attempts.reduce((sum, a) => sum + (a.timeSpent || 0), 0);
   const totalQuestions = responses.length;
   const correctAnswers = responses.filter(r => r.isCorrect).length;
@@ -401,7 +368,7 @@ function getBloomRecommendation(level: string, accuracy: number): string {
   return recommendations[level] || "Continue practicing";
 }
 
-function calculateConsistency(attempts: any[], responses: any[]) {
+function calculateConsistency(attempts: any[], responses: any[]): Consistency {
   const scores = attempts.map(a => a.score || 0);
   const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
   const variance = scores.reduce((acc, score) => acc + Math.pow(score - mean, 2), 0) / scores.length;
@@ -426,27 +393,31 @@ function calculateConsistency(attempts: any[], responses: any[]) {
   };
 }
 
-function analyzeQuestionTypes(responses: any[]) {
+function analyzeQuestionTypes(responses: any[]): QuestionTypePerformance[] {
   // Since we don't have categories, analyze by difficulty and Bloom's level instead
   const difficultyGroups = ['easy', 'intermediate', 'hard'];
   
-  return difficultyGroups.map(difficulty => {
+  const results: QuestionTypePerformance[] = [];
+  
+  for (const difficulty of difficultyGroups) {
     const diffResponses = responses.filter(r => r.difficulty === difficulty);
-    if (diffResponses.length === 0) return null;
+    if (diffResponses.length === 0) continue;
     
     const correct = diffResponses.filter(r => r.isCorrect).length;
     const accuracy = (correct / diffResponses.length) * 100;
     const avgTime = diffResponses.reduce((sum, r) => sum + (r.timeSpent || 0), 0) / diffResponses.length;
     
-    return {
+    results.push({
       category: `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Questions`,
       totalQuestions: diffResponses.length,
       correctAnswers: correct,
       accuracy: Math.round(accuracy),
       averageTime: Math.round(avgTime),
       strength: accuracy >= 80 ? 'strong' : accuracy >= 60 ? 'moderate' : 'needs improvement'
-    };
-  }).filter(Boolean).sort((a: any, b: any) => b.accuracy - a.accuracy);
+    });
+  }
+  
+  return results.sort((a, b) => b.accuracy - a.accuracy);
 }
 
 function calculatePercentileRank(meanScore: number): number {

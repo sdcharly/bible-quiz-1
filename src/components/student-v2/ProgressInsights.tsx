@@ -15,13 +15,21 @@ import {
   Brain, TrendingUp, TrendingDown, Target, Clock, Award, 
   AlertCircle, BookOpen, Zap, BarChart3, Users
 } from "lucide-react";
+import type { 
+  Analytics, 
+  AnalyticsResponse,
+  BloomsTaxonomyAnalysis,
+  DifficultyAnalysis,
+  SkillGap,
+  QuestionTypePerformance
+} from "@/types/analytics";
 
 interface ProgressInsightsProps {
   studentId?: string;
 }
 
 export default function ProgressInsights({ studentId }: ProgressInsightsProps) {
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +41,7 @@ export default function ProgressInsights({ studentId }: ProgressInsightsProps) {
     try {
       const response = await fetch("/api/student/progress/analytics");
       if (!response.ok) throw new Error("Failed to fetch analytics");
-      const data = await response.json();
+      const data: AnalyticsResponse = await response.json();
       setAnalytics(data.analytics);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -146,7 +154,7 @@ export default function ProgressInsights({ studentId }: ProgressInsightsProps) {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {analytics.insights.map((insight: string, idx: number) => (
+                  {analytics.insights.map((insight, idx) => (
                     <li key={idx} className="text-sm">{insight}</li>
                   ))}
                 </ul>
@@ -164,7 +172,7 @@ export default function ProgressInsights({ studentId }: ProgressInsightsProps) {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {analytics.recommendations.map((rec: string, idx: number) => (
+                  {analytics.recommendations.map((rec, idx) => (
                     <li key={idx} className="text-sm">{rec}</li>
                   ))}
                 </ul>
@@ -204,7 +212,7 @@ export default function ProgressInsights({ studentId }: ProgressInsightsProps) {
               </ResponsiveContainer>
               
               <div className="mt-4 space-y-2">
-                {analytics.bloomsTaxonomy.map((bloom: any) => (
+                {analytics.bloomsTaxonomy.map((bloom) => (
                   <div key={bloom.level} className="flex items-center justify-between p-2 rounded-lg bg-amber-50">
                     <div className="flex items-center gap-3">
                       <div className="capitalize font-medium">{bloom.level}</div>
@@ -244,7 +252,7 @@ export default function ProgressInsights({ studentId }: ProgressInsightsProps) {
               </ResponsiveContainer>
 
               <div className="mt-4 grid grid-cols-3 gap-4">
-                {analytics.difficultyLevels.map((diff: any) => (
+                {analytics.difficultyLevels.map((diff) => (
                   <div key={diff.level} className="text-center p-3 rounded-lg bg-amber-50">
                     <div className="font-medium capitalize">{diff.level}</div>
                     <div className="text-2xl font-bold text-amber-600">{diff.accuracy}%</div>
@@ -318,7 +326,7 @@ export default function ProgressInsights({ studentId }: ProgressInsightsProps) {
                 </div>
 
                 <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={analytics.knowledgeRetention.forgettingCurve.map((value: number, index: number) => ({
+                  <AreaChart data={analytics.knowledgeRetention.forgettingCurve.map((value, index) => ({
                     day: index,
                     retention: value
                   }))}>
@@ -365,7 +373,7 @@ export default function ProgressInsights({ studentId }: ProgressInsightsProps) {
                         fill="#8884d8"
                         dataKey="accuracy"
                       >
-                        {analytics.questionTypePerformance.map((_: any, index: number) => (
+                        {analytics.questionTypePerformance.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
@@ -374,7 +382,7 @@ export default function ProgressInsights({ studentId }: ProgressInsightsProps) {
                   </ResponsiveContainer>
 
                   <div className="mt-4 space-y-2">
-                    {analytics.questionTypePerformance.map((cat: any) => (
+                    {analytics.questionTypePerformance.map((cat) => (
                       <div key={cat.category} className="flex items-center justify-between p-3 rounded-lg bg-amber-50">
                         <div className="flex items-center gap-3">
                           <div className="font-medium">{cat.category}</div>
@@ -413,7 +421,7 @@ export default function ProgressInsights({ studentId }: ProgressInsightsProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {analytics.skillGaps.map((gap: any, idx: number) => (
+              {analytics.skillGaps.map((gap, idx) => (
                 <div key={idx} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{gap.skill}</span>
