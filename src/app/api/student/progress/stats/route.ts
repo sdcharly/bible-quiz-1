@@ -62,30 +62,42 @@ export async function GET() {
       bestScore = Math.max(...scores);
       
       // Calculate total time spent (in minutes)
-      totalTimeSpent = completedAttempts.reduce((total, attempt) => {
-        if (attempt.timeSpent) {
-          return total + Math.round(attempt.timeSpent / 60);
-        }
-        return total;
+      // Sum raw seconds first, then convert to minutes to avoid rounding inflation
+      const totalSeconds = completedAttempts.reduce((total, attempt) => {
+        return total + (attempt.timeSpent || 0);
       }, 0);
+      totalTimeSpent = Math.round(totalSeconds / 60);
 
       // Calculate recent streak (consecutive days with completed quizzes)
-      const dates = completedAttempts
-        .filter(a => a.endTime)
-        .map(a => new Date(a.endTime!).toDateString());
+      // Use UTC dates for timezone stability
+      const getUTCDateKey = (date: Date): string => {
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
       
-      const uniqueDates = [...new Set(dates)];
-      const today = new Date();
+      // Create a Set of UTC date keys when quizzes were completed
+      const completedDateKeys = new Set(
+        completedAttempts
+          .filter(a => a.endTime)
+          .map(a => getUTCDateKey(new Date(a.endTime!)))
+      );
+      
+      // Calculate consecutive streak ending today (UTC)
+      const todayUTC = new Date();
       let streak = 0;
       
-      for (let i = 0; i < 30; i++) {
-        const checkDate = new Date(today);
-        checkDate.setDate(today.getDate() - i);
-        const dateString = checkDate.toDateString();
+      // Check consecutive days starting from today going backwards
+      for (let i = 0; i < 365; i++) { // Check up to 1 year back
+        const checkDate = new Date(todayUTC);
+        checkDate.setUTCDate(todayUTC.getUTCDate() - i);
+        const dateKey = getUTCDateKey(checkDate);
         
-        if (uniqueDates.includes(dateString)) {
+        if (completedDateKeys.has(dateKey)) {
           streak++;
-        } else if (streak > 0) {
+        } else {
+          // Break on first missing day - streak must be consecutive from today
           break;
         }
       }
