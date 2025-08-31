@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { logger } from "@/lib/logger";
 import { fetchWithOptimizedCache } from "@/lib/api-cache";
 import { withErrorBoundary } from "@/components/student/StudentPageWrapper";
@@ -17,6 +18,7 @@ import {
   LoadingState,
   EmptyState
 } from "@/components/student-v2";
+import ProgressInsights from "@/components/student-v2/ProgressInsights";
 import {
   Trophy, 
   BookOpen, 
@@ -25,7 +27,8 @@ import {
   Target,
   Award,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  Brain
 } from "lucide-react";
 
 interface QuizAttempt {
@@ -129,63 +132,82 @@ function StudentProgressPage() {
         }
       />
 
-      {/* Progress Overview */}
+      {/* Tabbed Content */}
       <Section className="mt-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100 dark:border-amber-900/20 p-6">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full mb-4">
-              <BarChart3 className="h-8 w-8 text-amber-600 dark:text-amber-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Your Learning Journey
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Keep growing in biblical knowledge
-            </p>
-          </div>
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="overview">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="insights">
+              <Brain className="h-4 w-4 mr-2" />
+              Learning Insights
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Completion Rate */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Quiz Completion Rate
-              </span>
-              <span className="text-sm text-amber-600 dark:text-amber-400 font-semibold">
-                {completionRate}%
-              </span>
-            </div>
-            <Progress value={completionRate} className="h-2" />
-          </div>
+          <TabsContent value="overview">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100 dark:border-amber-900/20 p-6">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full mb-4">
+                  <BarChart3 className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  Your Learning Journey
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Keep growing in biblical knowledge
+                </p>
+              </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              label="Completed"
-              value={stats.completedQuizzes}
-              icon={CheckCircle}
-              description="Quizzes finished"
-            />
-            <StatCard
-              label="Average Score"
-              value={`${stats.averageScore}%`}
-              icon={Target}
-              description="Overall performance"
-              trend={stats.averageScore >= 70 ? { value: stats.averageScore, direction: "up" } : { value: stats.averageScore, direction: "neutral" }}
-            />
-            <StatCard
-              label="Best Score"
-              value={`${stats.bestScore}%`}
-              icon={Trophy}
-              description="Personal best"
-            />
-            <StatCard
-              label="Study Time"
-              value={formatTime(stats.totalTimeSpent)}
-              icon={Clock}
-              description="Total time spent"
-            />
-          </div>
-        </div>
+              {/* Completion Rate */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Quiz Completion Rate
+                  </span>
+                  <span className="text-sm text-amber-600 dark:text-amber-400 font-semibold">
+                    {completionRate}%
+                  </span>
+                </div>
+                <Progress value={completionRate} className="h-2" />
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  label="Completed"
+                  value={stats.completedQuizzes}
+                  icon={CheckCircle}
+                  description="Quizzes finished"
+                />
+                <StatCard
+                  label="Average Score"
+                  value={`${stats.averageScore}%`}
+                  icon={Target}
+                  description="Overall performance"
+                  trend={stats.averageScore >= 70 ? { value: stats.averageScore, direction: "up" } : { value: stats.averageScore, direction: "neutral" }}
+                />
+                <StatCard
+                  label="Best Score"
+                  value={`${stats.bestScore}%`}
+                  icon={Trophy}
+                  description="Personal best"
+                />
+                <StatCard
+                  label="Study Time"
+                  value={formatTime(stats.totalTimeSpent)}
+                  icon={Clock}
+                  description="Total time spent"
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="insights">
+            <ProgressInsights />
+          </TabsContent>
+        </Tabs>
       </Section>
 
       {/* Recent Activity */}
