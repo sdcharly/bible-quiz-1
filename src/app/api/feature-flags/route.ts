@@ -3,6 +3,7 @@ import { getEnabledFeatures, getFeatureFlagsStatus, FEATURES, type FeatureFlag }
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { createHmac } from "crypto";
+import { logger } from "@/lib/logger";
 
 /**
  * Feature Flags Management API
@@ -194,9 +195,32 @@ export async function POST(req: NextRequest) {
       
       // Configure cookie expiry from environment with sensible default
       // Default to 5 minutes (300 seconds) for temporary feature flags
-      const maxAge = process.env.FEATURE_FLAG_COOKIE_MAX_AGE 
-        ? parseInt(process.env.FEATURE_FLAG_COOKIE_MAX_AGE, 10)
-        : 300; // 5 minutes default for temporary flags
+      const DEFAULT_MAX_AGE = 300; // 5 minutes default
+      const MAX_ALLOWED_AGE = 86400; // 24 hours max to prevent excessive cookie lifetimes
+      
+      let maxAge = DEFAULT_MAX_AGE;
+      
+      if (process.env.FEATURE_FLAG_COOKIE_MAX_AGE) {
+        const parsedValue = parseInt(process.env.FEATURE_FLAG_COOKIE_MAX_AGE, 10);
+        
+        // Validate the parsed value
+        if (Number.isInteger(parsedValue) && parsedValue > 0) {
+          // Clamp to reasonable max to prevent misconfiguration
+          maxAge = Math.min(parsedValue, MAX_ALLOWED_AGE);
+          
+          if (parsedValue > MAX_ALLOWED_AGE) {
+            logger.warn(
+              `FEATURE_FLAG_COOKIE_MAX_AGE value ${parsedValue} exceeds maximum allowed ${MAX_ALLOWED_AGE}. ` +
+              `Using ${MAX_ALLOWED_AGE} seconds instead.`
+            );
+          }
+        } else {
+          logger.warn(
+            `Invalid FEATURE_FLAG_COOKIE_MAX_AGE value: "${process.env.FEATURE_FLAG_COOKIE_MAX_AGE}". ` +
+            `Must be a positive integer. Using default ${DEFAULT_MAX_AGE} seconds.`
+          );
+        }
+      }
       
       // Determine if we should use secure cookie (HTTPS/production)
       // Use type assertion to handle Next.js NODE_ENV typing
