@@ -114,7 +114,6 @@ export async function GET() {
       recentStreak
     };
 
-    logger.log('Progress stats for student:', { userId, stats });
 
     return NextResponse.json(stats);
   } catch (error) {

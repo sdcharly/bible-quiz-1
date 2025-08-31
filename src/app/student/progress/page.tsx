@@ -13,10 +13,7 @@ import {
   PageContainer,
   PageHeader,
   Section,
-  StatCard,
-  ResultCard,
-  LoadingState,
-  EmptyState
+  LoadingState
 } from "@/components/student-v2";
 import ProgressInsights from "@/components/student-v2/ProgressInsights";
 import {
@@ -30,18 +27,6 @@ import {
   TrendingUp,
   Brain
 } from "lucide-react";
-
-interface QuizAttempt {
-  id: string;
-  quizId: string;
-  quizTitle: string;
-  score: number;
-  completedAt: string;
-  totalQuestions: number;
-  correctAnswers: number;
-  status: string;
-  duration?: number;
-}
 
 interface ProgressStats {
   totalQuizzes: number;
@@ -62,7 +47,6 @@ function StudentProgressPage() {
     bestScore: 0,
     recentStreak: 0
   });
-  const [recentAttempts, setRecentAttempts] = useState<QuizAttempt[]>([]);
 
   useEffect(() => {
     fetchProgressData();
@@ -70,20 +54,10 @@ function StudentProgressPage() {
 
   const fetchProgressData = async () => {
     try {
-      const [statsResult, attemptsResult] = await Promise.all([
-        fetchWithOptimizedCache('/api/student/progress/stats', { ttl: 120 }), // 2 min cache
-        fetchWithOptimizedCache('/api/student/results?limit=5', { ttl: 60 }) // 1 min cache
-      ]);
+      const statsResult = await fetchWithOptimizedCache('/api/student/progress/stats', { ttl: 120 }); // 2 min cache
       
       if (statsResult.data) {
         setStats(statsResult.data);
-      }
-      
-      if (attemptsResult.data) {
-        const completedAttempts = (attemptsResult.data.results || [])
-          .filter((r: any) => r.status === 'completed')
-          .slice(0, 5);
-        setRecentAttempts(completedAttempts);
       }
     } catch (error) {
       logger.error('Error fetching progress data:', error);
@@ -115,11 +89,21 @@ function StudentProgressPage() {
     );
   }
 
+  // Calculate unlocked achievements count
+  const unlockedCount = [
+    stats.completedQuizzes >= 1,
+    stats.bestScore >= 100,
+    stats.completedQuizzes >= 5,
+    stats.recentStreak >= 7,
+    stats.averageScore >= 80,
+    stats.completedQuizzes >= 10
+  ].filter(Boolean).length;
+
   return (
     <PageContainer>
       <PageHeader
         title="Learning Progress"
-        subtitle="Track your biblical knowledge journey"
+        subtitle="Track your biblical knowledge journey with advanced analytics"
         breadcrumbs={[
           { label: "Progress" }
         ]}
@@ -134,210 +118,319 @@ function StudentProgressPage() {
 
       {/* Tabbed Content */}
       <Section className="mt-6">
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="overview">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Overview
-            </TabsTrigger>
+        <Tabs defaultValue="insights" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="insights">
               <Brain className="h-4 w-4 mr-2" />
-              Learning Insights
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="summary">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Summary
+            </TabsTrigger>
+            <TabsTrigger value="achievements">
+              <Award className="h-4 w-4 mr-2" />
+              Achievements
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100 dark:border-amber-900/20 p-6">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full mb-4">
-                  <BarChart3 className="h-8 w-8 text-amber-600 dark:text-amber-400" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Your Learning Journey
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Keep growing in biblical knowledge
-                </p>
-              </div>
-
-              {/* Completion Rate */}
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Quiz Completion Rate
-                  </span>
-                  <span className="text-sm text-amber-600 dark:text-amber-400 font-semibold">
-                    {completionRate}%
-                  </span>
-                </div>
-                <Progress value={completionRate} className="h-2" />
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                  label="Completed"
-                  value={stats.completedQuizzes}
-                  icon={CheckCircle}
-                  description="Quizzes finished"
-                />
-                <StatCard
-                  label="Average Score"
-                  value={`${stats.averageScore}%`}
-                  icon={Target}
-                  description="Overall performance"
-                  trend={stats.averageScore >= 70 ? { value: stats.averageScore, direction: "up" } : { value: stats.averageScore, direction: "neutral" }}
-                />
-                <StatCard
-                  label="Best Score"
-                  value={`${stats.bestScore}%`}
-                  icon={Trophy}
-                  description="Personal best"
-                />
-                <StatCard
-                  label="Study Time"
-                  value={formatTime(stats.totalTimeSpent)}
-                  icon={Clock}
-                  description="Total time spent"
-                />
-              </div>
-            </div>
-          </TabsContent>
-
+          {/* Learning Analytics Tab - Main focus with advanced insights */}
           <TabsContent value="insights">
             <ProgressInsights />
           </TabsContent>
-        </Tabs>
-      </Section>
 
-      {/* Recent Activity */}
-      <Section className="mt-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100 dark:border-amber-900/20">
-          <div className="p-6 border-b border-amber-100 dark:border-amber-900/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Recent Activity
+          {/* Summary Tab - High-level progress overview */}
+          <TabsContent value="summary">
+            <div className="space-y-6">
+              {/* Progress Summary */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100 dark:border-amber-900/20 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                  Learning Summary
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Your latest quiz attempts
-                </p>
+                
+                {/* Completion Progress */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Overall Progress
+                    </span>
+                    <span className="text-sm text-amber-600 dark:text-amber-400 font-semibold">
+                      {completionRate}%
+                    </span>
+                  </div>
+                  <Progress value={completionRate} className="h-3 mb-2" />
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    {stats.completedQuizzes} of {stats.totalQuizzes} quizzes completed
+                  </p>
+                </div>
+
+                {/* Key Metrics Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Target className="h-4 w-4 text-amber-600" />
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Average</span>
+                    </div>
+                    <div className="text-xl font-bold text-amber-600">{stats.averageScore}%</div>
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Trophy className="h-4 w-4 text-amber-600" />
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Best</span>
+                    </div>
+                    <div className="text-xl font-bold text-amber-600">{stats.bestScore}%</div>
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="h-4 w-4 text-amber-600" />
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Time</span>
+                    </div>
+                    <div className="text-xl font-bold text-amber-600">{formatTime(stats.totalTimeSpent)}</div>
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <TrendingUp className="h-4 w-4 text-amber-600" />
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Streak</span>
+                    </div>
+                    <div className="text-xl font-bold text-amber-600">{stats.recentStreak} days</div>
+                  </div>
+                </div>
+
+                {/* Performance Insights */}
+                <div className="border-t border-amber-100 dark:border-amber-900/20 pt-4">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Quick Insights
+                  </h4>
+                  <div className="space-y-2">
+                    {stats.averageScore >= 80 && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-gray-700 dark:text-gray-300">Excellent performance! Keep it up!</span>
+                      </div>
+                    )}
+                    {stats.averageScore >= 60 && stats.averageScore < 80 && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Target className="h-4 w-4 text-amber-600" />
+                        <span className="text-gray-700 dark:text-gray-300">Good progress! Aim for 80%+ average</span>
+                      </div>
+                    )}
+                    {stats.averageScore < 60 && stats.completedQuizzes > 0 && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <BookOpen className="h-4 w-4 text-blue-600" />
+                        <span className="text-gray-700 dark:text-gray-300">Keep practicing to improve your scores</span>
+                      </div>
+                    )}
+                    {stats.recentStreak >= 7 && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Award className="h-4 w-4 text-amber-600" />
+                        <span className="text-gray-700 dark:text-gray-300">Great consistency with {stats.recentStreak}-day streak!</span>
+                      </div>
+                    )}
+                    {stats.recentStreak > 0 && stats.recentStreak < 7 && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <TrendingUp className="h-4 w-4 text-blue-600" />
+                        <span className="text-gray-700 dark:text-gray-300">Keep your {stats.recentStreak}-day streak going!</span>
+                      </div>
+                    )}
+                    {stats.completedQuizzes === 0 && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <BookOpen className="h-4 w-4 text-amber-600" />
+                        <span className="text-gray-700 dark:text-gray-300">Start your learning journey by taking your first quiz!</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 mt-6">
+                  <Link href="/student/quizzes" className="flex-1">
+                    <Button className="w-full" variant="default">
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Browse Quizzes
+                    </Button>
+                  </Link>
+                  <Link href="/student/results" className="flex-1">
+                    <Button className="w-full" variant="outline">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      View Results
+                    </Button>
+                  </Link>
+                </div>
               </div>
-              <Link href="/student/results">
-                <Button variant="outline" size="sm">
-                  View All Results
-                </Button>
-              </Link>
             </div>
-          </div>
+          </TabsContent>
 
-          {recentAttempts.length > 0 ? (
-            <div className="p-6 space-y-4">
-              {recentAttempts.filter(attempt => attempt && attempt.id && attempt.quizTitle).map((attempt) => (
-                <ResultCard
-                  key={attempt.id}
-                  id={attempt.id}
-                  quizTitle={attempt.quizTitle}
-                  score={attempt.score}
-                  correctAnswers={attempt.correctAnswers}
-                  totalQuestions={attempt.totalQuestions}
-                  completedAt={attempt.completedAt}
-                  duration={attempt.duration}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="p-6">
-              <EmptyState
-                icon={BookOpen}
-                title="No Recent Activity"
-                description="Complete your first quiz to see your progress here"
-                action={{
-                  label: "Browse Quizzes",
-                  onClick: () => window.location.href = "/student/quizzes",
-                  variant: "default"
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </Section>
+          {/* Achievements Tab */}
+          <TabsContent value="achievements">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100 dark:border-amber-900/20 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <Award className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Your Achievements
+                  </h3>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {unlockedCount} / 6 Unlocked
+                </div>
+              </div>
 
-      {/* Achievements Section */}
-      <Section className="mt-6 pb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100 dark:border-amber-900/20 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Award className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Achievements
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* First Quiz Achievement */}
-            <div className={`p-4 rounded-lg border-2 ${
-              stats.completedQuizzes >= 1 
-                ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
-                : 'bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-700'
-            }`}>
-              <div className="flex items-center gap-3 mb-2">
-                <BookOpen className={`h-5 w-5 ${
-                  stats.completedQuizzes >= 1 ? 'text-amber-600' : 'text-gray-400'
-                }`} />
-                <span className={`font-medium ${
-                  stats.completedQuizzes >= 1 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500'
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* First Quiz Achievement */}
+                <div className={`p-4 rounded-lg border-2 ${
+                  stats.completedQuizzes >= 1 
+                    ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+                    : 'bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-700'
                 }`}>
-                  First Steps
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Complete your first quiz
-              </p>
-            </div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <BookOpen className={`h-5 w-5 ${
+                      stats.completedQuizzes >= 1 ? 'text-amber-600' : 'text-gray-400'
+                    }`} />
+                    <span className={`font-medium ${
+                      stats.completedQuizzes >= 1 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500'
+                    }`}>
+                      First Steps
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Complete your first quiz
+                  </p>
+                  {stats.completedQuizzes >= 1 && (
+                    <div className="mt-2 text-xs text-amber-600">✓ Unlocked</div>
+                  )}
+                </div>
 
-            {/* Perfect Score Achievement */}
-            <div className={`p-4 rounded-lg border-2 ${
-              stats.bestScore >= 100 
-                ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
-                : 'bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-700'
-            }`}>
-              <div className="flex items-center gap-3 mb-2">
-                <Trophy className={`h-5 w-5 ${
-                  stats.bestScore >= 100 ? 'text-amber-600' : 'text-gray-400'
-                }`} />
-                <span className={`font-medium ${
-                  stats.bestScore >= 100 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500'
+                {/* Perfect Score Achievement */}
+                <div className={`p-4 rounded-lg border-2 ${
+                  stats.bestScore >= 100 
+                    ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+                    : 'bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-700'
                 }`}>
-                  Perfect Score
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Score 100% on any quiz
-              </p>
-            </div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Trophy className={`h-5 w-5 ${
+                      stats.bestScore >= 100 ? 'text-amber-600' : 'text-gray-400'
+                    }`} />
+                    <span className={`font-medium ${
+                      stats.bestScore >= 100 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500'
+                    }`}>
+                      Perfect Score
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Score 100% on any quiz
+                  </p>
+                  {stats.bestScore >= 100 && (
+                    <div className="mt-2 text-xs text-amber-600">✓ Unlocked</div>
+                  )}
+                </div>
 
-            {/* Consistent Learner Achievement */}
-            <div className={`p-4 rounded-lg border-2 ${
-              stats.completedQuizzes >= 5 
-                ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
-                : 'bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-700'
-            }`}>
-              <div className="flex items-center gap-3 mb-2">
-                <TrendingUp className={`h-5 w-5 ${
-                  stats.completedQuizzes >= 5 ? 'text-amber-600' : 'text-gray-400'
-                }`} />
-                <span className={`font-medium ${
-                  stats.completedQuizzes >= 5 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500'
+                {/* Consistent Learner Achievement */}
+                <div className={`p-4 rounded-lg border-2 ${
+                  stats.completedQuizzes >= 5 
+                    ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+                    : 'bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-700'
                 }`}>
-                  Consistent Learner
-                </span>
+                  <div className="flex items-center gap-3 mb-2">
+                    <TrendingUp className={`h-5 w-5 ${
+                      stats.completedQuizzes >= 5 ? 'text-amber-600' : 'text-gray-400'
+                    }`} />
+                    <span className={`font-medium ${
+                      stats.completedQuizzes >= 5 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500'
+                    }`}>
+                      Consistent Learner
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Complete 5 quizzes
+                  </p>
+                  {stats.completedQuizzes >= 5 ? (
+                    <div className="mt-2 text-xs text-amber-600">✓ Unlocked</div>
+                  ) : (
+                    <div className="mt-2 text-xs text-gray-500">{stats.completedQuizzes}/5 completed</div>
+                  )}
+                </div>
+
+                {/* Weekly Scholar Achievement */}
+                <div className={`p-4 rounded-lg border-2 ${
+                  stats.recentStreak >= 7 
+                    ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+                    : 'bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-700'
+                }`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Award className={`h-5 w-5 ${
+                      stats.recentStreak >= 7 ? 'text-amber-600' : 'text-gray-400'
+                    }`} />
+                    <span className={`font-medium ${
+                      stats.recentStreak >= 7 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500'
+                    }`}>
+                      Weekly Scholar
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    7-day learning streak
+                  </p>
+                  {stats.recentStreak >= 7 ? (
+                    <div className="mt-2 text-xs text-amber-600">✓ Unlocked</div>
+                  ) : (
+                    <div className="mt-2 text-xs text-gray-500">{stats.recentStreak}/7 days</div>
+                  )}
+                </div>
+
+                {/* High Achiever */}
+                <div className={`p-4 rounded-lg border-2 ${
+                  stats.averageScore >= 80 
+                    ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+                    : 'bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-700'
+                }`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Target className={`h-5 w-5 ${
+                      stats.averageScore >= 80 ? 'text-amber-600' : 'text-gray-400'
+                    }`} />
+                    <span className={`font-medium ${
+                      stats.averageScore >= 80 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500'
+                    }`}>
+                      High Achiever
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Maintain 80%+ average
+                  </p>
+                  {stats.averageScore >= 80 ? (
+                    <div className="mt-2 text-xs text-amber-600">✓ Unlocked</div>
+                  ) : (
+                    <div className="mt-2 text-xs text-gray-500">Current: {stats.averageScore}%</div>
+                  )}
+                </div>
+
+                {/* Bible Marathon */}
+                <div className={`p-4 rounded-lg border-2 ${
+                  stats.completedQuizzes >= 10 
+                    ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+                    : 'bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-700'
+                }`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <CheckCircle className={`h-5 w-5 ${
+                      stats.completedQuizzes >= 10 ? 'text-amber-600' : 'text-gray-400'
+                    }`} />
+                    <span className={`font-medium ${
+                      stats.completedQuizzes >= 10 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500'
+                    }`}>
+                      Bible Marathon
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Complete 10 quizzes
+                  </p>
+                  {stats.completedQuizzes >= 10 ? (
+                    <div className="mt-2 text-xs text-amber-600">✓ Unlocked</div>
+                  ) : (
+                    <div className="mt-2 text-xs text-gray-500">{stats.completedQuizzes}/10 completed</div>
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Complete 5 quizzes
-              </p>
             </div>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </Section>
     </PageContainer>
   );
