@@ -8,6 +8,7 @@ import { authClient } from "@/lib/auth-client";
 import { isEducator } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateInTimezone } from "@/lib/timezone";
 import { logger } from "@/lib/logger";
 import {
@@ -310,23 +311,23 @@ export default function EducatorDashboard() {
             </CardHeader>
             <CardContent className="pt-2">
               {performanceLoading ? (
-                <div className="animate-pulse">
+                <div>
                   <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
                     <div className="text-center">
-                      <div className="h-8 sm:h-10 bg-amber-200 rounded mx-auto w-16"></div>
-                      <div className="h-3 bg-gray-200 rounded mt-2 mx-auto w-12"></div>
+                      <Skeleton className="h-8 sm:h-10 w-16 mx-auto" />
+                      <Skeleton className="h-3 w-12 mt-2 mx-auto" />
                     </div>
                     <div className="text-center">
-                      <div className="h-8 sm:h-10 bg-amber-200 rounded mx-auto w-16"></div>
-                      <div className="h-3 bg-gray-200 rounded mt-2 mx-auto w-20"></div>
+                      <Skeleton className="h-8 sm:h-10 w-16 mx-auto" />
+                      <Skeleton className="h-3 w-20 mt-2 mx-auto" />
                     </div>
                     <div className="text-center">
-                      <div className="h-8 sm:h-10 bg-amber-200 rounded mx-auto w-16"></div>
-                      <div className="h-3 bg-gray-200 rounded mt-2 mx-auto w-16"></div>
+                      <Skeleton className="h-8 sm:h-10 w-16 mx-auto" />
+                      <Skeleton className="h-3 w-16 mt-2 mx-auto" />
                     </div>
                   </div>
-                  <div className="h-24 bg-gray-100 rounded"></div>
-                  <div className="h-3 bg-gray-200 rounded mt-2 mx-auto w-32"></div>
+                  <Skeleton className="h-24 w-full rounded" />
+                  <Skeleton className="h-3 w-32 mt-2 mx-auto" />
                 </div>
               ) : (
                 <>
@@ -440,6 +441,25 @@ export default function EducatorDashboard() {
               <CardDescription className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Your divine teachings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 sm:space-y-4 pt-2">
+              {loading ? (
+                // Skeleton loading state for stats
+                <>
+                  {[...Array(4)].map((_, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-7 w-7 rounded" />
+                        <div>
+                          <Skeleton className="h-6 w-8 mb-1" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                      {index === 0 && <Skeleton className="h-5 w-16 rounded-full" />}
+                      {index === 3 && <Skeleton className="h-4 w-4 rounded" />}
+                    </div>
+                  ))}
+                </>
+              ) : (
+              <>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <BookOpenSolid className="h-7 w-7 text-amber-600 opacity-60 flex-shrink-0" />
@@ -490,6 +510,8 @@ export default function EducatorDashboard() {
                   </Link>
                 ) : null}
               </div>
+              </>
+              )}
             </CardContent>
           </Card>
         </div>

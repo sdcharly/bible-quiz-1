@@ -127,6 +127,13 @@
       "when": 1756202934360,
       "tag": "0017_watery_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1756725342113,
+      "tag": "0018_glossy_grim_reaper",
+      "breakpoints": true
     }
   ]
 }

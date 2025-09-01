@@ -265,15 +265,38 @@ export async function POST(
         logger.error("No questions found after mapping for existing attempt", { quizId });
       }
 
-      // For reassignments, always shuffle regardless of quiz setting
-      // Note: quiz variable is already fetched earlier in the function
-      const shouldShuffle = quiz.shuffleQuestions || activeEnrollment.isReassignment;
-      
-      if (shouldShuffle) {
-        // Use a seed based on attemptId for consistent shuffle per attempt
-        sortedQuestions = shuffleArray(sortedQuestions, inProgressAttempt.id);
+      // Check if we have stored question order from when the quiz was started
+      if (inProgressAttempt.questionOrder && Array.isArray(inProgressAttempt.questionOrder)) {
+        // Use the stored shuffled order to maintain consistency
+        const storedOrder = inProgressAttempt.questionOrder as {questionId: string, options: {id: string, text: string}[]}[];
+        
+        // Reconstruct questions in the same order the student saw them
+        const reconstructedQuestions = storedOrder.map(stored => {
+          const originalQuestion = sortedQuestions.find(q => q.id === stored.questionId);
+          if (originalQuestion) {
+            return {
+              ...originalQuestion,
+              options: stored.options // Use the stored shuffled options
+            };
+          }
+          return null;
+        }).filter((q): q is NonNullable<typeof q> => q !== null);
+        
+        if (reconstructedQuestions.length > 0) {
+          sortedQuestions = reconstructedQuestions;
+        }
       } else {
-        sortedQuestions.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+        // Fallback to old behavior if no stored order (for older attempts)
+        // For reassignments, always shuffle regardless of quiz setting
+        // Note: quiz variable is already fetched earlier in the function
+        const shouldShuffle = quiz.shuffleQuestions || activeEnrollment.isReassignment;
+        
+        if (shouldShuffle) {
+          // Use a seed based on attemptId for consistent shuffle per attempt
+          sortedQuestions = shuffleArray(sortedQuestions, inProgressAttempt.id);
+        } else {
+          sortedQuestions.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+        }
       }
 
       return NextResponse.json({
@@ -371,40 +394,8 @@ export async function POST(
       .from(questions)
       .where(eq(questions.quizId, quizId));
 
-    // Create new attempt
+    // Create attempt ID first (needed for seeding shuffle)
     const attemptId = crypto.randomUUID();
-    const attemptData = {
-      id: attemptId,
-      quizId,
-      studentId,
-      enrollmentId: activeEnrollment.id, // Link to the specific enrollment
-      startTime: new Date(),
-      status: "in_progress" as const,
-      answers: [],  // Changed from {} to [] to match schema
-      totalQuestions: quizQuestions.length,
-      createdAt: new Date(),
-    };
-    
-    await db.insert(quizAttempts).values(attemptData);
-    
-    // Track attempt in cache for fast access
-    await quizCache.trackAttempt(attemptId, {
-      id: attemptId,
-      quizId,
-      studentId,
-      status: "in_progress",
-      startTime: attemptData.startTime,
-      answers: {}
-    });
-
-    // Update enrollment status to in_progress
-    await db
-      .update(enrollments)
-      .set({ 
-        status: "in_progress",
-        startedAt: new Date()
-      })
-      .where(eq(enrollments.id, activeEnrollment.id));
 
     // Prepare questions - map with correct field names from database  
     // CRITICAL FIX: Database columns use snake_case, must access them correctly
@@ -448,6 +439,47 @@ export async function POST(
     } else {
       preparedQuestions.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
     }
+    
+    // Store the shuffled question order that will be shown to the student
+    const questionOrderForAttempt = preparedQuestions.map(q => ({
+      questionId: q.id,
+      options: q.options // This preserves the shuffled order of options
+    }));
+    
+    // Create new attempt
+    const attemptData = {
+      id: attemptId,
+      quizId,
+      studentId,
+      enrollmentId: activeEnrollment.id, // Link to the specific enrollment
+      startTime: new Date(),
+      status: "in_progress" as const,
+      answers: [],  // Changed from {} to [] to match schema
+      totalQuestions: quizQuestions.length,
+      questionOrder: questionOrderForAttempt, // Store the shuffled order
+      createdAt: new Date(),
+    };
+    
+    await db.insert(quizAttempts).values(attemptData);
+    
+    // Track attempt in cache for fast access
+    await quizCache.trackAttempt(attemptId, {
+      id: attemptId,
+      quizId,
+      studentId,
+      status: "in_progress",
+      startTime: attemptData.startTime,
+      answers: {}
+    });
+
+    // Update enrollment status to in_progress
+    await db
+      .update(enrollments)
+      .set({ 
+        status: "in_progress",
+        startedAt: new Date()
+      })
+      .where(eq(enrollments.id, activeEnrollment.id));
 
     // Prepare quiz data for response and cache
     const quizData = {

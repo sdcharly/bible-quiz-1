@@ -32,6 +32,7 @@ export async function GET(
         startTime: quizAttempts.startTime,
         endTime: quizAttempts.endTime,
         status: quizAttempts.status,
+        questionOrder: quizAttempts.questionOrder,
         studentName: user.name,
         studentEmail: user.email,
       })
@@ -80,7 +81,7 @@ export async function GET(
       .where(eq(questionResponses.attemptId, attemptId));
 
     // Combine questions with responses for detailed analytics
-    const questionsWithAnalytics = quizQuestions.map(question => {
+    let questionsWithAnalytics = quizQuestions.map(question => {
       const response = responses.find(r => r.questionId === question.id);
       
       return {
@@ -100,11 +101,35 @@ export async function GET(
         markedForReview: response?.markedForReview || false,
         answeredAt: response?.answeredAt,
       };
-    }).sort((a, b) => {
-      const questionA = quizQuestions.find(q => q.id === a.id);
-      const questionB = quizQuestions.find(q => q.id === b.id);
-      return (questionA?.orderIndex || 0) - (questionB?.orderIndex || 0);
     });
+    
+    // Check if the attempt has stored question order (shuffled order as seen by student)
+    if (attempt.questionOrder && Array.isArray(attempt.questionOrder)) {
+      const storedOrder = attempt.questionOrder as {questionId: string, options: {id: string, text: string}[]}[];
+      
+      // Reconstruct questions in the same order the student saw them
+      const reconstructedQuestions = storedOrder.map(stored => {
+        const question = questionsWithAnalytics.find(q => q.id === stored.questionId);
+        if (question) {
+          return {
+            ...question,
+            options: stored.options // Use the shuffled options order the student saw
+          };
+        }
+        return null;
+      }).filter((q): q is NonNullable<typeof q> => q !== null);
+      
+      if (reconstructedQuestions.length > 0) {
+        questionsWithAnalytics = reconstructedQuestions;
+      }
+    } else {
+      // Fallback to original order for older attempts
+      questionsWithAnalytics.sort((a, b) => {
+        const questionA = quizQuestions.find(q => q.id === a.id);
+        const questionB = quizQuestions.find(q => q.id === b.id);
+        return (questionA?.orderIndex || 0) - (questionB?.orderIndex || 0);
+      });
+    }
 
     // Calculate detailed analytics
     const analytics = {
@@ -144,8 +169,13 @@ export async function GET(
     let slowestQuestion = null;
 
     questionsWithAnalytics.forEach((q, index) => {
-      // Difficulty analysis
-      const difficulty = (q.difficulty || 'medium').toLowerCase();
+      // Difficulty analysis - map intermediate to medium
+      let difficulty = (q.difficulty || 'medium').toLowerCase();
+      // Map intermediate to medium for consistency
+      if (difficulty === 'intermediate') {
+        difficulty = 'medium';
+      }
+      
       if (difficulty in analytics.byDifficulty) {
         analytics.byDifficulty[difficulty as keyof typeof analytics.byDifficulty].total++;
         if (q.isCorrect) {

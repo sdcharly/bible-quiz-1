@@ -58,33 +58,58 @@ export async function POST(
       );
     }
 
-    // CRITICAL: Validate quiz time constraints
-    const now = new Date();
-    
-    // Check if quiz has a start time
-    if (!quiz.startTime) {
-      return NextResponse.json(
-        { error: "Quiz not scheduled", message: "This quiz has not been scheduled yet." },
-        { status: 400 }
-      );
+    // Check if this is a reassignment by looking for enrollment
+    let isReassignment = false;
+    if (session?.user) {
+      const [enrollment] = await db
+        .select()
+        .from(enrollments)
+        .where(
+          and(
+            eq(enrollments.quizId, quizId),
+            eq(enrollments.studentId, studentId)
+          )
+        );
+      
+      if (enrollment?.isReassignment) {
+        isReassignment = true;
+        logger.info("Processing reassignment submission", {
+          quizId,
+          studentId,
+          enrollmentId: enrollment.id
+        });
+      }
     }
-    
-    // Check if quiz has started
-    if (now < quiz.startTime) {
-      return NextResponse.json(
-        { error: "Quiz not started", message: "Cannot submit quiz before it starts." },
-        { status: 425 }
-      );
-    }
-    
-    // Check if quiz has ended (with 5 minute grace period for network delays)
-    const graceMinutes = 5;
-    const endTime = new Date(quiz.startTime.getTime() + (quiz.duration + graceMinutes) * 60 * 1000);
-    if (now > endTime) {
-      return NextResponse.json(
-        { error: "Quiz ended", message: "This quiz has ended and no longer accepts submissions." },
-        { status: 410 }
-      );
+
+    // CRITICAL: Validate quiz time constraints (skip for reassignments)
+    if (!isReassignment) {
+      const now = new Date();
+      
+      // Check if quiz has a start time
+      if (!quiz.startTime) {
+        return NextResponse.json(
+          { error: "Quiz not scheduled", message: "This quiz has not been scheduled yet." },
+          { status: 400 }
+        );
+      }
+      
+      // Check if quiz has started
+      if (now < quiz.startTime) {
+        return NextResponse.json(
+          { error: "Quiz not started", message: "Cannot submit quiz before it starts." },
+          { status: 425 }
+        );
+      }
+      
+      // Check if quiz has ended (with 5 minute grace period for network delays)
+      const graceMinutes = 5;
+      const endTime = new Date(quiz.startTime.getTime() + (quiz.duration + graceMinutes) * 60 * 1000);
+      if (now > endTime) {
+        return NextResponse.json(
+          { error: "Quiz ended", message: "This quiz has ended and no longer accepts submissions." },
+          { status: 410 }
+        );
+      }
     }
 
     // Fetch all questions for this quiz to get correct answers

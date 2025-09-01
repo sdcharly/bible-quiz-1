@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
 import { formatDateInTimezone } from "@/lib/timezone";
 import {
@@ -288,6 +289,22 @@ export default function EducatorAnalyticsPage() {
             <>
               {/* Key Metrics */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {loading || refreshing ? (
+              // Skeleton Loading States for Metrics
+              [...Array(4)].map((_, index) => (
+                <div key={index} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <Skeleton className="h-3 w-20 mb-2" />
+                      <Skeleton className="h-8 w-16 mb-1" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <>
             <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100">
               <div className="flex items-center justify-between">
                 <div>
@@ -347,6 +364,8 @@ export default function EducatorAnalyticsPage() {
                 <Users className="h-8 w-8 text-amber-600 opacity-20" />
               </div>
             </div>
+              </>
+            )}
           </div>
 
           {/* Tabs */}
@@ -373,7 +392,26 @@ export default function EducatorAnalyticsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {timelineData.length > 0 ? (
+                  {loading || refreshing ? (
+                    // Skeleton for Timeline Chart
+                    <div className="h-64">
+                      <div className="flex items-end justify-between gap-3 h-48 mb-4">
+                        {[...Array(7)].map((_, index) => (
+                          <div key={index} className="flex-1 flex flex-col items-center">
+                            <Skeleton 
+                              className="w-full rounded-t" 
+                              style={{ height: `${Math.random() * 150 + 30}px` }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between">
+                        {[...Array(7)].map((_, index) => (
+                          <Skeleton key={index} className="h-3 w-12" />
+                        ))}
+                      </div>
+                    </div>
+                  ) : timelineData.length > 0 ? (
                     <div className="h-64">
                       <div className="flex items-end justify-between gap-3 h-48 mb-4">
                         {timelineData.filter(d => d && d.averageScore != null && d.attempts != null).map((data, index) => {
@@ -451,6 +489,24 @@ export default function EducatorAnalyticsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {loading || refreshing ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Skeleton className="h-4 w-32 mb-2" />
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-5 w-5 rounded-full" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </div>
+                      <div>
+                        <Skeleton className="h-4 w-28 mb-2" />
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-5 w-5 rounded-full" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-600 mb-2">Most Difficult Topic</p>
@@ -467,6 +523,7 @@ export default function EducatorAnalyticsPage() {
                       </div>
                     </div>
                   </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -494,7 +551,33 @@ export default function EducatorAnalyticsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {quizPerformance.map((quiz) => (
+                      {loading || refreshing ? (
+                        // Skeleton rows for quiz table
+                        [...Array(5)].map((_, index) => (
+                          <tr key={index} className="border-b">
+                            <td className="py-3 px-4">
+                              <Skeleton className="h-4 w-32 mb-1" />
+                              <Skeleton className="h-3 w-24" />
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <Skeleton className="h-4 w-8 mx-auto" />
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <Skeleton className="h-4 w-12 mx-auto" />
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <Skeleton className="h-4 w-10 mx-auto" />
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <Skeleton className="h-4 w-12 mx-auto" />
+                            </td>
+                            <td className="text-right py-3 px-4">
+                              <Skeleton className="h-8 w-20 ml-auto" />
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                      quizPerformance.map((quiz) => (
                         <tr key={quiz.quizId} className="border-b hover:bg-amber-50">
                           <td className="py-3 px-4">
                             <div>
@@ -527,10 +610,11 @@ export default function EducatorAnalyticsPage() {
                             </Button>
                           </td>
                         </tr>
-                      ))}
+                      ))
+                      )}
                     </tbody>
                   </table>
-                  {quizPerformance.length === 0 && (
+                  {!loading && !refreshing && quizPerformance.length === 0 && (
                     <div className="py-12">
                       <EmptyState
                         icon={BookOpen}
@@ -571,7 +655,36 @@ export default function EducatorAnalyticsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {studentPerformance.map((student) => (
+                      {loading || refreshing ? (
+                        // Skeleton rows for student table
+                        [...Array(5)].map((_, index) => (
+                          <tr key={index} className="border-b">
+                            <td className="py-3 px-4">
+                              <Skeleton className="h-4 w-28 mb-1" />
+                              <Skeleton className="h-3 w-36" />
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <Skeleton className="h-4 w-10 mx-auto" />
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <Skeleton className="h-4 w-12 mx-auto" />
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <Skeleton className="h-4 w-14 mx-auto" />
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <Skeleton className="h-3 w-20 mx-auto" />
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <Skeleton className="h-4 w-4 mx-auto rounded-full" />
+                            </td>
+                            <td className="text-right py-3 px-4">
+                              <Skeleton className="h-8 w-24 ml-auto" />
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                      studentPerformance.map((student) => (
                         <tr key={student.studentId} className="border-b hover:bg-amber-50">
                           <td className="py-3 px-4">
                             <div>
@@ -607,10 +720,11 @@ export default function EducatorAnalyticsPage() {
                             </Button>
                           </td>
                         </tr>
-                      ))}
+                      ))
+                      )}
                     </tbody>
                   </table>
-                  {studentPerformance.length === 0 && (
+                  {!loading && !refreshing && studentPerformance.length === 0 && (
                     <div className="py-12">
                       <EmptyState
                         icon={Users}
@@ -638,7 +752,27 @@ export default function EducatorAnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {topicPerformance.map((topic) => (
+                  {loading || refreshing ? (
+                    // Skeleton for topic performance
+                    [...Array(4)].map((_, index) => (
+                      <div key={index} className="border-b pb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-4 w-4 rounded-full" />
+                            <Skeleton className="h-4 w-32" />
+                          </div>
+                          <Skeleton className="h-5 w-12" />
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <Skeleton className="h-3 w-20" />
+                          <Skeleton className="h-3 w-16" />
+                          <Skeleton className="h-3 w-18" />
+                        </div>
+                        <Skeleton className="mt-2 h-2 w-full rounded-full" />
+                      </div>
+                    ))
+                  ) : (
+                  topicPerformance.map((topic) => (
                     <div key={topic.topic} className="border-b pb-4">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-medium flex items-center gap-2">
@@ -661,8 +795,9 @@ export default function EducatorAnalyticsPage() {
                         />
                       </div>
                     </div>
-                  ))}
-                  {topicPerformance.length === 0 && (
+                  ))
+                  )}
+                  {!loading && !refreshing && topicPerformance.length === 0 && (
                     <div className="py-12">
                       <EmptyState
                         icon={Brain}

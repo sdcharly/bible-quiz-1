@@ -83,7 +83,7 @@ export async function GET(
       .where(eq(questionResponses.attemptId, attemptId));
 
     // Combine questions with responses
-    const questionsWithResults = quizQuestions.filter(question => question && question.id && question.questionText && question.options).map(question => {
+    let questionsWithResults = quizQuestions.filter(question => question && question.id && question.questionText && question.options).map(question => {
       const response = responses.find(r => r && r.questionId === question.id);
       
       return {
@@ -100,12 +100,35 @@ export async function GET(
         timeSpent: response?.timeSpent || 0,
         markedForReview: response?.markedForReview || false,
       };
-    }).sort((a, b) => {
-      // Sort by order if available
-      const questionA = quizQuestions.find(q => q && q.id === a.id);
-      const questionB = quizQuestions.find(q => q && q.id === b.id);
-      return (questionA?.orderIndex || 0) - (questionB?.orderIndex || 0);
     });
+    
+    // Check if the attempt has stored question order (shuffled order as seen by student)
+    if (attempt.questionOrder && Array.isArray(attempt.questionOrder)) {
+      const storedOrder = attempt.questionOrder as {questionId: string, options: {id: string, text: string}[]}[];
+      
+      // Reconstruct questions in the same order the student saw them
+      const reconstructedQuestions = storedOrder.map(stored => {
+        const question = questionsWithResults.find(q => q.id === stored.questionId);
+        if (question) {
+          return {
+            ...question,
+            options: stored.options // Use the shuffled options order the student saw
+          };
+        }
+        return null;
+      }).filter((q): q is NonNullable<typeof q> => q !== null);
+      
+      if (reconstructedQuestions.length > 0) {
+        questionsWithResults = reconstructedQuestions;
+      }
+    } else {
+      // Fallback to original order for older attempts
+      questionsWithResults.sort((a, b) => {
+        const questionA = quizQuestions.find(q => q && q.id === a.id);
+        const questionB = quizQuestions.find(q => q && q.id === b.id);
+        return (questionA?.orderIndex || 0) - (questionB?.orderIndex || 0);
+      });
+    }
 
     const score = attempt.score || 0;
     const correctAnswers = attempt.totalCorrect || 0;

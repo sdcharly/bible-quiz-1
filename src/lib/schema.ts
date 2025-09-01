@@ -237,6 +237,7 @@ export const quizAttempts = pgTable("quiz_attempts", {
   timeSpent: integer("time_spent"), // in seconds
   timezone: text("timezone").notNull().default("Asia/Kolkata"), // User's timezone when they took the quiz
   status: text("status").notNull().default("in_progress"), // in_progress, completed, abandoned
+  questionOrder: jsonb("question_order").$type<{questionId: string, options: {id: string, text: string}[]}[]>(), // Stores the shuffled order of questions and options as seen by student
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
