@@ -63,9 +63,9 @@ Located in `/src/lib/security-utils.ts`:
 ## Configuration
 
 ### Setting Up API Key (Production)
-1. Generate a secure API key:
+1. Generate a secure API key (256-bit, 64-character production-safe key):
    ```bash
-   openssl rand -hex 32
+   openssl rand -base64 48 | tr -d '+/=' | cut -c1-64
    ```
 
 2. Set environment variable:
@@ -141,15 +141,31 @@ const response = await fetch('https://biblequiz.textr.in/api/db-pool', {
 ```
 
 ### Example: Kubernetes Liveness Probe
+
+First, create a Kubernetes secret to store the API key securely:
+```bash
+kubectl create secret generic db-pool-secret --from-literal=api-key=$DB_POOL_API_KEY
+```
+
+Then configure the probe with the secret injected via environment variable:
 ```yaml
+# Pod spec with secret injection
+env:
+  - name: DB_POOL_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: db-pool-secret
+        key: api-key
+
 livenessProbe:
   httpGet:
     path: /api/db-pool
     port: 3000
     httpHeaders:
     - name: x-api-key
-      value: $(DB_POOL_API_KEY)
+      value: "<REPLACE_WITH_SECRET_AT_RUNTIME>"
 ```
+Note: The actual secret value should be injected at runtime using env vars (valueFrom: secretKeyRef) or mounted files, never hardcoded in the probe configuration.
 
 ## Troubleshooting
 
