@@ -4,7 +4,50 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { quizAttempts, questionResponses, questions, quizzes, user } from "@/lib/schema";
 import { auth } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
+// Type definition for question order structure
+interface QuestionOrderItem {
+  questionId: string;
+  options: {
+    id: string;
+    text: string;
+  }[];
+}
+
+// Type guard to validate question order structure
+function isValidQuestionOrder(data: unknown): data is QuestionOrderItem[] {
+  if (!Array.isArray(data)) {
+    return false;
+  }
+  
+  return data.every(item => {
+    // Check if item is an object with required properties
+    if (!item || typeof item !== 'object') {
+      return false;
+    }
+    
+    // Check questionId
+    if (!('questionId' in item) || typeof item.questionId !== 'string') {
+      return false;
+    }
+    
+    // Check options array
+    if (!('options' in item) || !Array.isArray(item.options)) {
+      return false;
+    }
+    
+    // Validate each option
+    return item.options.every((option: any) => {
+      return option &&
+        typeof option === 'object' &&
+        'id' in option &&
+        typeof option.id === 'string' &&
+        'text' in option &&
+        typeof option.text === 'string';
+    });
+  });
+}
 
 export async function GET(
   req: NextRequest,
@@ -104,26 +147,48 @@ export async function GET(
     });
     
     // Check if the attempt has stored question order (shuffled order as seen by student)
-    if (attempt.questionOrder && Array.isArray(attempt.questionOrder)) {
-      const storedOrder = attempt.questionOrder as {questionId: string, options: {id: string, text: string}[]}[];
-      
-      // Reconstruct questions in the same order the student saw them
-      const reconstructedQuestions = storedOrder.map(stored => {
-        const question = questionsWithAnalytics.find(q => q.id === stored.questionId);
-        if (question) {
-          return {
-            ...question,
-            options: stored.options // Use the shuffled options order the student saw
-          };
+    if (attempt.questionOrder) {
+      // Validate the structure of questionOrder
+      if (isValidQuestionOrder(attempt.questionOrder)) {
+        const storedOrder: QuestionOrderItem[] = attempt.questionOrder;
+        
+        // Reconstruct questions in the same order the student saw them
+        const reconstructedQuestions = storedOrder.map(stored => {
+          const question = questionsWithAnalytics.find(q => q.id === stored.questionId);
+          if (question) {
+            return {
+              ...question,
+              options: stored.options // Use the shuffled options order the student saw
+            };
+          }
+          return null;
+        }).filter((q): q is NonNullable<typeof q> => q !== null);
+        
+        if (reconstructedQuestions.length > 0) {
+          questionsWithAnalytics = reconstructedQuestions;
+        } else {
+          logger.warn("Failed to reconstruct questions from stored order", {
+            attemptId,
+            storedOrderLength: storedOrder.length
+          });
         }
-        return null;
-      }).filter((q): q is NonNullable<typeof q> => q !== null);
-      
-      if (reconstructedQuestions.length > 0) {
-        questionsWithAnalytics = reconstructedQuestions;
+      } else {
+        // Log invalid questionOrder structure for debugging
+        logger.error("Invalid questionOrder structure in attempt", {
+          attemptId,
+          questionOrderType: typeof attempt.questionOrder,
+          isArray: Array.isArray(attempt.questionOrder)
+        });
+        
+        // Fallback to original order
+        questionsWithAnalytics.sort((a, b) => {
+          const questionA = quizQuestions.find(q => q.id === a.id);
+          const questionB = quizQuestions.find(q => q.id === b.id);
+          return (questionA?.orderIndex || 0) - (questionB?.orderIndex || 0);
+        });
       }
     } else {
-      // Fallback to original order for older attempts
+      // Fallback to original order for older attempts without questionOrder
       questionsWithAnalytics.sort((a, b) => {
         const questionA = quizQuestions.find(q => q.id === a.id);
         const questionB = quizQuestions.find(q => q.id === b.id);

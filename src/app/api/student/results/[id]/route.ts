@@ -103,7 +103,7 @@ export async function GET(
     });
     
     // Check if the attempt has stored question order (shuffled order as seen by student)
-    if (attempt.questionOrder && Array.isArray(attempt.questionOrder)) {
+    if (attempt.questionOrder && Array.isArray(attempt.questionOrder) && attempt.questionOrder.length > 0) {
       const storedOrder = attempt.questionOrder as {questionId: string, options: {id: string, text: string}[]}[];
       
       // Reconstruct questions in the same order the student saw them
@@ -112,7 +112,11 @@ export async function GET(
         if (question) {
           return {
             ...question,
-            options: stored.options // Use the shuffled options order the student saw
+            // Sanitize options to only include id and text fields (avoid leaking correctness info)
+            options: stored.options.map(option => ({
+              id: option.id,
+              text: option.text
+            }))
           };
         }
         return null;
@@ -120,14 +124,19 @@ export async function GET(
       
       if (reconstructedQuestions.length > 0) {
         questionsWithResults = reconstructedQuestions;
+      } else {
+        // If reconstruction failed, fallback to original order
+        const orderIndexMap = new Map(quizQuestions.map(q => [q.id, q.orderIndex || 0]));
+        questionsWithResults.sort((a, b) => 
+          (orderIndexMap.get(a.id) || 0) - (orderIndexMap.get(b.id) || 0)
+        );
       }
     } else {
-      // Fallback to original order for older attempts
-      questionsWithResults.sort((a, b) => {
-        const questionA = quizQuestions.find(q => q && q.id === a.id);
-        const questionB = quizQuestions.find(q => q && q.id === b.id);
-        return (questionA?.orderIndex || 0) - (questionB?.orderIndex || 0);
-      });
+      // Fallback to original order for older attempts or empty questionOrder
+      const orderIndexMap = new Map(quizQuestions.map(q => [q.id, q.orderIndex || 0]));
+      questionsWithResults.sort((a, b) => 
+        (orderIndexMap.get(a.id) || 0) - (orderIndexMap.get(b.id) || 0)
+      );
     }
 
     const score = attempt.score || 0;

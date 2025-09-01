@@ -454,7 +454,7 @@ export async function POST(
       enrollmentId: activeEnrollment.id, // Link to the specific enrollment
       startTime: new Date(),
       status: "in_progress" as const,
-      answers: [],  // Changed from {} to [] to match schema
+      answers: [], // Array type per schema: {questionId: string, answer: string, timeSpent: number}[]
       totalQuestions: quizQuestions.length,
       questionOrder: questionOrderForAttempt, // Store the shuffled order
       createdAt: new Date(),
@@ -469,7 +469,7 @@ export async function POST(
       studentId,
       status: "in_progress",
       startTime: attemptData.startTime,
-      answers: {}
+      answers: [] // Array type to match schema: {questionId: string, answer: string, timeSpent: number}[]
     });
 
     // Update enrollment status to in_progress

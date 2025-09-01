@@ -53,7 +53,7 @@ interface AttemptData {
   studentId: string;
   status: string;
   startTime: Date;
-  answers: Record<string, unknown>;
+  answers: {questionId: string, answer: string, timeSpent: number}[]; // Match schema type
   timeRemaining?: number;
 }
 
