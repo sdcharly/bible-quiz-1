@@ -234,16 +234,29 @@ npm run dev
 ```
 
 ### Testing Cache Functionality
+
+#### Option 1: Using TypeScript with tsx/ts-node
+```typescript
+// test-cache.ts
+import { cache } from './src/lib/distributed-cache';
+
+await cache.set('test', { value: 'hello' }, 5000);
+const result = await cache.get('test');
+console.log('Cache test:', result);
+await cache.del('test');
+```
+
+Run with: `npx tsx test-cache.ts`
+
+#### Option 2: Using Node.js with Dynamic Import
 ```bash
-# Test script
-node -e "
-const { cache } = require('./src/lib/distributed-cache');
-(async () => {
-  await cache.set('test', { value: 'hello' }, 5000);
-  const result = await cache.get('test');
-  console.log('Cache test:', result);
-  await cache.del('test');
-})();
+# Test script with dynamic import for ESM compatibility
+node --input-type=module -e "
+const { cache } = await import('./src/lib/distributed-cache.js');
+await cache.set('test', { value: 'hello' }, 5000);
+const result = await cache.get('test');
+console.log('Cache test:', result);
+await cache.del('test');
 "
 ```
 
