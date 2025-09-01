@@ -38,10 +38,16 @@ CREATE INDEX IF NOT EXISTS idx_documents_educator_id ON documents(educator_id);
 CREATE INDEX IF NOT EXISTS idx_documents_upload_date ON documents(upload_date);
 
 -- 8. Activity logs if exists
-CREATE INDEX IF NOT EXISTS idx_activity_timestamp ON activity(timestamp) WHERE EXISTS (
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_name = 'activity'
-);
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'activity'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_activity_timestamp ON activity("timestamp");
+    END IF;
+END $$;
 
 -- Update statistics for query planner
 ANALYZE quiz_attempts;

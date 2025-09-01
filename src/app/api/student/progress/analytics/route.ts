@@ -97,16 +97,16 @@ export async function GET(req: NextRequest) {
     const learningCurve = calculateLearningCurve(attempts);
 
     // 5. Knowledge Retention Analysis
-    const retentionAnalysis = calculateKnowledgeRetention(attempts, responses);
+    const retentionAnalysis = calculateKnowledgeRetention(attempts);
 
     // 6. Time Efficiency Metrics
     const timeEfficiency = calculateTimeEfficiency(attempts, responses);
 
     // 7. Skill Gap Analysis
-    const skillGaps = identifySkillGaps(responses, bloomsAnalysis);
+    const skillGaps = identifySkillGaps(bloomsAnalysis);
 
     // 8. Consistency Analysis
-    const consistency = calculateConsistency(attempts, responses);
+    const consistency = calculateConsistency(attempts);
 
     // 9. Question Type Performance
     const questionTypePerformance = analyzeQuestionTypes(responses);
@@ -231,12 +231,20 @@ function calculateDifficultyAnalysis(responses: any[], attempts: any[]): Difficu
     const avgTime = levelResponses.reduce((sum, r) => sum + (r.timeSpent || 0), 0) / levelResponses.length;
 
     // Calculate improvement over time
-    const firstHalf = levelResponses.slice(0, Math.floor(levelResponses.length / 2));
-    const secondHalf = levelResponses.slice(Math.floor(levelResponses.length / 2));
-    
-    const firstAccuracy = firstHalf.filter(r => r.isCorrect).length / firstHalf.length * 100;
-    const secondAccuracy = secondHalf.filter(r => r.isCorrect).length / secondHalf.length * 100;
-    const improvement = secondAccuracy - firstAccuracy;
+    let improvement = 0;
+    if (levelResponses.length >= 2) {
+      const firstHalf = levelResponses.slice(0, Math.floor(levelResponses.length / 2));
+      const secondHalf = levelResponses.slice(Math.floor(levelResponses.length / 2));
+      
+      // Only calculate accuracy if halves have content
+      const firstAccuracy = firstHalf.length > 0 
+        ? firstHalf.filter(r => r.isCorrect).length / firstHalf.length * 100 
+        : 0;
+      const secondAccuracy = secondHalf.length > 0 
+        ? secondHalf.filter(r => r.isCorrect).length / secondHalf.length * 100 
+        : 0;
+      improvement = secondAccuracy - firstAccuracy;
+    }
 
     analysis.push({
       level,
@@ -261,8 +269,11 @@ function calculateLearningCurve(attempts: any[]): LearningCurveData[] {
   }));
 }
 
-function calculateKnowledgeRetention(attempts: any[], responses: any[]): KnowledgeRetention {
-  if (attempts.length < 2) {
+function calculateKnowledgeRetention(attempts: any[]): KnowledgeRetention {
+  // Filter attempts to only include those with valid endTime
+  const validAttempts = attempts.filter(a => a.endTime);
+  
+  if (validAttempts.length < 2) {
     return {
       initialScore: 0,
       retentionRate: 100,
@@ -272,12 +283,17 @@ function calculateKnowledgeRetention(attempts: any[], responses: any[]): Knowled
   }
 
   // Simplified Ebbinghaus forgetting curve calculation
-  const initialScore = attempts[attempts.length - 1].score || 0;
-  const currentScore = attempts[0].score || 0;
-  const daysBetween = Math.floor(
-    (new Date(attempts[0].endTime!).getTime() - new Date(attempts[attempts.length - 1].endTime!).getTime()) 
-    / (1000 * 60 * 60 * 24)
-  );
+  const initialScore = validAttempts[validAttempts.length - 1].score || 0;
+  const currentScore = validAttempts[0].score || 0;
+  
+  // Calculate days between with null safety
+  let daysBetween = 0;
+  if (validAttempts[0].endTime && validAttempts[validAttempts.length - 1].endTime) {
+    daysBetween = Math.floor(
+      (new Date(validAttempts[0].endTime).getTime() - new Date(validAttempts[validAttempts.length - 1].endTime).getTime()) 
+      / (1000 * 60 * 60 * 24)
+    );
+  }
 
   const retentionRate = initialScore > 0 ? (currentScore / initialScore) * 100 : 100;
   
@@ -335,7 +351,7 @@ function calculateSpeedTrend(attempts: any[]): 'faster' | 'stable' | 'slower' {
   return 'stable';
 }
 
-function identifySkillGaps(responses: any[], bloomsAnalysis: BloomsTaxonomyAnalysis[]): SkillGap[] {
+function identifySkillGaps(bloomsAnalysis: BloomsTaxonomyAnalysis[]): SkillGap[] {
   const gaps: SkillGap[] = [];
   
   // Identify gaps based on Bloom's taxonomy performance
@@ -346,7 +362,7 @@ function identifySkillGaps(responses: any[], bloomsAnalysis: BloomsTaxonomyAnaly
         currentLevel: bloom.accuracy,
         targetLevel: 80,
         gap: 80 - bloom.accuracy,
-        recommendedFocus: getBloomRecommendation(bloom.level, bloom.accuracy)
+        recommendedFocus: getBloomRecommendation(bloom.level)
       });
     }
   }
@@ -355,7 +371,7 @@ function identifySkillGaps(responses: any[], bloomsAnalysis: BloomsTaxonomyAnaly
   return gaps.sort((a, b) => b.gap - a.gap).slice(0, 5); // Top 5 gaps
 }
 
-function getBloomRecommendation(level: string, accuracy: number): string {
+function getBloomRecommendation(level: string): string {
   const recommendations: Record<string, string> = {
     knowledge: "Focus on memorization techniques and flashcards",
     comprehension: "Practice explaining concepts in your own words",
@@ -368,7 +384,7 @@ function getBloomRecommendation(level: string, accuracy: number): string {
   return recommendations[level] || "Continue practicing";
 }
 
-function calculateConsistency(attempts: any[], responses: any[]): Consistency {
+function calculateConsistency(attempts: any[]): Consistency {
   const scores = attempts.map(a => a.score || 0);
   const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
   const variance = scores.reduce((acc, score) => acc + Math.pow(score - mean, 2), 0) / scores.length;

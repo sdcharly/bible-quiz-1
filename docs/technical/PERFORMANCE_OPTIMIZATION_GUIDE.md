@@ -26,9 +26,10 @@ if (cached) {
   });
 }
 
-// After: Returns data directly
+// After: Returns object with data property, no Response object created
 const result = await fetchWithOptimizedCache(url);
-// result.data is the actual data, no Response object created
+// Access the actual data via result.data
+const payload = result.data; // The cached or fetched data
 ```
 
 ### 2. Server-Side Filtering API (`/api/student/quizzes`)

@@ -12,10 +12,11 @@ import { eq, and, gte, desc, sql, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { cache } from "@/lib/distributed-cache";
 
-// Professional caching system for production
-const analyticsCache = new Map<string, { data: any; timestamp: number }>();
+// Cache configuration
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache for production performance
+const CACHE_PREFIX = 'analytics:educator:'; // Namespace for analytics cache keys
 
 export async function GET(req: NextRequest) {
   const startTime = Date.now();
@@ -41,12 +42,12 @@ export async function GET(req: NextRequest) {
     const educatorId = session.user.id;
     
     // Check cache for production performance
-    const cacheKey = `${educatorId}-${timeRange}`;
+    const cacheKey = `${CACHE_PREFIX}${educatorId}:${timeRange}`;
     if (useCache) {
-      const cached = analyticsCache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      const cached = await cache.get(cacheKey);
+      if (cached) {
         logger.debug('Returning cached analytics data');
-        return NextResponse.json(cached.data);
+        return NextResponse.json(cached);
       }
     }
 
@@ -358,14 +359,8 @@ export async function GET(req: NextRequest) {
     
     // Cache the result for production performance
     if (useCache) {
-      analyticsCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
-      
-      // Clean old cache entries
-      for (const [key, value] of analyticsCache.entries()) {
-        if (Date.now() - value.timestamp > CACHE_TTL * 2) {
-          analyticsCache.delete(key);
-        }
-      }
+      await cache.set(cacheKey, responseData, CACHE_TTL);
+      logger.debug(`Analytics data cached with key: ${cacheKey}`);
     }
     
     const duration = Date.now() - startTime;

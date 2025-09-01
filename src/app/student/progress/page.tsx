@@ -243,18 +243,18 @@ function StudentProgressPage() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 mt-6">
-                  <Link href="/student/quizzes" className="flex-1">
-                    <Button className="w-full" variant="default">
+                  <Button className="flex-1" variant="default" asChild>
+                    <Link href="/student/quizzes">
                       <BookOpen className="h-4 w-4 mr-2" />
                       Browse Quizzes
-                    </Button>
-                  </Link>
-                  <Link href="/student/results" className="flex-1">
-                    <Button className="w-full" variant="outline">
+                    </Link>
+                  </Button>
+                  <Button className="flex-1" variant="outline" asChild>
+                    <Link href="/student/results">
                       <BarChart3 className="h-4 w-4 mr-2" />
                       View Results
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </div>

@@ -24,18 +24,14 @@ import type {
   QuestionTypePerformance
 } from "@/types/analytics";
 
-interface ProgressInsightsProps {
-  studentId?: string;
-}
-
-export default function ProgressInsights({ studentId }: ProgressInsightsProps) {
+export default function ProgressInsights() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [studentId]);
+  }, []);
 
   const fetchAnalytics = async () => {
     try {

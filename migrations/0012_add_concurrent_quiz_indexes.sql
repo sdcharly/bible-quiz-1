@@ -7,11 +7,16 @@ CREATE INDEX IF NOT EXISTS idx_quiz_attempts_in_progress ON quiz_attempts(status
     WHERE status = 'in_progress';
 
 -- 2. WebSocket connection tracking (if table exists)
-CREATE INDEX IF NOT EXISTS idx_websocket_connections_user_id ON websocket_connections(user_id) 
-    WHERE EXISTS (
+DO $$
+BEGIN
+    IF EXISTS (
         SELECT 1 FROM information_schema.tables 
-        WHERE table_name = 'websocket_connections'
-    );
+        WHERE table_schema = 'public' 
+        AND table_name = 'websocket_connections'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_websocket_connections_user_id ON websocket_connections(user_id);
+    END IF;
+END $$;
 
 -- 3. Optimize educator real-time monitoring queries
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_educator_view ON quiz_attempts(quiz_id, status, end_time);
@@ -27,11 +32,16 @@ CREATE INDEX IF NOT EXISTS idx_quiz_attempts_analytics ON quiz_attempts(quiz_id,
     WHERE status = 'completed';
 
 -- 7. Question response tracking
-CREATE INDEX IF NOT EXISTS idx_question_responses_attempt_id ON question_responses(attempt_id)
-    WHERE EXISTS (
+DO $$
+BEGIN
+    IF EXISTS (
         SELECT 1 FROM information_schema.tables 
-        WHERE table_name = 'question_responses'
-    );
+        WHERE table_schema = 'public' 
+        AND table_name = 'question_responses'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_question_responses_attempt_id ON question_responses(attempt_id);
+    END IF;
+END $$;
 
 -- 8. Optimize for bulk student operations
 CREATE INDEX IF NOT EXISTS idx_enrollments_bulk_ops ON enrollments(educator_id, created_at);

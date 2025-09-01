@@ -23,7 +23,8 @@
       "mcp__playwright__browser_close",
       "Bash(npx ts-node:*)",
       "Bash(chmod:*)",
-      "Read(/private/tmp/**)"
+      "Read(/private/tmp/**)",
+      "Bash(npm install:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
