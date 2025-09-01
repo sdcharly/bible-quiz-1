@@ -171,11 +171,8 @@ test.describe('Database Connection Pool Optimization', () => {
   });
 
   test('pool refresh works in development', async ({ page }) => {
-    // This test only works in development mode
-    if (process.env.NODE_ENV !== 'development') {
-      test.skip();
-      return;
-    }
+    // Skip this test in non-development environments
+    test.skip(process.env.NODE_ENV !== 'development', 'Pool refresh only available in development mode');
 
     const refreshResponse = await page.request.post('/api/db-pool', {
       data: { action: 'refresh' }

@@ -30,21 +30,37 @@ export default function ProgressInsights() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    
+    const fetchAnalytics = async () => {
+      try {
+        const response = await fetch("/api/student/progress/analytics", {
+          signal: controller.signal
+        });
+        if (!response.ok) throw new Error("Failed to fetch analytics");
+        const data: AnalyticsResponse = await response.json();
+        setAnalytics(data.analytics);
+      } catch (err) {
+        // Don't treat abort as an error
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        // Only update loading state if not aborted
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+    
     fetchAnalytics();
+    
+    // Cleanup function to abort request on unmount
+    return () => {
+      controller.abort();
+    };
   }, []);
-
-  const fetchAnalytics = async () => {
-    try {
-      const response = await fetch("/api/student/progress/analytics");
-      if (!response.ok) throw new Error("Failed to fetch analytics");
-      const data: AnalyticsResponse = await response.json();
-      setAnalytics(data.analytics);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (

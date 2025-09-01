@@ -81,8 +81,13 @@ function getPoolConfig(): PoolConfig {
   // Classroom-optimized settings
   const isProduction = process.env.NODE_ENV === 'production';
   
+  // Read max connections from environment variable with fallback
+  const configuredMaxConnections = Number(process.env.DB_MAX_CONNECTIONS) || 0;
+  const defaultMaxConnections = isProduction ? 50 : 25;
+  const maxConnections = configuredMaxConnections > 0 ? configuredMaxConnections : defaultMaxConnections;
+  
   return {
-    max: isProduction ? 50 : 25,           // Support 100+ concurrent students in prod
+    max: maxConnections,                    // Support 100+ concurrent students in prod
     idle_timeout: 20,                      // Faster connection recycling for burst traffic
     connect_timeout: 10,                   // Fail fast on connection issues
     max_lifetime: 60 * 30,                 // 30 min connection lifetime
@@ -143,8 +148,9 @@ function createOptimizedConnection() {
 
   // Monitor connection pool health
   if (isFeatureEnabled('DB_CONNECTION_MONITORING')) {
-    setInterval(() => {
-      // Connection pool monitoring - disabled due to postgres.js API limitations
+    // Store interval ID for proper cleanup on shutdown
+    poolMonitorInterval = setInterval(() => {
+      // Log basic pool configuration (actual stats not available via postgres.js API)
       logger.debug('DB Pool Health Check:', {
         maxConnections: config.max,
         timestamp: new Date().toISOString()
@@ -160,6 +166,7 @@ function createOptimizedConnection() {
 // Store both the drizzle instance and the underlying sql client
 let optimizedDb: ReturnType<typeof createOptimizedConnection> | null = null;
 let sqlClient: ReturnType<typeof postgres> | null = null;
+let poolMonitorInterval: NodeJS.Timeout | null = null;
 
 /**
  * Get database instance with feature flag fallback
@@ -254,12 +261,15 @@ export function getPoolStats() {
   }
 
   try {
+    // Get the actual configured max connections
+    const config = getPoolConfig();
+    
     // Pool stats disabled due to postgres.js API limitations
     return {
       type: 'optimized',
       available: true,
       stats: {
-        maxConnections: isFeatureEnabled('OPTIMIZED_DB_POOL') ? 50 : 10,
+        maxConnections: config.max,
         activeConnections: null, // Not available via postgres.js API
         idleConnections: null,   // Not available via postgres.js API  
         queueSize: null,         // Not available via postgres.js API
@@ -282,6 +292,13 @@ export function getPoolStats() {
  */
 export async function closeDatabase() {
   try {
+    // Clear monitoring interval if it exists
+    if (poolMonitorInterval) {
+      clearInterval(poolMonitorInterval);
+      poolMonitorInterval = null;
+      logger.debug('Stopped database pool monitoring');
+    }
+    
     if (sqlClient) {
       logger.log('Closing database connection pool...');
       await sqlClient.end();
@@ -297,6 +314,30 @@ export async function closeDatabase() {
 
 // Export the database instance
 export const db = getDb();
+
+// Register cleanup on process shutdown
+if (typeof process !== 'undefined') {
+  // Handle graceful shutdown
+  const handleShutdown = async (signal: string) => {
+    logger.log(`Received ${signal}, closing database connections...`);
+    try {
+      await closeDatabase();
+      process.exit(0);
+    } catch (error) {
+      logger.error('Error during shutdown:', error);
+      process.exit(1);
+    }
+  };
+
+  // Register shutdown handlers for common signals
+  process.once('SIGINT', () => handleShutdown('SIGINT'));
+  process.once('SIGTERM', () => handleShutdown('SIGTERM'));
+  
+  // Handle uncaught errors
+  process.on('beforeExit', async () => {
+    await closeDatabase();
+  });
+}
 
 // Export for backward compatibility
 export default db;

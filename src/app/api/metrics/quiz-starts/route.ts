@@ -15,8 +15,24 @@ export async function GET(req: NextRequest) {
   try {
     // Simple header-based guard; replace with your auth as needed
     const expected = process.env.METRICS_API_KEY;
+    
+    // Check if API key is properly configured
+    if (!expected) {
+      return NextResponse.json(
+        { error: "Server configuration error: API key not configured" },
+        {
+          status: 500,
+          headers: {
+            "Cache-Control": "no-store",
+            "Vary": "x-metrics-key"
+          }
+        }
+      );
+    }
+    
+    // Validate the provided API key
     const provided = req.headers.get("x-metrics-key");
-    if (expected && provided !== expected) {
+    if (provided !== expected) {
       return NextResponse.json(
         { error: "Unauthorized" }, 
         { 
@@ -38,11 +54,24 @@ export async function GET(req: NextRequest) {
       .from(quizAttempts)
       .where(gte(quizAttempts.startTime, oneHourAgo));
     
-    // Convert BigInt to Number for JSON serialization
-    // Use Number() for counts that fit in JS number range, or toString() for very large values
-    const safeHourlyCount = hourlyCount?.count != null 
-      ? Number(hourlyCount.count) 
-      : 0;
+    // Convert BigInt to Number for JSON serialization with precision safety check
+    let safeHourlyCount = 0;
+    
+    if (hourlyCount?.count != null) {
+      if (typeof hourlyCount.count === 'bigint') {
+        // Check if BigInt value is within safe integer range
+        if (hourlyCount.count <= BigInt(Number.MAX_SAFE_INTEGER)) {
+          safeHourlyCount = Number(hourlyCount.count);
+        } else {
+          // Clamp to MAX_SAFE_INTEGER if value exceeds safe range
+          console.warn(`Quiz start count ${hourlyCount.count} exceeds MAX_SAFE_INTEGER, clamping to ${Number.MAX_SAFE_INTEGER}`);
+          safeHourlyCount = Number.MAX_SAFE_INTEGER;
+        }
+      } else {
+        // Handle regular number type
+        safeHourlyCount = Number(hourlyCount.count);
+      }
+    }
 
     // Get limited recent starts for the response payload
     const recentStarts = await db
@@ -50,6 +79,7 @@ export async function GET(req: NextRequest) {
         attemptId: quizAttempts.id,
         quizId: quizAttempts.quizId,
         startTime: quizAttempts.startTime,
+        endTime: quizAttempts.endTime,
         status: quizAttempts.status
       })
       .from(quizAttempts)
@@ -63,8 +93,11 @@ export async function GET(req: NextRequest) {
       recentStarts: recentStarts.map(attempt => ({
         id: attempt.attemptId,
         time: attempt.startTime,
-        // In production, you'd calculate actual duration from logs
-        duration: Math.random() * 3000 + 500 // Simulated for now
+        // Calculate actual duration from start to end time (in milliseconds)
+        // TODO: Track time from page load to actual quiz start for more accurate "start duration" metric
+        duration: attempt.endTime && attempt.startTime
+          ? attempt.endTime.getTime() - attempt.startTime.getTime()
+          : null
       })),
       hourlyRate: safeHourlyCount,  // Use the converted safe count value
       timestamp: new Date().toISOString()

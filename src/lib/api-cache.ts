@@ -41,6 +41,7 @@ interface FetchOptions extends RequestInit {
 class OptimizedApiCache {
   private cache: Map<string, CacheEntry> = new Map();
   private pendingRequests: Map<string, Promise<any>> = new Map();
+  private revalidationInFlight: Map<string, Promise<any>> = new Map();
   
   /**
    * Get cached data without creating Response objects
@@ -83,14 +84,19 @@ class OptimizedApiCache {
   set<T = any>(key: string, data: T, ttlSeconds: number = 30, headers?: Record<string, string>): void {
     // Limit cache size to prevent memory leaks
     if (this.cache.size > 100) {
-      // Remove oldest entries
-      const sortedEntries = Array.from(this.cache.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+      // Remove oldest 20% of entries using Map's insertion order
+      // Maps maintain insertion order, so we can iterate and delete the oldest entries directly
+      const toRemove = Math.floor(this.cache.size * 0.2);
       
-      // Remove oldest 20% of entries
-      const toRemove = Math.floor(sortedEntries.length * 0.2);
+      // Get iterator for cache keys (oldest entries come first due to insertion order)
+      const keysIterator = this.cache.keys();
+      
+      // Delete the oldest entries in O(n) time where n = toRemove
       for (let i = 0; i < toRemove; i++) {
-        this.cache.delete(sortedEntries[i][0]);
+        const result = keysIterator.next();
+        if (!result.done) {
+          this.cache.delete(result.value);
+        }
       }
     }
     
@@ -120,11 +126,13 @@ class OptimizedApiCache {
   delete(key: string): void {
     this.cache.delete(key);
     this.pendingRequests.delete(key);
+    this.revalidationInFlight.delete(key);
   }
   
   clear(): void {
     this.cache.clear();
     this.pendingRequests.clear();
+    this.revalidationInFlight.clear();
   }
   
   /**
@@ -140,6 +148,22 @@ class OptimizedApiCache {
     // Clean up after request completes
     promise.finally(() => {
       this.pendingRequests.delete(key);
+    });
+  }
+
+  /**
+   * Get or set revalidation request to prevent duplicate background revalidations
+   */
+  getRevalidationRequest(key: string): Promise<any> | null {
+    return this.revalidationInFlight.get(key) || null;
+  }
+
+  setRevalidationRequest(key: string, promise: Promise<any>): void {
+    this.revalidationInFlight.set(key, promise);
+    
+    // Clean up after revalidation completes
+    promise.finally(() => {
+      this.revalidationInFlight.delete(key);
     });
   }
 
@@ -227,13 +251,20 @@ export async function fetchWithOptimizedCache<T = any>(
     if (cachedEntry) {
       logger.debug(`Cache hit: ${url}`);
       
-      // Implement stale-while-revalidate
+      // Implement stale-while-revalidate with deduplication
       if (optimizedCache.isStale(cacheKey)) {
-        logger.debug(`Cache stale, revalidating: ${url}`);
-        // Trigger background revalidation without waiting
-        fetchAndCache(url, fetchOptions, cacheKey, ttl).catch(err => {
-          logger.error(`Background revalidation failed: ${url}`, err);
-        });
+        // Check if a revalidation is already in progress for this cache key
+        const existingRevalidation = optimizedCache.getRevalidationRequest(cacheKey);
+        if (!existingRevalidation) {
+          logger.debug(`Cache stale, revalidating: ${url}`);
+          // Create new revalidation promise and store it
+          const revalidationPromise = fetchAndCache(url, fetchOptions, cacheKey, ttl).catch(err => {
+            logger.error(`Background revalidation failed: ${url}`, err);
+          });
+          optimizedCache.setRevalidationRequest(cacheKey, revalidationPromise);
+        } else {
+          logger.debug(`Revalidation already in progress for: ${url}`);
+        }
       }
       
       return {

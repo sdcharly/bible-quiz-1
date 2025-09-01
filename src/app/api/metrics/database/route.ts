@@ -1,12 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
+import crypto from "crypto";
+import { logger } from "@/lib/logger";
 
 /**
  * Database performance metrics endpoint
  * Monitors connection pool and query performance
  */
 export async function GET(req: NextRequest) {
+  // Auth guard - check for valid token
+  const authHeader = req.headers.get("authorization");
+  const apiKey = req.headers.get("x-api-key");
+  const providedToken = authHeader?.replace("Bearer ", "") || apiKey;
+  
+  const expectedToken = process.env.METRICS_TOKEN;
+  
+  // If no token configured, block access (secure by default)
+  if (!expectedToken) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+  
+  // Perform constant-time comparison to prevent timing attacks
+  if (!providedToken || providedToken.length !== expectedToken.length) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+  
+  const providedBuffer = Buffer.from(providedToken);
+  const expectedBuffer = Buffer.from(expectedToken);
+  
+  if (!crypto.timingSafeEqual(providedBuffer, expectedBuffer)) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+  
   try {
     // Get database connection statistics
     // Note: These queries are PostgreSQL specific
@@ -33,8 +68,12 @@ export async function GET(req: NextRequest) {
       rows: [{ total_queries: 0, avg_query_time: 0, max_query_time: 0 }]
     }));
 
-    const poolData = poolStats[0] || {};
-    const queryData = Array.isArray(queryStats) ? queryStats[0] || {} : queryStats?.rows?.[0] || {};
+    // Normalize both results to handle array or object with rows property
+    const poolRows = Array.isArray(poolStats) ? poolStats : (poolStats as any)?.rows || [];
+    const poolData = poolRows[0] || {};
+    
+    const queryRows = Array.isArray(queryStats) ? queryStats : (queryStats as any)?.rows || [];
+    const queryData = queryRows[0] || {};
 
     const stats = {
       activeConnections: Number(poolData.active_connections) || 0,
@@ -50,14 +89,30 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(stats);
   } catch (error) {
-    // Return mock data if database stats are not available
+    // Log the error for visibility
+    logger.error('Database metrics error:', error);
+    
+    // Check for opt-in via query parameter or environment flag
+    const searchParams = new URL(req.url).searchParams;
+    const allowMock = searchParams.get('allowMock') === 'true' || 
+                      process.env.ALLOW_MOCK_METRICS === 'true';
+    
+    if (!allowMock) {
+      // Default: return 503 Service Unavailable
+      return NextResponse.json(
+        { error: 'Database metrics unavailable' },
+        { status: 503 }
+      );
+    }
+    
+    // Opt-in: return deterministic placeholder values (not random)
     return NextResponse.json({
-      activeConnections: Math.floor(Math.random() * 10),
-      idleConnections: Math.floor(Math.random() * 40),
-      totalConnections: 50,
-      poolUtilization: Math.random(),
-      avgQueryTime: Math.random() * 100,
-      maxQueryTime: Math.random() * 500,
+      activeConnections: 0,
+      idleConnections: 0,
+      totalConnections: 0,
+      poolUtilization: 0,
+      avgQueryTime: 0,
+      maxQueryTime: 0,
       timestamp: new Date().toISOString()
     });
   }

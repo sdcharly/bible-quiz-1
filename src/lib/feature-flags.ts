@@ -57,8 +57,19 @@ export function isFeatureEnabled(feature: FeatureFlag): boolean {
   const envKey = `NEXT_PUBLIC_FF_${feature}`;
   const envOverride = process.env[envKey];
   
-  if (envOverride !== undefined) {
-    return envOverride.toLowerCase() === 'true';
+  if (envOverride !== undefined && envOverride !== '') {
+    const normalized = envOverride.trim().toLowerCase();
+    
+    // Handle common boolean representations
+    if (normalized === 'true' || normalized === '1') {
+      return true;
+    }
+    if (normalized === 'false' || normalized === '0') {
+      return false;
+    }
+    
+    // Invalid value - log warning and fall through to default behavior
+    console.warn(`Invalid feature flag value for ${envKey}: "${envOverride}". Expected 'true', 'false', '1', or '0'. Using default.`);
   }
   
   // Check for runtime override (for testing)

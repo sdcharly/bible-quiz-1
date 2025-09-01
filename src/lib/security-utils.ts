@@ -2,23 +2,22 @@ import crypto from 'crypto';
 
 /**
  * Constant-time string comparison to prevent timing attacks
+ * Uses hash-based comparison to prevent length information leakage
  * @param a First string to compare
  * @param b Second string to compare
  * @returns true if strings are equal, false otherwise
  */
 export function safeCompare(a: string, b: string): boolean {
-  if (!a || !b) return false;
+  // Normalize null/undefined to empty string
+  const normalizedA = a || '';
+  const normalizedB = b || '';
   
-  // Use Node.js built-in constant-time comparison
-  const aBuffer = Buffer.from(a);
-  const bBuffer = Buffer.from(b);
+  // Hash both inputs to fixed-length representations
+  const hashA = crypto.createHash('sha256').update(normalizedA).digest();
+  const hashB = crypto.createHash('sha256').update(normalizedB).digest();
   
-  // Ensure both buffers are same length to prevent timing leaks
-  if (aBuffer.length !== bBuffer.length) {
-    return false;
-  }
-  
-  return crypto.timingSafeEqual(aBuffer, bBuffer);
+  // Use constant-time comparison on the fixed-size hash digests
+  return crypto.timingSafeEqual(hashA, hashB);
 }
 
 /**
@@ -46,26 +45,42 @@ export function validateApiKey(request: Request, expectedKey: string | undefined
  * Removes sensitive internal details
  */
 export function sanitizePoolStats(stats: any): any {
-  if (!stats) return { status: 'unknown' };
+  // Default structure for all responses
+  const baseResponse = {
+    status: 'unknown',
+    type: 'unknown',
+    available: false,
+    pool: {
+      maxConnections: null,
+      utilizationInfo: 'limited'
+    },
+    timestamp: null
+  };
+  
+  if (!stats) {
+    return baseResponse;
+  }
   
   // Handle the actual pool stats structure from db-optimized
   if (stats.type === 'legacy' || !stats.available) {
     return {
+      ...baseResponse,
       status: 'limited',
       type: stats.type || 'unknown',
-      available: false
+      available: false,
+      timestamp: stats.timestamp || null
     };
   }
   
   return {
     status: 'operational',
     type: stats.type || 'optimized',
+    available: true,
     pool: {
       maxConnections: stats.stats?.maxConnections || null,
-      // Don't expose actual connection counts if not available
       utilizationInfo: stats.stats?.activeConnections !== null ? 'available' : 'limited'
     },
-    timestamp: stats.timestamp
+    timestamp: stats.timestamp || null
   };
 }
 

@@ -7,6 +7,25 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
+ * Memory statistics interface for type safety
+ */
+export interface MemoryStats {
+  heapUsed: number;
+  heapTotal: number;
+  rss: number;
+  external: number;
+  arrayBuffers: number;
+  heapUsedMB: number;
+  heapTotalMB: number;
+  rssMB: number;
+  timestamp: string;
+  gcExecuted?: boolean;
+  freedBytes?: number;
+  freedMB?: number;
+  gcNote?: string;
+}
+
+/**
  * Memory usage metrics endpoint
  * Monitors application memory consumption
  */
@@ -17,7 +36,7 @@ export async function GET(req: NextRequest) {
     
     const memoryUsage = process.memoryUsage();
     
-    const stats: any = {
+    const stats: MemoryStats = {
       heapUsed: memoryUsage.heapUsed,
       heapTotal: memoryUsage.heapTotal,
       rss: memoryUsage.rss,

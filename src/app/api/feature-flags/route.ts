@@ -21,13 +21,38 @@ const CLIENT_CONTROLLABLE_FLAGS: FeatureFlag[] = [
   'DEBUG_PERFORMANCE' // Only in dev
 ];
 
-// Secret for signing cookies (should be in env vars in production)
-const COOKIE_SECRET = process.env.FEATURE_FLAG_SECRET || 'dev-secret-change-in-production';
+// Secret for signing cookies - REQUIRED in production
+let COOKIE_SECRET: string | null = null;
+let COOKIE_SECRET_ERROR: string | null = null;
+
+try {
+  const secret = process.env.FEATURE_FLAG_SECRET;
+  
+  // In development, allow fallback to dev secret
+  if (process.env.NODE_ENV === 'development' && !secret) {
+    logger.warn('FEATURE_FLAG_SECRET not set, using development fallback. This is NOT safe for production!');
+    COOKIE_SECRET = 'dev-secret-only-for-development';
+  } else if (!secret) {
+    // In production/test, require the environment variable
+    const errorMsg = 'FEATURE_FLAG_SECRET environment variable is required in non-development environments';
+    logger.error(errorMsg);
+    COOKIE_SECRET_ERROR = errorMsg;
+  } else {
+    COOKIE_SECRET = secret;
+  }
+} catch (error) {
+  COOKIE_SECRET_ERROR = 'Failed to initialize cookie secret';
+  logger.error('Cookie secret initialization error:', error);
+}
 
 /**
  * Sign a value for cookie integrity verification
  */
-function signValue(value: string): string {
+function signValue(value: string): string | null {
+  if (!COOKIE_SECRET) {
+    logger.error('Cannot sign value: Cookie secret not initialized');
+    return null;
+  }
   const hmac = createHmac('sha256', COOKIE_SECRET);
   hmac.update(value);
   return `${value}.${hmac.digest('hex')}`;
@@ -37,6 +62,11 @@ function signValue(value: string): string {
  * Verify and extract signed value
  */
 function verifySignedValue(signedValue: string): string | null {
+  if (!COOKIE_SECRET) {
+    logger.error('Cannot verify value: Cookie secret not initialized');
+    return null;
+  }
+  
   const parts = signedValue.split('.');
   if (parts.length !== 2) return null;
   
@@ -82,6 +112,15 @@ function getClientFlags(req: NextRequest): FeatureFlag[] {
 }
 
 export async function GET(req: NextRequest) {
+  // Check if cookie secret is properly configured
+  if (COOKIE_SECRET_ERROR) {
+    logger.error('Feature flags API unavailable:', COOKIE_SECRET_ERROR);
+    return NextResponse.json(
+      { error: 'Feature flags configuration error. Please check server logs.' },
+      { status: 500 }
+    );
+  }
+  
   try {
     // Check authentication
     const session = await auth.api.getSession({
@@ -132,6 +171,15 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Check if cookie secret is properly configured
+  if (COOKIE_SECRET_ERROR) {
+    logger.error('Feature flags API unavailable:', COOKIE_SECRET_ERROR);
+    return NextResponse.json(
+      { error: 'Feature flags configuration error. Please check server logs.' },
+      { status: 500 }
+    );
+  }
+  
   // Only allow toggling in development
   if (process.env.NODE_ENV !== 'development') {
     return NextResponse.json(
@@ -193,46 +241,51 @@ export async function POST(req: NextRequest) {
     if (CLIENT_CONTROLLABLE_FLAGS.includes(feature as FeatureFlag)) {
       const signedValue = signValue(enabled ? '1' : '0');
       
-      // Configure cookie expiry from environment with sensible default
-      // Default to 5 minutes (300 seconds) for temporary feature flags
-      const DEFAULT_MAX_AGE = 300; // 5 minutes default
-      const MAX_ALLOWED_AGE = 86400; // 24 hours max to prevent excessive cookie lifetimes
-      
-      let maxAge = DEFAULT_MAX_AGE;
-      
-      if (process.env.FEATURE_FLAG_COOKIE_MAX_AGE) {
-        const parsedValue = parseInt(process.env.FEATURE_FLAG_COOKIE_MAX_AGE, 10);
+      // Only set cookie if signing was successful
+      if (signedValue) {
+        // Configure cookie expiry from environment with sensible default
+        // Default to 5 minutes (300 seconds) for temporary feature flags
+        const DEFAULT_MAX_AGE = 300; // 5 minutes default
+        const MAX_ALLOWED_AGE = 86400; // 24 hours max to prevent excessive cookie lifetimes
         
-        // Validate the parsed value
-        if (Number.isInteger(parsedValue) && parsedValue > 0) {
-          // Clamp to reasonable max to prevent misconfiguration
-          maxAge = Math.min(parsedValue, MAX_ALLOWED_AGE);
+        let maxAge = DEFAULT_MAX_AGE;
+        
+        if (process.env.FEATURE_FLAG_COOKIE_MAX_AGE) {
+          const parsedValue = parseInt(process.env.FEATURE_FLAG_COOKIE_MAX_AGE, 10);
           
-          if (parsedValue > MAX_ALLOWED_AGE) {
+          // Validate the parsed value
+          if (Number.isInteger(parsedValue) && parsedValue > 0) {
+            // Clamp to reasonable max to prevent misconfiguration
+            maxAge = Math.min(parsedValue, MAX_ALLOWED_AGE);
+            
+            if (parsedValue > MAX_ALLOWED_AGE) {
+              logger.warn(
+                `FEATURE_FLAG_COOKIE_MAX_AGE value ${parsedValue} exceeds maximum allowed ${MAX_ALLOWED_AGE}. ` +
+                `Using ${MAX_ALLOWED_AGE} seconds instead.`
+              );
+            }
+          } else {
             logger.warn(
-              `FEATURE_FLAG_COOKIE_MAX_AGE value ${parsedValue} exceeds maximum allowed ${MAX_ALLOWED_AGE}. ` +
-              `Using ${MAX_ALLOWED_AGE} seconds instead.`
+              `Invalid FEATURE_FLAG_COOKIE_MAX_AGE value: "${process.env.FEATURE_FLAG_COOKIE_MAX_AGE}". ` +
+              `Must be a positive integer. Using default ${DEFAULT_MAX_AGE} seconds.`
             );
           }
-        } else {
-          logger.warn(
-            `Invalid FEATURE_FLAG_COOKIE_MAX_AGE value: "${process.env.FEATURE_FLAG_COOKIE_MAX_AGE}". ` +
-            `Must be a positive integer. Using default ${DEFAULT_MAX_AGE} seconds.`
-          );
         }
+        
+        // Determine if we should use secure cookie (HTTPS/production)
+        // Use type assertion to handle Next.js NODE_ENV typing
+        const isProduction = (process.env.NODE_ENV as string) === 'production';
+        
+        res.cookies.set(`ff_${feature}`, signedValue, {
+          httpOnly: true,
+          secure: isProduction, // Secure flag in production only
+          sameSite: 'strict',
+          path: '/',
+          maxAge: maxAge,
+        });
+      } else {
+        logger.error('Failed to sign cookie value - cookie not set');
       }
-      
-      // Determine if we should use secure cookie (HTTPS/production)
-      // Use type assertion to handle Next.js NODE_ENV typing
-      const isProduction = (process.env.NODE_ENV as string) === 'production';
-      
-      res.cookies.set(`ff_${feature}`, signedValue, {
-        httpOnly: true,
-        secure: isProduction, // Secure flag in production only
-        sameSite: 'strict',
-        path: '/',
-        maxAge: maxAge,
-      });
     }
 
     return res;

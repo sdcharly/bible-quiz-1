@@ -171,8 +171,16 @@ function calculatePerformanceMetrics(scores: number[]): PerformanceMetrics {
   // Calculate trend (comparing recent vs older scores)
   let trend: 'improving' | 'stable' | 'declining' = 'stable';
   if (scores.length >= 3) {
-    const recentAvg = scores.slice(0, Math.ceil(scores.length / 2)).reduce((a, b) => a + b, 0) / Math.ceil(scores.length / 2);
-    const olderAvg = scores.slice(Math.ceil(scores.length / 2)).reduce((a, b) => a + b, 0) / Math.floor(scores.length / 2);
+    const midPoint = Math.ceil(scores.length / 2);
+    const recentScores = scores.slice(0, midPoint);
+    const olderScores = scores.slice(midPoint);
+    
+    const recentCount = recentScores.length;
+    const olderCount = olderScores.length;
+    
+    // Guard against division by zero
+    const recentAvg = recentCount > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentCount : 0;
+    const olderAvg = olderCount > 0 ? olderScores.reduce((a, b) => a + b, 0) / olderCount : 0;
     
     if (recentAvg > olderAvg + 5) trend = 'improving';
     else if (recentAvg < olderAvg - 5) trend = 'declining';

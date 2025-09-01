@@ -9,6 +9,12 @@ import { gte, sql, eq } from "drizzle-orm";
  */
 export async function GET(req: NextRequest) {
   try {
+    // Simple token guard; switch to your session/admin check if available
+    const token = req.headers.get('x-metrics-token');
+    if (process.env.METRICS_API_TOKEN && token !== process.env.METRICS_API_TOKEN) {
+      return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    }
+
     // Get active sessions (last 30 minutes)
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
     
@@ -23,36 +29,48 @@ export async function GET(req: NextRequest) {
       .leftJoin(user, eq(session.userId, user.id))
       .where(gte(session.updatedAt, thirtyMinutesAgo));
 
-    // Count by role
-    const roleCount = activeSessions.reduce((acc, sess) => {
+    // Count distinct users (not sessions) to avoid double-counting users with multiple sessions
+    const globalUserSet = new Set<string>();
+    const roleUserMap = new Map<string, Set<string>>();
+    
+    // Single pass through sessions to build Sets
+    activeSessions.forEach(sess => {
+      // Skip sessions without valid userIds
+      if (!sess.userId) return;
+      
+      // Add to global Set
+      globalUserSet.add(sess.userId);
+      
+      // Add to role-specific Set
       const role = sess.role || 'unknown';
-      acc[role] = (acc[role] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+      if (!roleUserMap.has(role)) {
+        roleUserMap.set(role, new Set<string>());
+      }
+      roleUserMap.get(role)!.add(sess.userId);
+    });
+    
+    // Build breakdown from role Sets
+    const breakdown: Record<string, number> = {};
+    roleUserMap.forEach((userSet, role) => {
+      breakdown[role] = userSet.size;
+    });
 
     const stats = {
-      activeUsers: activeSessions.length,
-      students: roleCount.student || 0,
-      educators: roleCount.educator || 0,
-      admins: roleCount.admin || 0,
-      breakdown: roleCount,
+      activeUsers: globalUserSet.size,
+      students: roleUserMap.get('student')?.size || 0,
+      educators: roleUserMap.get('educator')?.size || 0,
+      admins: roleUserMap.get('admin')?.size || 0,
+      breakdown: breakdown,
       timestamp: new Date().toISOString()
     };
 
     return NextResponse.json(stats);
   } catch (error) {
-    // Return mock data if session tracking is not available
+    // Return explicit failure response instead of fake metrics
     return NextResponse.json({
-      activeUsers: Math.floor(Math.random() * 50),
-      students: Math.floor(Math.random() * 40),
-      educators: Math.floor(Math.random() * 10),
-      admins: 1,
-      breakdown: {
-        student: Math.floor(Math.random() * 40),
-        educator: Math.floor(Math.random() * 10),
-        admin: 1
-      },
+      ok: false,
+      error: 'Session tracking unavailable',
       timestamp: new Date().toISOString()
-    });
+    }, { status: 500 });
   }
 }

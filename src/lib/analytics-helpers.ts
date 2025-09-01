@@ -72,27 +72,38 @@ export async function fetchStudentStatistics(studentIds: string[], quizIds: stri
     return { studentUsers: [], studentStats: [] };
   }
   
-  const [studentUsers, studentStats] = await Promise.all([
-    db.select().from(user).where(inArray(user.id, studentIds)),
+  try {
+    const [studentUsers, studentStats] = await Promise.all([
+      db.select().from(user).where(inArray(user.id, studentIds)),
+      
+      db.select({
+        studentId: quizAttempts.studentId,
+        attemptCount: sql<number>`count(*)`,
+        avgScore: sql<number>`avg(${quizAttempts.score})`,
+        totalTime: sql<number>`sum(${quizAttempts.timeSpent})`,
+        lastActivity: sql<Date>`max(${quizAttempts.endTime})`
+      })
+      .from(quizAttempts)
+      .where(and(
+        inArray(quizAttempts.studentId, studentIds),
+        inArray(quizAttempts.quizId, quizIds),
+        gte(quizAttempts.endTime, dateFilter),
+        eq(quizAttempts.status, "completed")
+      ))
+      .groupBy(quizAttempts.studentId)
+    ]);
     
-    db.select({
-      studentId: quizAttempts.studentId,
-      attemptCount: sql<number>`count(*)`,
-      avgScore: sql<number>`avg(${quizAttempts.score})`,
-      totalTime: sql<number>`sum(${quizAttempts.timeSpent})`,
-      lastActivity: sql<Date>`max(${quizAttempts.endTime})`
-    })
-    .from(quizAttempts)
-    .where(and(
-      inArray(quizAttempts.studentId, studentIds),
-      inArray(quizAttempts.quizId, quizIds),
-      gte(quizAttempts.endTime, dateFilter),
-      eq(quizAttempts.status, "completed")
-    ))
-    .groupBy(quizAttempts.studentId)
-  ]);
-  
-  return { studentUsers, studentStats };
+    return { studentUsers, studentStats };
+  } catch (error) {
+    logger.error('Error in fetchStudentStatistics:', {
+      error,
+      function: 'fetchStudentStatistics',
+      studentIds: studentIds.length,
+      quizIds: quizIds.length,
+      dateFilter: dateFilter.toISOString()
+    });
+    return { studentUsers: [], studentStats: [] };
+  }
 }
 
 export async function fetchTopicPerformance(quizIds: string[], dateFilter: Date) {
@@ -202,7 +213,7 @@ function getBloomsDifficulty(bloomsLevel: string | null): string {
   return 'Medium';
 }
 
-export async function fetchTimelineData(quizIds: string[], dateFilter: Date, timeRange: string) {
+export async function fetchTimelineData(quizIds: string[], timeRange: string) {
   if (quizIds.length === 0) return [];
   
   const intervals = generateTimeIntervals(timeRange);
@@ -232,25 +243,37 @@ export async function fetchTimelineData(quizIds: string[], dateFilter: Date, tim
 
 function generateTimeIntervals(timeRange: string) {
   const intervals: { start: Date; end: Date; date: Date }[] = [];
+  const baseDate = new Date(); // Immutable base date
   
   for (let i = 6; i >= 0; i--) {
-    const date = new Date();
+    // Create a fresh date for each iteration
+    const targetDate = new Date(baseDate.getTime());
     
     if (timeRange === "week") {
-      date.setDate(date.getDate() - i);
+      // Subtract days for weekly intervals
+      targetDate.setDate(baseDate.getDate() - i);
     } else if (timeRange === "month") {
-      date.setDate(date.getDate() - (i * 4));
+      // 4-week intervals (28 days apart)
+      targetDate.setDate(baseDate.getDate() - (i * 28));
     } else {
-      date.setMonth(date.getMonth() - i);
+      // Monthly intervals
+      targetDate.setMonth(baseDate.getMonth() - i);
     }
     
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
+    // Get UTC components to avoid DST issues
+    const year = targetDate.getUTCFullYear();
+    const month = targetDate.getUTCMonth();
+    const day = targetDate.getUTCDate();
     
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
+    // Create UTC start and end times for the day
+    const dayStart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+    const dayEnd = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
     
-    intervals.push({ start: dayStart, end: dayEnd, date });
+    intervals.push({ 
+      start: dayStart, 
+      end: dayEnd, 
+      date: targetDate 
+    });
   }
   
   return intervals;

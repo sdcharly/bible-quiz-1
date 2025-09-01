@@ -250,11 +250,7 @@ class RedisCache implements CacheClient {
   async flush(): Promise<void> {
     try {
       await this.ensureConnected();
-      if (this.isUpstash) {
-        await this.client.flushdb();
-      } else {
-        await this.client.flushdb();
-      }
+      await this.client.flushdb();
     } catch (error) {
       logger.error('Redis FLUSH error:', error);
     }
@@ -405,13 +401,39 @@ export const cache = DistributedCache.getInstance();
 
 // Graceful shutdown handler
 if (typeof process !== 'undefined') {
-  process.on('SIGTERM', async () => {
-    logger.info('SIGTERM received, closing cache connection');
-    await cache.close();
-  });
-
-  process.on('SIGINT', async () => {
-    logger.info('SIGINT received, closing cache connection');
-    await cache.close();
-  });
+  let isShuttingDown = false;
+  
+  const gracefulShutdown = (signal: string, exitCode: number) => {
+    // Prevent re-entry
+    if (isShuttingDown) {
+      logger.info(`${signal} received again, ignoring during shutdown`);
+      return;
+    }
+    
+    isShuttingDown = true;
+    logger.info(`${signal} received, closing cache connection`);
+    
+    // Set a timeout to force exit if cleanup hangs
+    const forceExitTimeout = setTimeout(() => {
+      logger.error('Cache cleanup timeout exceeded, forcing exit');
+      process.exit(exitCode);
+    }, 5000); // 5 second timeout
+    
+    // Perform async cleanup
+    cache.close()
+      .then(() => {
+        logger.info('Cache connection closed successfully');
+      })
+      .catch((error) => {
+        logger.error('Error closing cache connection:', error);
+      })
+      .finally(() => {
+        clearTimeout(forceExitTimeout);
+        process.exit(exitCode);
+      });
+  };
+  
+  // Register once handlers for each signal
+  process.once('SIGTERM', () => gracefulShutdown('SIGTERM', 0));
+  process.once('SIGINT', () => gracefulShutdown('SIGINT', 0));
 }
