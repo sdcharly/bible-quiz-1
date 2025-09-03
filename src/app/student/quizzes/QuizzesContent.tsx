@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-import { useTimezone } from "@/hooks/useTimezone";
 import { logger } from "@/lib/logger";
 import { 
   processSafeQuiz, 
@@ -39,37 +38,43 @@ export default function QuizzesContent() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const { formatDate, getRelativeTime, isQuizAvailable } = useTimezone();
+  // Format date for display only - not for calculations
+  const formatQuizDate = useCallback((dateString: string | null) => {
+    if (!dateString) return "Not scheduled";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      });
+    } catch {
+      return "Invalid date";
+    }
+  }, []);
 
-  // Performance: Memoize quiz time formatter
-  const formatQuizTime = useCallback((utcDateString: string) => {
-    return formatDate(utcDateString, {
-      year: 'numeric',
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZoneName: 'short'
-    });
-  }, [formatDate]);
 
-  // Performance: Memoize quiz status calculator
+  // Get quiz display status from backend-calculated data
   const getQuizStatus = useCallback((quiz: SafeQuiz) => {
-    if (quiz.isExpired && !quiz.isReassignment) {
-      return { available: false, text: "Expired", expired: true, color: "red" as const };
-    }
-    if (quiz.isReassignment && !quiz.attempted) {
-      return { available: true, text: "Reassigned - Available", expired: false, color: "green" as const };
-    }
-    const available = quiz.startTime ? isQuizAvailable(quiz.startTime) : false;
-    const relativeTime = quiz.startTime ? getRelativeTime(quiz.startTime) : "Not scheduled";
-    return { 
-      available, 
-      text: relativeTime, 
-      expired: false,
-      color: available ? "green" as const : "amber" as const
+    // Backend provides the single source of truth for availability
+    const statusColorMap = {
+      'active': 'green' as const,
+      'ended': 'red' as const,
+      'upcoming': 'amber' as const,
+      'not_scheduled': 'amber' as const
     };
-  }, [isQuizAvailable, getRelativeTime]);
+
+    return {
+      available: quiz.availabilityStatus === 'active',
+      text: quiz.availabilityMessage || 'Status unknown',
+      expired: quiz.availabilityStatus === 'ended',
+      color: statusColorMap[quiz.availabilityStatus as keyof typeof statusColorMap] || 'amber' as const
+    };
+  }, []);
 
   // Fetch quizzes with caching
   const fetchQuizzes = useCallback(async (force = false) => {
@@ -278,7 +283,7 @@ export default function QuizzesContent() {
                   educatorName={quiz.educatorName}
                   totalQuestions={quiz.totalQuestions}
                   duration={quiz.duration}
-                  startTimeFormatted={quiz.startTime ? formatQuizTime(quiz.startTime) : "Not scheduled"}
+                  startTimeFormatted={formatQuizDate(quiz.startTime)}
                   statusText={quizStatus.text}
                   statusColor={quizStatus.color}
                   attempted={quiz.attempted}

@@ -111,7 +111,8 @@ export function SchedulingModal({
   }, [existingSchedule, userTimezone, defaultDuration]);
 
   const handleSubmit = async () => {
-    // Combine date and time
+    // Simple: User enters date/time in their selected timezone
+    // We convert to UTC for database storage
     const dateTimeString = `${startDate}T${startTime}:00`;
     
     // Validate the time
@@ -125,12 +126,18 @@ export function SchedulingModal({
     setError(null);
 
     try {
-      // Convert the local time to UTC based on the selected timezone
+      // Convert from selected timezone to UTC for database
       const utcDate = convertUserTimezoneToUTC(dateTimeString, timezone);
       
+      // Validation check
+      if (isNaN(utcDate.getTime())) {
+        throw new Error('Invalid date/time conversion');
+      }
+      
+      // Send UTC time to database
       await onSchedule({
-        startTime: utcDate.toISOString(),
-        timezone,
+        startTime: utcDate.toISOString(), // This is UTC for database
+        timezone, // Store timezone for reference
         duration
       });
       onClose();
@@ -145,14 +152,21 @@ export function SchedulingModal({
     if (!startDate || !startTime) return null;
     
     const dateTimeString = `${startDate}T${startTime}:00`;
-    const date = new Date(dateTimeString);
     
-    if (isNaN(date.getTime())) return null;
-    
-    return {
-      start: date,
-      end: new Date(date.getTime() + duration * 60 * 1000)
-    };
+    // Convert the selected time to UTC for accurate preview
+    // The input represents time in the SELECTED timezone
+    try {
+      const utcDate = convertUserTimezoneToUTC(dateTimeString, timezone);
+      
+      if (isNaN(utcDate.getTime())) return null;
+      
+      return {
+        start: utcDate,
+        end: new Date(utcDate.getTime() + duration * 60 * 1000)
+      };
+    } catch {
+      return null;
+    }
   };
 
   const preview = getSchedulePreview();
@@ -184,6 +198,16 @@ export function SchedulingModal({
               </div>
             </div>
           )}
+
+          {/* Clear timezone indicator */}
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+            <div className="flex items-center text-blue-700 dark:text-blue-300">
+              <Clock className="h-4 w-4 mr-2" />
+              <span className="text-sm font-medium">
+                All times are in {timezone === 'Asia/Kolkata' ? 'IST (India Standard Time)' : timezone}
+              </span>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div>

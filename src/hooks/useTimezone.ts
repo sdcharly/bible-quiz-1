@@ -7,8 +7,6 @@ import {
   convertUTCToUserTimezone,
   convertUserTimezoneToUTC,
   getCurrentTimeInUserTimezone,
-  isQuizAvailable,
-  getRelativeTime,
   convertUTCToDateTimeLocal
 } from '@/lib/timezone';
 
@@ -49,12 +47,6 @@ export function useTimezone() {
     [timezone]
   );
 
-  const getRelativeTimeForUser = useCallback(
-    (utcDate: Date | string) => 
-      getRelativeTime(utcDate, timezone),
-    [timezone]
-  );
-
   return useMemo(() => ({
     timezone,
     setTimezone,
@@ -63,9 +55,7 @@ export function useTimezone() {
     toUserTimezone,
     toUTC,
     getCurrentDateTime,
-    toDateTimeLocal,
-    isQuizAvailable,
-    getRelativeTime: getRelativeTimeForUser,
+    toDateTimeLocal
   }), [
     timezone,
     setTimezone,
@@ -74,7 +64,6 @@ export function useTimezone() {
     toUserTimezone,
     toUTC,
     getCurrentDateTime,
-    toDateTimeLocal,
-    getRelativeTimeForUser
+    toDateTimeLocal
   ]);
 }

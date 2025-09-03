@@ -6,7 +6,7 @@ import { quizzes, enrollments, quizAttempts, educatorStudents, user } from "@/li
 import { auth } from "@/lib/auth";
 import { withPerformance } from "@/lib/api-performance";
 import { logger } from "@/lib/logger";
-import { getQuizAvailabilityStatus } from "@/lib/quiz-scheduling";
+import { calculateQuizAvailability } from "@/lib/quiz-availability";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { fetchWithOptimizedCache } from "@/lib/api-cache";
 
@@ -216,18 +216,14 @@ async function getOptimizedQuizData(studentId: string, educatorIds: string[], fi
       if (!quiz?.id || !quiz?.title || !enrollment) return null;
       
       // Calculate availability
-      const quizSchedulingInfo = {
-        id: quiz.id,
-        title: quiz.title,
+      const availability = calculateQuizAvailability({
         startTime: quiz.startTime,
         timezone: quiz.timezone,
         duration: quiz.duration || 30,
-        schedulingStatus: quiz.schedulingStatus || 'legacy',
-        timeConfiguration: quiz.timeConfiguration as any,
-        status: quiz.status
-      };
-      
-      const availability = getQuizAvailabilityStatus(quizSchedulingInfo);
+        status: quiz.status,
+        isReassignment: enrollment.isReassignment || false,
+        attempted: !!attempt
+      });
       const isReassignment = enrollment.isReassignment || false;
       
       return {
@@ -239,7 +235,9 @@ async function getOptimizedQuizData(studentId: string, educatorIds: string[], fi
         isReassignment,
         educatorName: educator?.name || "Unknown Educator",
         isExpired: availability.status === 'ended',
-        ...availability
+        availabilityMessage: availability.message,
+        availabilityStatus: availability.status,
+        available: availability.available
       };
     })
     .filter(q => q !== null);
@@ -293,18 +291,14 @@ async function getLegacyQuizData(studentId: string, educatorIds: string[], filte
       const enrollment = enrollmentMap.get(quiz.id)!;
       const attempt = attemptMap.get(quiz.id);
       
-      const quizSchedulingInfo = {
-        id: quiz.id,
-        title: quiz.title,
+      const availability = calculateQuizAvailability({
         startTime: quiz.startTime,
         timezone: quiz.timezone,
         duration: quiz.duration || 30,
-        schedulingStatus: quiz.schedulingStatus || 'legacy',
-        timeConfiguration: quiz.timeConfiguration as any,
-        status: quiz.status
-      };
-      
-      const availability = getQuizAvailabilityStatus(quizSchedulingInfo);
+        status: quiz.status,
+        isReassignment: enrollment.isReassignment || false,
+        attempted: !!attempt
+      });
       
       return {
         ...quiz,
@@ -315,7 +309,9 @@ async function getLegacyQuizData(studentId: string, educatorIds: string[], filte
         isReassignment: enrollment.isReassignment || false,
         educatorName: educatorMap.get(quiz.educatorId) || "Unknown Educator",
         isExpired: availability.status === 'ended',
-        ...availability
+        availabilityMessage: availability.message,
+        availabilityStatus: availability.status,
+        available: availability.available
       };
     });
 

@@ -53,7 +53,7 @@ export default function EducatorQuizzesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const { formatDate, getRelativeTime } = useTimezone();
+  const { formatDate } = useTimezone();
 
   useEffect(() => {
     fetchQuizzes();
@@ -306,9 +306,6 @@ export default function EducatorQuizzesPage() {
                         minute: '2-digit',
                         timeZoneName: 'short'
                       })}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {getRelativeTime(quiz.startTime)}
                     </span>
                   </div>
                 </div>

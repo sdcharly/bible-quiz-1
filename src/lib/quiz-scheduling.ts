@@ -235,62 +235,25 @@ export function canEnrollInQuiz(quiz: QuizSchedulingInfo): {
   return { canEnroll: true };
 }
 
+import { calculateQuizAvailability, type QuizAvailability } from '@/lib/quiz-availability';
+
 /**
  * Get quiz availability status for students
+ * Delegates to the single source of truth for availability calculations
  */
-export function getQuizAvailabilityStatus(quiz: QuizSchedulingInfo): {
-  available: boolean;
-  status: 'not_scheduled' | 'upcoming' | 'active' | 'ended';
-  message: string;
-  startTime?: Date;
-  endTime?: Date;
-} {
+export function getQuizAvailabilityStatus(quiz: QuizSchedulingInfo): QuizAvailability {
   const startTime = getEffectiveStartTime(quiz);
   
-  // If no start time set (deferred mode)
-  if (!startTime) {
-    return {
-      available: false,
-      status: 'not_scheduled',
-      message: 'Quiz time has not been scheduled yet'
-    };
-  }
-
-  const now = new Date();
-  const endTime = new Date(startTime.getTime() + quiz.duration * 60 * 1000);
-
-  // Quiz hasn't started yet
-  if (now < startTime) {
-    const hoursUntilStart = Math.ceil((startTime.getTime() - now.getTime()) / (1000 * 60 * 60));
-    return {
-      available: false,
-      status: 'upcoming',
-      message: `Quiz starts in ${hoursUntilStart} hour${hoursUntilStart !== 1 ? 's' : ''}`,
-      startTime,
-      endTime
-    };
-  }
-
-  // Quiz has ended
-  if (now > endTime) {
-    return {
-      available: false,
-      status: 'ended',
-      message: 'Quiz has ended',
-      startTime,
-      endTime
-    };
-  }
-
-  // Quiz is currently active
-  const minutesRemaining = Math.ceil((endTime.getTime() - now.getTime()) / (1000 * 60));
-  return {
-    available: true,
-    status: 'active',
-    message: `Quiz is active (${minutesRemaining} minutes remaining)`,
+  return calculateQuizAvailability({
     startTime,
-    endTime
-  };
+    timezone: quiz.timezone,
+    duration: quiz.duration,
+    status: quiz.status,
+    // These fields might not be available in QuizSchedulingInfo, 
+    // but the service will handle them gracefully
+    isReassignment: false,
+    attempted: false
+  });
 }
 
 /**

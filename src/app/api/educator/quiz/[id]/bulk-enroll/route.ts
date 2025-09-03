@@ -7,7 +7,7 @@ import { enrollments, educatorStudents, user, quizzes, quizShareLinks } from "@/
 import { sendEmail, emailTemplates } from "@/lib/email-service";
 import { createShortUrl, getShortUrl } from "@/lib/link-shortener";
 import { auth } from "@/lib/auth";
-import { getQuizAvailabilityStatus } from "@/lib/quiz-scheduling";
+import { calculateQuizAvailability } from "@/lib/quiz-availability";
 
 
 export async function POST(
@@ -63,11 +63,14 @@ export async function POST(
     }
 
     // Check if quiz has expired
-    const quizWithStatus = {
-      ...quiz[0],
-      schedulingStatus: quiz[0].schedulingStatus || 'legacy'
-    };
-    const availability = getQuizAvailabilityStatus(quizWithStatus);
+    const availability = calculateQuizAvailability({
+      startTime: quiz[0].startTime,
+      timezone: quiz[0].timezone,
+      duration: quiz[0].duration,
+      status: quiz[0].status,
+      isReassignment: false,
+      attempted: false
+    });
     if (availability.status === 'ended') {
       const endTime = availability.endTime ? new Date(availability.endTime).toLocaleString() : 'unknown';
       return NextResponse.json(

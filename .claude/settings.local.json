@@ -24,7 +24,8 @@
       "Bash(npx ts-node:*)",
       "Bash(chmod:*)",
       "Read(/private/tmp/**)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(rg:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

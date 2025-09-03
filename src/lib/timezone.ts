@@ -552,7 +552,8 @@ export function getCurrentTimeInTimezone(timezone: string): Date {
 }
 
 /**
- * Check if quiz time is valid (in the future) considering user's timezone
+ * @deprecated Use validateStartTime from quiz-scheduling.ts instead
+ * This function will be removed in a future version
  */
 export function isQuizTimeValid(dateTimeString: string, userTimezone: string): boolean {
   try {
@@ -571,7 +572,8 @@ export function isQuizTimeValid(dateTimeString: string, userTimezone: string): b
 }
 
 /**
- * Check if a UTC stored quiz time is currently available (started)
+ * @deprecated Use calculateQuizAvailability from quiz-availability.ts instead
+ * This function will be removed in a future version
  */
 export function isQuizAvailable(quizStartTimeUTC: Date | string): boolean {
   try {
@@ -584,9 +586,9 @@ export function isQuizAvailable(quizStartTimeUTC: Date | string): boolean {
 }
 
 /**
- * Get relative time description ("in 2 hours", "started 30 minutes ago")
- * Note: userTimezone parameter kept for API compatibility but not needed for relative time
- * Safe function that always returns a valid string
+ * @deprecated Use calculateQuizAvailability from quiz-availability.ts instead
+ * This function will be removed in a future version
+ * For non-quiz relative times, use a date formatting library like date-fns
  */
 export function getRelativeTime(utcDateTime: Date | string, _userTimezone?: string): string {
   try {
