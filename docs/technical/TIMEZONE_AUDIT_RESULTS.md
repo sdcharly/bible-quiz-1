@@ -94,22 +94,23 @@ const utcDate = convertUserTimezoneToUTC(dateTimeString, timezone);
 
 ### ⚠️ NEEDS FIXING:
 
-#### 1. `/src/components/student/GroupInfo.tsx` (Line 204)
-```javascript
 // WRONG - Uses browser timezone only
-Starts {new Date(quiz.startTime).toLocaleDateString()}
+import { useTimezone } from '@/hooks/useTimezone';
 
-// SHOULD BE:
-// Import useTimezone hook and use formatDate
-```
+const { formatDate } = useTimezone();
+Starts {formatDate(quiz.startTime, { dateStyle: 'medium' })}
 
-#### 2. `/src/app/student/results/[id]/page.tsx` (Line 159)
+#### 2. ✅ FIXED: `/src/app/student/results/[id]/page.tsx` (Line 159)
 ```javascript
-// WRONG - No timezone specification
-Results will be available at: {new Date(availableAt).toLocaleString()}
+// ✅ FIXED - Now uses useTimezone hook
+import { useTimezone } from '@/hooks/useTimezone';
+const { formatDate } = useTimezone();
 
-// SHOULD BE:
-// Use useTimezone hook or specify timezone
+// Proper timezone-aware formatting:
+Results will be available at: {formatDate(availableAt, {
+  dateStyle: 'medium',
+  timeStyle: 'short'
+})}
 ```
 
 #### 3. `/src/components/student/MobileQuizInterface.tsx` (Line 195)

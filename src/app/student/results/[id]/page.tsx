@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { safeNumber, safeString } from "@/lib/safe-data-utils";
+import { useTimezone } from "@/hooks/useTimezone";
 import {
   PageContainer,
   PageHeader,
@@ -59,6 +60,7 @@ interface QuizResult {
 export default function QuizResultsPage() {
   const params = useParams();
   const attemptId = params.id as string;
+  const { formatDate } = useTimezone();
   
   const [result, setResult] = useState<QuizResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,7 +158,10 @@ export default function QuizResultsPage() {
             <p className="text-gray-600 dark:text-gray-400 mb-6">{lockMessage}</p>
             {availableAt && (
               <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
-                Results will be available at: {new Date(availableAt).toLocaleString()}
+                Results will be available at: {formatDate(availableAt, {
+                  dateStyle: 'medium',
+                  timeStyle: 'short'
+                })}
               </p>
             )}
             <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
