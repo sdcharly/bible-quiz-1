@@ -16,10 +16,10 @@ Multiple points of failure in quiz timing calculations:
 ## Solution Architecture
 
 ### 1. Single Source of Truth
-- Create `/src/lib/quiz-availability.ts` as the ONLY place for availability calculations
+- Create `/src/lib/quiz-availability.ts` as the ONLY place for availability calculations (pure, no I/O)
+- All functions accept `nowUtc?: Date` (default: `new Date()`) to inject time during tests
 - All components and APIs use this service
 - Remove duplicate calculations from frontend
-
 ### 2. Data Flow
 ```
 Database (UTC) 
@@ -29,9 +29,51 @@ API (uses quiz-availability.ts)
 Frontend (displays pre-calculated data)
 ```
 
-### 3. Key Functions
-- `calculateQuizAvailability()` - Main calculation function
-- `formatQuizTimeForDisplay()` - Display formatting only
+### 3. Type Definitions and Contract
+
+#### AvailabilityStatus Union Type
+```typescript
+type AvailabilityStatus = 
+  | 'active'      // Quiz is currently available to take
+  | 'upcoming'    // Quiz will be available in the future
+  | 'ended'       // Quiz has ended
+  | 'draft'       // Quiz is in draft state
+  | 'archived';   // Quiz is archived
+```
+
+#### AvailabilityInput Interface
+```typescript
+interface AvailabilityInput {
+  startTime: Date;        // UTC timestamp when quiz starts
+  duration: number;       // Duration in milliseconds
+  status?: 'draft' | 'published' | 'archived';  // Optional quiz status
+  timezone: string;       // IANA timezone identifier (e.g., 'America/New_York')
+  isReassignment?: boolean;  // Whether this is a reassigned quiz
+  attempted?: boolean;    // Whether user has attempted the quiz
+  nowUtc?: Date;         // Injected clock for testing (defaults to new Date())
+}
+```
+
+#### AvailabilityResult Interface
+```typescript
+interface AvailabilityResult {
+  status: AvailabilityStatus;  // One of the defined statuses
+  available: boolean;           // Whether quiz can be taken now
+  message: string;              // Human-readable message
+  startsAtUtc: string;         // ISO 8601 string of start time (UTC)
+  endsAtUtc: string;           // ISO 8601 string of end time (UTC)
+}
+```
+
+### 4. Key Functions
+- `calculateQuizAvailability(input: AvailabilityInput): AvailabilityResult` - Main calculation function that accepts UTC times and returns availability with ISO string timestamps
+- `formatQuizTimeForDisplay(date: Date, timezone: string): string` - Display formatting only (no business logic)
+
+**Important Contract Details:**
+- All `Date` objects in `AvailabilityInput` MUST be UTC timestamps
+- `startsAtUtc` and `endsAtUtc` in the result are ISO 8601 strings (e.g., "2024-01-15T10:00:00.000Z")
+- The `nowUtc` parameter allows time injection for testing, defaults to current UTC time
+- Timezone is only used for display formatting, never for calculations
 
 ## Files to Update
 
@@ -53,31 +95,48 @@ Frontend (displays pre-calculated data)
 ## Implementation Steps
 
 ### Step 1: Update quiz-scheduling.ts
-Replace `getQuizAvailabilityStatus` to use new service:
+Replace `getQuizAvailabilityStatus` to use new service with typed contract:
 ```typescript
-import { calculateQuizAvailability } from '@/lib/quiz-availability';
+import { 
+  calculateQuizAvailability,
+  type AvailabilityInput,
+  type AvailabilityResult 
+} from '@/lib/quiz-availability';
 
-export function getQuizAvailabilityStatus(quiz: QuizSchedulingInfo) {
-  return calculateQuizAvailability({
-    startTime: getEffectiveStartTime(quiz),
-    timezone: quiz.timezone,
-    duration: quiz.duration,
+export function getQuizAvailabilityStatus(quiz: QuizSchedulingInfo): AvailabilityResult {
+  const input: AvailabilityInput = {
+    startTime: getEffectiveStartTime(quiz), // Must be UTC Date
+    timezone: quiz.timezone,                // IANA timezone string
+    duration: quiz.duration,                // milliseconds
     status: quiz.status,
     isReassignment: false,
     attempted: false
-  });
+  };
+  return calculateQuizAvailability(input);
 }
 ```
 
 ### Step 2: Update API routes
-Ensure consistent field names:
+Ensure consistent field names and use typed result:
 ```typescript
-const availability = calculateQuizAvailability(quizData);
+import type { AvailabilityResult } from '@/lib/quiz-availability';
+
+const availability: AvailabilityResult = calculateQuizAvailability({
+  startTime: quiz.startTime,  // Already UTC from database
+  duration: quiz.duration,
+  timezone: userTimezone,
+  status: quiz.status,
+  // ... other fields
+});
+
+// Return with ISO string timestamps
 return {
   ...quiz,
   availabilityMessage: availability.message,
   availabilityStatus: availability.status,
-  available: availability.available
+  available: availability.available,
+  startsAtUtc: availability.startsAtUtc,  // ISO 8601 string
+  endsAtUtc: availability.endsAtUtc       // ISO 8601 string
 };
 ```
 
