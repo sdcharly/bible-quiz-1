@@ -473,6 +473,75 @@ pool.end();
 - the timezone of the all times saved in database is UTC
 - all timings shown to the user is based on the user's timezone which is converted in the app and presented using functions.
 
+## 🚨 CRITICAL: Timezone Handling - Single Source of Truth (Dec 2024)
+
+**NEVER create new timezone logic. ALWAYS use existing utilities.**
+
+### Database Storage - UTC Only:
+- **ALL times in database MUST be UTC** - No exceptions
+- **startTime, endTime, createdAt, updatedAt** - Always UTC timestamps
+- **When saving**: Convert user's local time to UTC before storing
+- **When querying**: Database times are already UTC, use directly
+
+### Timezone Conversion Functions (USE THESE ONLY):
+```typescript
+// ONLY use these functions from /src/lib/timezone.ts:
+import { 
+  toUserTimezone,      // UTC to user's local time for display
+  toUTC,              // User's local time to UTC for storage
+  getUserTimezone,    // Get user's timezone string
+  formatInTimezone    // Format UTC time in user's timezone
+} from '@/lib/timezone';
+
+// Hook for components:
+import { useTimezone } from '@/hooks/useTimezone';
+```
+
+### Critical Rules:
+1. **NEVER create new date conversion functions** - Use existing ones
+2. **NEVER store local times in database** - Always convert to UTC first
+3. **NEVER display UTC to users** - Always convert to their timezone
+4. **NEVER use Date.parse() for user input** - Use toUTC() instead
+5. **NEVER manipulate timezones manually** - Use the utility functions
+
+### Common Patterns:
+```typescript
+// Saving user-selected time to database:
+const utcTime = toUTC(userSelectedTime, userTimezone);
+await db.update(quiz).set({ startTime: utcTime });
+
+// Displaying time to user:
+const localTime = toUserTimezone(quiz.startTime); // Auto-detects timezone
+const formatted = formatInTimezone(quiz.startTime, 'PPP p');
+
+// Checking if quiz is active:
+const now = new Date(); // JavaScript Date is already UTC internally
+const isActive = now >= quiz.startTime && now <= quiz.endTime;
+```
+
+### Files That Handle Timing:
+- `/src/lib/timezone.ts` - Core timezone utilities (SINGLE SOURCE)
+- `/src/lib/quiz-availability.ts` - Quiz availability checks
+- `/src/lib/quiz-scheduling.ts` - Scheduling logic (uses timezone.ts)
+- `/src/hooks/useTimezone.ts` - React hook for components
+- `/src/components/quiz/SchedulingModal.tsx` - UI for scheduling
+
+### Debugging Timezone Issues:
+- Check `/scripts/verify-timezone-handling.js` - Verifies conversions
+- Check `/docs/technical/TIMEZONE_VERIFICATION_REPORT.md` - Latest audit
+- Use logger.debug() to trace timezone conversions
+- Verify database times are UTC using db:studio
+
+### Common Mistakes to Avoid:
+- ❌ `new Date(userInput)` - Assumes local timezone
+- ❌ `moment(date).tz(timezone)` - We don't use moment.js
+- ❌ Storing formatted dates in database
+- ❌ Comparing local times with UTC times
+- ✅ Use toUTC() for user input
+- ✅ Use toUserTimezone() for display
+- ✅ Store raw UTC timestamps
+- ✅ Compare UTC with UTC
+
 ## 🚨 CRITICAL: Codebase Cleanup Completed (Aug 30, 2025)
 
 ### Component Structure After Cleanup:
