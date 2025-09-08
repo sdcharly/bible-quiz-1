@@ -12,6 +12,10 @@ export async function GET() {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
     checks: {
+      ADMIN_EMAIL: {
+        exists: !!process.env.ADMIN_EMAIL,
+        value: process.env.ADMIN_EMAIL ? `${process.env.ADMIN_EMAIL.substring(0, 3)}...` : "NOT SET"
+      },
       SUPER_ADMIN_EMAIL: {
         exists: !!process.env.SUPER_ADMIN_EMAIL,
         value: process.env.SUPER_ADMIN_EMAIL ? `${process.env.SUPER_ADMIN_EMAIL.substring(0, 3)}...` : "NOT SET"
@@ -37,8 +41,8 @@ export async function GET() {
   };
 
   // Add recommendations
-  if (!envCheck.checks.SUPER_ADMIN_EMAIL.exists) {
-    envCheck.recommendations.push("Set SUPER_ADMIN_EMAIL in your environment variables");
+  if (!envCheck.checks.ADMIN_EMAIL.exists && !envCheck.checks.SUPER_ADMIN_EMAIL.exists) {
+    envCheck.recommendations.push("Set either ADMIN_EMAIL or SUPER_ADMIN_EMAIL in your environment variables");
   }
   
   if (!envCheck.checks.SUPER_ADMIN_PASSWORD.exists && !envCheck.checks.SUPER_ADMIN_PASSWORD_HASH.exists) {
