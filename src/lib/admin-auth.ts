@@ -92,8 +92,8 @@ export async function requireAdminAuth() {
 export async function authenticateSuperAdmin(email: string, password: string): Promise<{ success: boolean; adminId?: string; error?: string }> {
   try {
     // Check if environment variables are properly configured
-    if (!process.env.SUPER_ADMIN_EMAIL) {
-      console.error("SUPER_ADMIN_EMAIL is not configured in environment variables");
+    if (!process.env.SUPER_ADMIN_EMAIL && !process.env.ADMIN_EMAIL) {
+      console.error("Neither SUPER_ADMIN_EMAIL nor ADMIN_EMAIL is configured in environment variables");
       return { success: false, error: "Admin authentication not configured" };
     }
     
@@ -107,8 +107,13 @@ export async function authenticateSuperAdmin(email: string, password: string): P
       return { success: false, error: "Admin authentication not configured" };
     }
     
-    // Check if it's the super admin credentials
-    if (email !== process.env.SUPER_ADMIN_EMAIL) {
+    // Check if it's either of the admin emails
+    const validAdminEmails = [
+      process.env.SUPER_ADMIN_EMAIL,
+      process.env.ADMIN_EMAIL
+    ].filter(Boolean);
+    
+    if (!validAdminEmails.includes(email)) {
       await logActivity(null, "failed_admin_login", "auth", null, { email, reason: "invalid_email" });
       return { success: false, error: "Invalid credentials" };
     }
@@ -133,17 +138,17 @@ export async function authenticateSuperAdmin(email: string, password: string): P
       return { success: false, error: "Invalid credentials" };
     }
 
-    // Check if super admin user exists in database, create if not
+    // Check if admin user exists in database, create if not
     const adminUser = await db.select().from(user).where(eq(user.email, email)).limit(1);
     
     let adminId: string;
     if (adminUser.length === 0) {
-      // Create super admin user
+      // Create admin user
       adminId = uuidv4();
       await db.insert(user).values({
         id: adminId,
-        email: process.env.SUPER_ADMIN_EMAIL!,
-        name: "Super Admin",
+        email: email,
+        name: email === process.env.SUPER_ADMIN_EMAIL ? "Super Admin" : "Admin",
         role: "admin",
         approvalStatus: "approved",
         emailVerified: true,
@@ -161,10 +166,14 @@ export async function authenticateSuperAdmin(email: string, password: string): P
       });
     } else {
       adminId = adminUser[0].id;
-      // Update role to admin if not already
-      if (adminUser[0].role !== "admin") {
+      // Update role to admin and ensure email is verified if not already
+      if (adminUser[0].role !== "admin" || !adminUser[0].emailVerified) {
         await db.update(user)
-          .set({ role: "admin", approvalStatus: "approved" })
+          .set({ 
+            role: "admin", 
+            approvalStatus: "approved",
+            emailVerified: true  // Ensure admin emails are always verified
+          })
           .where(eq(user.id, adminId));
       }
     }
